@@ -57,6 +57,10 @@ bun run packages/proactive-mcp/src/index.ts --today
 # 打开 http://127.0.0.1:8737/today —— 建议、场景、画像、统计一目了然
 ```
 
+![主动中心面板](docs/today-panel.png)
+
+*主动中心面板：待处理建议 + 热点场景 + 记忆统计 + 用户画像（15s 自动刷新）*
+
 **挂载后立刻试**：
 ```
 agent: 以后提交代码前必须先写单元测试再提交
