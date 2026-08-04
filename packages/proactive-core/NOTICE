@@ -1,0 +1,3 @@
+@proactive-agent/core is a standalone MIT-licensed implementation.
+Type definitions are compatible with @proma/shared (AGPL-3.0) interfaces; no
+AGPL implementation code is bundled.

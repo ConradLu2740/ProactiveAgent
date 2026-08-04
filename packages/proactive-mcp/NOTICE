@@ -1,0 +1,8 @@
+This package bundles the following third-party MIT-licensed components:
+
+- @modelcontextprotocol/sdk (https://github.com/modelcontextprotocol/typescript-sdk) — MIT License
+  Copyright (c) 2024 Model Context Protocol
+- zod (https://github.com/colinhacks/zod) — MIT License
+  Copyright (c) 2020 Colin McDonnell
+
+Their license texts are distributed in the respective upstream packages.

@@ -1,0 +1,25 @@
+{
+  "name": "@proactive-agent/core",
+  "version": "0.1.0",
+  "license": "MIT",
+  "description": "ProactiveAgent headless engine: proactive memory (capture/recall/persona/scene) + proactive suggestions. Host-agnostic, zero-dependency bundle.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./memory": "./src/memory/service.ts",
+    "./suggest": "./src/suggest/service.ts",
+    "./paths": "./src/paths.ts",
+    "./provider": "./src/provider.ts",
+    "./memory/*": "./src/memory/*.ts",
+    "./suggest/*": "./src/suggest/*.ts"
+  },
+  "files": ["dist", "README.md", "LICENSE", "NOTICE"],
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test src/memory src/suggest",
+    "build": "bun build src/index.ts --target=node --outfile=dist/index.js"
+  }
+}

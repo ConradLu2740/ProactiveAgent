@@ -1,0 +1,42 @@
+name: Publish ProactiveAgent Packages
+
+# 通过 npm trusted publishing（OIDC）发布，无需 2FA/token
+# 触发：推送 v* 标签（如 v0.1.0）
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+  id-token: write # OIDC token：npm trusted publishing 需要
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build bundles
+        run: bash scripts/publish-proactive.sh --build-only
+
+      - name: Publish @proactive-agent/core
+        working-directory: dist-publish/core
+        run: npm publish --provenance --access public
+
+      - name: Publish @proactive-agent/mcp
+        working-directory: dist-publish/mcp
+        run: npm publish --provenance --access public
+
+      - name: Verify published
+        run: |
+          npm view @proactive-agent/core version
+          npm view @proactive-agent/mcp version
