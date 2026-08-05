@@ -49,23 +49,35 @@
 
 ---
 
-## 快速开始（< 1 分钟）
+## 快速开始（< 1 分钟，无需 clone / 无需 bun）
 
-> ⚠️ npm 包即将上线（Trusted Publishing 流程已就绪，受 npm 政策影响暂缓）。当前从 GitHub 使用。
+> ⚠️ npm 包即将上线（Trusted Publishing 流程已就绪，受 npm 政策影响暂缓）。当前从 GitHub Release 安装，一条命令搞定。
 
-**方式 A：clone 仓库直接用**
+**方式 A（推荐）：npm 直接安装 tarball**
+```bash
+# 在你自己的项目里（或任意目录）
+npm install https://github.com/ConradLu2740/ProactiveAgent/releases/download/v0.1.1/proactive-agent-mcp-0.1.1.tgz
+
+# 一键生成挂载配置（Claude Code / Kimi Code / Cline / Cursor 通用）
+npx proactive-mcp init
+```
+
+> 只需 node >= 18，不需要 bun，不需要 clone 仓库。`init` 会生成指向你本地安装的 `.mcp.json`，零额外依赖。
+
+**或者手动挂载（不装包，直接用远程 bundle）**：
+```bash
+# Claude Code
+claude mcp add proactive-agent -- node <repo>/dist-publish/mcp/dist/index.js
+```
+
+**方式 B：clone 仓库（开发 / 自定义）**
 ```bash
 git clone https://github.com/ConradLu2740/ProactiveAgent.git && cd ProactiveAgent
 bun install
-
-# 一键生成挂载配置（Claude Code / Kimi Code / Cline / Cursor 通用）
 bun run packages/proactive-mcp/src/index.ts init
-
-# 或手动挂载到 Claude Code
-claude mcp add proactive-agent -- bun run $(pwd)/packages/proactive-mcp/src/index.ts
 ```
 
-**方式 B：起一个本地主动中心面板**
+**方式 C：起一个本地主动中心面板**
 ```bash
 bun run packages/proactive-mcp/src/index.ts --today
 # 打开 http://127.0.0.1:8737/today —— 建议、场景、画像、统计一目了然
