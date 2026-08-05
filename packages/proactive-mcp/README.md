@@ -103,20 +103,22 @@ npx proactive-mcp --today
 3. **LLM 配置同源**：apiKey 决定主信任源，baseUrl/model 只从同源取；baseUrl 仅 https（localhost 例外）。
 4. **反馈闭环**：接受建议（correction 类）→ 写入行为纠正 + 回流用户画像；高频忽略 → 类型自动静默。
 
-## 进阶：Claude Code hooks（源码模式，可选）
+## 进阶：Claude Code hooks（会话级主动推送，随发布包内置）
 
-> 发布包（tarball）不含 hooks/ 目录。以下仅适用于从源码 `git clone` 的场景。
+发布包已内置编译好的 hooks（`node_modules/@proactive-agent/mcp/dist/hooks/`），无需 clone 源码。
 
 在 `.claude/settings.json` 添加：
 
 ```json
 {
   "hooks": {
-    "SessionStart": [{ "hooks": [{ "type": "command", "command": "bun run /abs/path/to/packages/proactive-mcp/hooks/today-push.ts" }] }],
-    "Stop": [{ "hooks": [{ "type": "command", "command": "bun run /abs/path/to/packages/proactive-mcp/hooks/session-end.ts" }] }]
+    "SessionStart": [{ "hooks": [{ "type": "command", "command": "node /abs/path/to/node_modules/@proactive-agent/mcp/dist/hooks/today-push.js" }] }],
+    "Stop": [{ "hooks": [{ "type": "command", "command": "node /abs/path/to/node_modules/@proactive-agent/mcp/dist/hooks/session-end.js" }] }]
   }
 }
 ```
+
+> 路径写你实际安装位置的绝对路径。也可以复制 hooks 到项目里再引用。
 
 - **today-push**（SessionStart）：会话开始时注入今日待处理建议/热点场景；无内容则沉默不打扰
 - **session-end**（Stop）：会话结束时从 transcript 提取记忆（默认待确认）+ 评估主动建议

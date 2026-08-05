@@ -15,7 +15,7 @@ set -euo pipefail
 export PATH="$HOME/.bun/bin:$PATH"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PUBLISH_DIR="$ROOT/dist-publish"
-VERSION="0.1.2"
+VERSION="0.1.3"
 LICENSE="${LICENSE:-MIT}"
 
 echo "==> 构建 bundle"
@@ -63,6 +63,11 @@ cat > "$PUBLISH_DIR/mcp/package.json" <<EOF
 }
 EOF
 cp "$ROOT/packages/proactive-mcp/dist/index.js" "$PUBLISH_DIR/mcp/dist/"
+# hooks 编译进发布包（内联 core，node 直接运行；会话级主动推送无需 clone 源码）
+mkdir -p "$PUBLISH_DIR/mcp/dist/hooks"
+(cd "$ROOT/packages/proactive-mcp" && bun run build:hooks 2>/dev/null || echo "  (hooks 编译跳过)")
+cp "$ROOT/packages/proactive-mcp/dist/hooks/today-push.js" "$PUBLISH_DIR/mcp/dist/hooks/" 2>/dev/null || true
+cp "$ROOT/packages/proactive-mcp/dist/hooks/session-end.js" "$PUBLISH_DIR/mcp/dist/hooks/" 2>/dev/null || true
 (cd "$ROOT/packages/proactive-mcp" && bunx tsc --declaration --emitDeclarationOnly --module esnext --moduleResolution bundler --skipLibCheck --downlevelIteration --target es2022 --outDir "$PUBLISH_DIR/mcp/dist" src/index.ts 2>/dev/null || true)
 cp "$ROOT/packages/proactive-mcp/README.md" "$PUBLISH_DIR/mcp/" 2>/dev/null || true
 cp "$ROOT/CHANGELOG.md" "$PUBLISH_DIR/mcp/" 2>/dev/null || true

@@ -23,7 +23,8 @@
     "typecheck": "tsc --noEmit",
     "start": "bun run src/index.ts",
     "test": "bun test src/",
-    "build": "bun build src/index.ts --target=node --banner '#!/usr/bin/env node' --outfile=dist/index.js"
+    "build": "bun build src/index.ts --target=node --banner '#!/usr/bin/env node' --outfile=dist/index.js",
+    "build:hooks": "bun build hooks/today-push.ts --target=node --banner '#!/usr/bin/env node' --outfile=dist/hooks/today-push.js && bun build hooks/session-end.ts --target=node --banner '#!/usr/bin/env node' --outfile=dist/hooks/session-end.js"
   },
   "devDependencies": {
     "@types/bun": "latest",
