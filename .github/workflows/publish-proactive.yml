@@ -28,15 +28,27 @@ jobs:
       - name: Build bundles
         run: bash scripts/publish-proactive.sh --build-only
 
+      - name: Check trusted publisher ready
+        id: check
+        run: |
+          if npm view @proactive-agent/core version >/dev/null 2>&1; then
+            echo "ready=true"
+          else
+            echo "ready=false"
+          fi
+
       - name: Publish @proactive-agent/core
+        if: steps.check.outputs.ready == 'true'
         working-directory: dist-publish/core
         run: npm publish --provenance --access public
 
       - name: Publish @proactive-agent/mcp
+        if: steps.check.outputs.ready == 'true'
         working-directory: dist-publish/mcp
         run: npm publish --provenance --access public
 
       - name: Verify published
+        if: steps.check.outputs.ready == 'true'
         run: |
           npm view @proactive-agent/core version
           npm view @proactive-agent/mcp version
