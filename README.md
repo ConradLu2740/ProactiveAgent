@@ -8,6 +8,20 @@
 
 ---
 
+## 🎬 验证故事（30 秒看懂它做了什么）
+
+> 所有内容均为 2026-08-05 真实运行输出，不是演示动画：Claude Code 写入记忆 → Kimi Code 直接召回（100% 命中）；行为纠正 / 周期需求 → 主动建议命中并接受。
+
+**👉 打开交互式演示页：[docs/story.html](docs/story.html)**（浏览器直接打开即可）
+
+| 场景 | 实测结果 |
+|---|---|
+| 跨工具共享 | Claude Code `memory_capture` 写入 → Kimi Code `memory_recall` 检索命中（相关度 100%，零配置） |
+| 主动建议：纠正 | 「以后提交前先写单元测试」→ `suggest_now` 识别 correction 建议 → `suggest_accept` 接受 → 反馈回流 |
+| 主动建议：自动化 | 「每天下午 5 点检查项目进展」→ `suggest_now` 识别 automation 建议 → 接受进入调度 |
+
+---
+
 ## 为什么值得用
 
 ### 🎯 记忆是「用户级资产」，不是「工具级资产」
