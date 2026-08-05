@@ -5,7 +5,7 @@
  * 等宿主直接识别挂载 ProactiveAgent MCP server。
  *
  * 用法：
- *   proactive-mcp init            # 发布后：npx 方式（npx -y @proactive-agent/mcp）
+ *   proactive-mcp init            # 已安装模式：指向当前 bundle 自身（node <installed>/dist/index.js）
  *   proactive-mcp init --local    # 开发中：本地源码路径（bun run <repo>/src/index.ts）
  *   proactive-mcp init --kimi     # 同时写入 Kimi 专属 ~/.kimi-code/mcp.json（需确认覆盖）
  *
@@ -13,11 +13,19 @@
  */
 
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { join, resolve } from 'node:path'
 
 const SERVER_NAME = 'proactive-agent'
 
-/** 构建 server 配置 */
+/**
+ * 构建 server 配置。
+ *
+ * 三种模式：
+ *  - local:       `--local`，开发中指向仓库源码（bun run <repo>/src/index.ts）
+ *  - installed:   默认（从 npm tarball / npm 包安装后），指向当前 bundle 自身（node <self>/dist/index.js），
+ *                 不依赖 bun、不依赖未发布的 npm 包引用
+ */
 function buildServerConfig(local: boolean): Record<string, unknown> {
   if (local) {
     // 本地模式：指向当前仓库的入口（发布前验证用）
@@ -28,10 +36,12 @@ function buildServerConfig(local: boolean): Record<string, unknown> {
       args: ['run', entry],
     }
   }
-  // 发布模式：npx 直接跑 npm 包
+  // 已安装模式：从 dist bundle 的自身位置推断 server 入口。
+  // 无论全局安装还是项目级安装，import.meta.url 都指向真实安装路径。
+  const self = fileURLToPath(import.meta.url)
   return {
-    command: 'npx',
-    args: ['-y', '@proactive-agent/mcp'],
+    command: 'node',
+    args: [self],
   }
 }
 

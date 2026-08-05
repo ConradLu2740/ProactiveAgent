@@ -20,6 +20,6 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "bun test src/memory src/suggest",
-    "build": "bun build src/index.ts --target=node --outfile=dist/index.js"
+    "build": "bun build src/index.ts --target=node --banner '#!/usr/bin/env node' --outfile=dist/index.js"
   }
 }
