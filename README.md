@@ -56,7 +56,7 @@
 **方式 A（推荐）：npm 直接安装 tarball**
 ```bash
 # 在你自己的项目里（或任意目录）
-npm install https://github.com/ConradLu2740/ProactiveAgent/releases/download/v0.1.1/proactive-agent-mcp-0.1.1.tgz
+npm install https://github.com/ConradLu2740/ProactiveAgent/releases/download/v0.1.2/proactive-agent-mcp-0.1.2.tgz
 
 # 一键生成挂载配置（Claude Code / Kimi Code / Cline / Cursor 通用）
 npx proactive-mcp init
