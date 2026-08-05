@@ -48,7 +48,7 @@ import type {
   MemoryStats,
   PersonaProfile,
   SceneBlock,
-} from '@proma/shared'
+} from '../shared-types'
 
 /** 记忆索引文件格式 */
 interface MemoryIndex {

@@ -36,10 +36,16 @@ export function buildOnboardingText(): string {
 
 本会话挂载了 ProactiveAgent（主动记忆 + 主动建议）MCP Server。请遵守以下约定：
 
+## 首次使用 4 步（照做即可，无需额外配置）
+1. 正常开始工作即可——记忆是后台能力，不会打扰你。
+2. 当用户说出"记住…""以后要…""我偏好…"等时，调用 memory_capture 立即沉淀。
+3. 开始重要任务前，用 memory_recall 检索相关历史记忆；空结果是正常的（说明还没有相关记忆，不代表配置错误）。
+4. 阶段性收尾时，调用 suggest_now 看是否有值得提的建议；有建议时先展示给用户，用户同意后再接受。
+
 ## 记忆
 - 用户明确说"记住/以后要/我偏好/别再用"等时，调用 memory_capture 立即沉淀（type 选 preference/correction/fact 等）。
 - 开始重要任务前，用 memory_recall 检索相关历史记忆，注入上下文；可用 persona_get 读取用户画像。
-- 会话结束时，可调用 memory_extract 把本段对话交给引擎提取（提取结果默认待确认，需要用户确认才生效，不要自己批量确认）。
+- 会话结束时，可调用 memory_extract 把本段对话交给引擎提取（提取结果默认待确认，用 memory_pending 查看、memory_confirm 确认或 memory_reject 拒绝，不要自己批量确认）。
 - 自动提取的记忆若明显错误或无关，用 memory_reject 拒绝。
 
 ## 建议

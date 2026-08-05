@@ -37,7 +37,7 @@ import type {
   SuggestionRecord,
   SuggestionStats,
   SuggestionFeedback,
-} from '@proma/shared'
+} from '../shared-types'
 
 // ===== 基础状态 =====
 

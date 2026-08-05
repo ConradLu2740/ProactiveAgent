@@ -20,7 +20,7 @@ import {
 } from './feedback'
 import { defaultTypeWeights } from './engine'
 import type { SuggestionsIndex } from './types'
-import type { SuggestionCandidate } from '@proma/shared'
+import type { SuggestionCandidate } from '../shared-types'
 
 function makeCandidate(overrides: Partial<SuggestionCandidate> = {}): SuggestionCandidate {
   return {

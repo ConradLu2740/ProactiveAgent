@@ -212,7 +212,18 @@ export function registerTools(server: McpServer): void {
     },
     async ({ limit }) => {
       const summary = memoryService.hotScenesSummary(limit)
-      return summary ? text(summary) : text('暂无热点场景。')
+      if (!summary) return text('暂无热点场景。')
+      // 人话化：heat 是近 7 天该场景相关记忆出现次数，atoms 是该场景关联记忆条数
+      const lines = summary
+        .split('\n')
+        .filter((l) => l.trim())
+        .map((l) => {
+          const m = l.match(/^- \[(.*?)\] heat=(\d+) atoms=(\d+)$/)
+          if (!m) return l
+          const title = m[1].trim().length > 40 ? m[1].trim().slice(0, 38) + '…' : m[1].trim()
+          return `- ${title}（近 7 天出现 ${m[2]} 次，关联 ${m[3]} 条记忆）`
+        })
+      return text(`近期热点场景（${lines.length} 个）：\n` + lines.join('\n'))
     },
   )
 
@@ -225,7 +236,26 @@ export function registerTools(server: McpServer): void {
     },
     async () => {
       const s = memoryService.stats()
-      return text(safeJson(s))
+      const parts: string[] = [`共 ${s.atomCount} 条记忆`]
+      const byType = s.byType as Record<string, number>
+      const typeLabels: Record<string, string> = {
+        preference: '偏好',
+        fact: '事实',
+        correction: '行为纠正',
+        sop: '流程',
+        todo_context: '待办上下文',
+        event: '事件',
+      }
+      const typeSummary = Object.entries(byType)
+        .filter(([, n]) => (n as number) > 0)
+        .map(([k, n]) => `${typeLabels[k] ?? k} ${n}`)
+      if (typeSummary.length) parts.push(typeSummary.join('、'))
+      parts.push(s.sceneCount > 0 ? `热点场景 ${s.sceneCount} 个` : '暂无热点场景')
+      const pendingTotal = (s.pendingAtoms ?? 0) + (s.pendingCorrections ?? 0)
+      parts.push(pendingTotal > 0 ? `待确认 ${pendingTotal} 条` : '无待确认')
+      parts.push(s.personaExists ? '画像已生成' : '画像未生成')
+      const oneLine = parts.join(' · ')
+      return text(`${oneLine}\n详情（JSON）：${safeJson(s)}`)
     },
   )
 

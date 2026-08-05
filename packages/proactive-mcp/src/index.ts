@@ -11,6 +11,7 @@
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
+import os from 'node:os'
 import { registerTools } from './tools'
 import { registerResources } from './resources'
 import { registerPrompts } from './prompts'
@@ -31,6 +32,23 @@ export function createServer(): McpServer {
 
 async function main(): Promise<void> {
   const argv = process.argv.slice(2)
+  // --help / --version：探路入口（不进入 stdio MCP）
+  if (argv.includes('--help') || argv.includes('-h')) {
+    console.log(`ProactiveAgent MCP Server
+
+用法:
+  proactive-mcp                # 以 stdio 方式启动 MCP server（供 agent 挂载）
+  proactive-mcp init           # 一键生成 .mcp.json 挂载配置（可选 --local / --kimi / --force）
+  proactive-mcp --today        # 启动本地主动中心 Web 面板（端口 PROACTIVE_TODAY_PORT，默认 8737）
+
+数据目录: 默认 ~/.proma-proactive/，可用 PROACTIVE_DATA_DIR（或 PROMA_MEMORY_DIR）覆盖
+更多: https://github.com/ConradLu2740/ProactiveAgent`)
+    return
+  }
+  if (argv.includes('--version') || argv.includes('-v')) {
+    console.log('0.2.0')
+    return
+  }
   // init：一键生成挂载配置
   if (argv.includes('init')) {
     runInit(argv)
@@ -39,7 +57,7 @@ async function main(): Promise<void> {
   // --today：启动本地主动中心 Web 面板（不进入 stdio MCP）
   if (argv.includes('--today')) {
     const port = Number(process.env.PROACTIVE_TODAY_PORT ?? 8737)
-    startTodayServer(port)
+    await startTodayServer(port)
     return
   }
   const server = createServer()
@@ -47,9 +65,9 @@ async function main(): Promise<void> {
   await server.connect(transport)
   // 启动成功提示（stderr，避免污染 stdio 协议）
   console.error('[proactive-mcp] ProactiveAgent MCP server 已启动')
-  console.error(
-    `[proactive-mcp] 数据目录: ${process.env.PROACTIVE_DATA_DIR || process.env.PROMA_MEMORY_DIR || '~/.proma-proactive/'}`,
-  )
+  const dataDir = process.env.PROACTIVE_DATA_DIR || process.env.PROMA_MEMORY_DIR || '~/.proma-proactive/'
+  const expanded = dataDir.startsWith('~') ? dataDir.replace(/^~/, os.homedir()) : dataDir
+  console.error(`[proactive-mcp] 数据目录: ${expanded}`)
 }
 
 main().catch((error) => {

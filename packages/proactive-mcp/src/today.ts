@@ -200,6 +200,16 @@ export function startTodayServer(port = 8737): Server {
       res.end(`主动中心生成失败: ${error instanceof Error ? error.message : String(error)}`)
     }
   })
+  server.once('error', (err: NodeJS.ErrnoException) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`[proactive-mcp] ⚠️ 端口 ${port} 已被占用。`)
+      console.error(`  可能已有另一个主动中心在运行（可能是旧实例/其他项目）。`)
+      console.error(`  可用环境变量换端口：PROACTIVE_TODAY_PORT=8739 proactive-mcp --today`)
+      process.exit(1)
+    } else {
+      throw err
+    }
+  })
   server.listen(port, '127.0.0.1')
   console.error(`[proactive-mcp] 主动中心已启动: http://127.0.0.1:${port}/today`)
   return server

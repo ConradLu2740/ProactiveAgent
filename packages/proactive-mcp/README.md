@@ -2,7 +2,24 @@
 
 ProactiveAgent 的 MCP Server：把主动记忆（proactive memory）+ 主动建议（proactive suggestions）能力以标准 MCP 协议暴露给**任何支持 MCP 的 agent 项目**。
 
-即插即用，无需修改宿主代码。
+即插即用，无需修改宿主代码。只需 **node >= 18**，不需要 bun。
+
+## 安装（一条命令）
+
+```bash
+# 在你自己的项目里（或任意目录）
+npm install https://github.com/ConradLu2740/ProactiveAgent/releases/download/v0.1.1/proactive-agent-mcp-0.1.1.tgz
+
+# 一键生成挂载配置（Claude Code / Kimi Code / Cline / Cursor 通用）
+npx proactive-mcp init
+```
+
+`init` 会在当前目录生成 `.mcp.json`，指向你本地安装的 bundle（零依赖、零编译）。然后直接打开你的 agent 即可使用。
+
+> 手动挂载（不装包，直接用 GitHub Release bundle）：
+> ```bash
+> claude mcp add proactive-agent -- node /abs/path/to/dist/index.js
+> ```
 
 ## 能力一览
 
@@ -19,8 +36,7 @@ ProactiveAgent 的 MCP Server：把主动记忆（proactive memory）+ 主动建
 | `memory_stats` | 记忆统计 |
 | `suggest_now` | 评估会话是否值得给建议（该沉默时沉默） |
 | `suggest_list` / `suggest_accept` / `suggest_ignore` | 建议反馈闭环（频率学习） |
-| `daily_review` | 每日复盘模板（模板能力，见下方 Prompts） |
-| `onboarding_guide` | ProactiveAgent 使用说明（模板能力，见下方 Prompts） |
+| `daily_review` / `onboarding_guide` | 每日复盘模板 / 使用说明（模板能力，见下方 Prompts） |
 
 **Resources（只读）**
 - `memory://today`：今日建议 + 热点场景
@@ -34,77 +50,30 @@ ProactiveAgent 的 MCP Server：把主动记忆（proactive memory）+ 主动建
 > **宿主兼容说明**：MCP 的 Prompts/Resources 不是所有宿主都消费（如 Kimi Code 只支持 Tools）。
 > 因此模板能力已**同时暴露为 Tools**（`daily_review` / `onboarding_guide`），保证任何宿主都能用。
 
-## 主动推送（Phase 3）
+## 快速上手
 
-### /today Web 面板
+```bash
+npx proactive-mcp init   # 生成 .mcp.json
+```
+
+然后在 agent 里试试：
+
+```
+agent: 以后提交代码前必须先写单元测试再提交
+→ suggest_now 识别为 correction 建议，你接受后写入长期记忆（所有 agent 都遵守）
+
+agent: 我偏好用 TypeScript
+→ memory_capture 记住（下次任何工具都记得）
+```
+
+## /today Web 面板
+
 本地主动中心摘要页，任何宿主都能打开浏览器查看：
 
 ```bash
-bun run packages/proactive-mcp/src/index.ts --today
+npx proactive-mcp --today
 # 打开 http://127.0.0.1:8737/today  （API: /api/today，端口用 PROACTIVE_TODAY_PORT 改）
 ```
-
-### Claude Code hooks（会话级主动推送）
-在 `.claude/settings.json` 添加：
-
-```json
-{
-  "hooks": {
-    "SessionStart": [{ "hooks": [{ "type": "command", "command": "bun run /abs/path/to/packages/proactive-mcp/hooks/today-push.ts" }] }],
-    "Stop": [{ "hooks": [{ "type": "command", "command": "bun run /abs/path/to/packages/proactive-mcp/hooks/session-end.ts" }] }]
-  }
-}
-```
-
-- **today-push**（SessionStart）：会话开始时注入今日待处理建议/热点场景；无内容则沉默不打扰
-- **session-end**（Stop）：会话结束时从 transcript 提取记忆（默认待确认）+ 评估主动建议
-
-## 安装与挂载
-
-### 环境要求
-- [bun](https://bun.sh)（运行 server）
-- LLM 提取可选：设置 `MEMORY_LLM_API_KEY` / `MEMORY_LLM_BASE_URL` / `MEMORY_LLM_MODEL`（OpenAI 兼容）。未配置时自动降级规则模式（零外发）。
-
-### Claude Code
-
-```bash
-claude mcp add proactive-agent -- \
-  bun run /path/to/@proactive-agent/mcp/src/index.ts
-```
-
-或项目级 `.mcp.json`：
-
-```json
-{
-  "mcpServers": {
-    "proactive-agent": {
-      "command": "bun",
-      "args": ["run", "/path/to/@proactive-agent/mcp/src/index.ts"]
-    }
-  }
-}
-```
-
-### Cline（VS Code 扩展）
-
-Cline → 设置 → MCP Servers → 添加：
-
-```json
-{
-  "mcpServers": {
-    "proactive-agent": {
-      "command": "bun",
-      "args": ["run", "/path/to/@proactive-agent/mcp/src/index.ts"]
-    }
-  }
-}
-```
-
-### 其他 MCP agent（Cursor / Windsurf / Zed / VS Code Copilot / Kimi Code 等）
-
-同样添加一个 stdio server，command 指向上面的启动命令即可。
-
-**Kimi Code 实测**（0.31.1）：`.mcp.json` 与 Claude Code 完全同构零改动；13+2 个工具全部识别；`-p` 非交互模式直接执行（无需额外授权）。注意 Kimi 不消费 MCP Resources/Prompts——模板能力用 `daily_review` / `onboarding_guide` 工具代替。
 
 ## 数据位置
 
@@ -134,9 +103,29 @@ Cline → 设置 → MCP Servers → 添加：
 3. **LLM 配置同源**：apiKey 决定主信任源，baseUrl/model 只从同源取；baseUrl 仅 https（localhost 例外）。
 4. **反馈闭环**：接受建议（correction 类）→ 写入行为纠正 + 回流用户画像；高频忽略 → 类型自动静默。
 
+## 进阶：Claude Code hooks（源码模式，可选）
+
+> 发布包（tarball）不含 hooks/ 目录。以下仅适用于从源码 `git clone` 的场景。
+
+在 `.claude/settings.json` 添加：
+
+```json
+{
+  "hooks": {
+    "SessionStart": [{ "hooks": [{ "type": "command", "command": "bun run /abs/path/to/packages/proactive-mcp/hooks/today-push.ts" }] }],
+    "Stop": [{ "hooks": [{ "type": "command", "command": "bun run /abs/path/to/packages/proactive-mcp/hooks/session-end.ts" }] }]
+  }
+}
+```
+
+- **today-push**（SessionStart）：会话开始时注入今日待处理建议/热点场景；无内容则沉默不打扰
+- **session-end**（Stop）：会话结束时从 transcript 提取记忆（默认待确认）+ 评估主动建议
+
 ## 开发
 
 ```bash
+git clone https://github.com/ConradLu2740/ProactiveAgent.git && cd ProactiveAgent
+bun install
 bun test src/server.test.ts          # 端到端冒烟（in-memory transport）
 bun run scripts/verify-stdio.ts      # stdio 级验证（模拟真实挂载）
 bun run typecheck
@@ -144,4 +133,4 @@ bun run typecheck
 
 ## License
 
-AGPL-3.0-only
+MIT

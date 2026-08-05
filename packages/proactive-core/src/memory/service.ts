@@ -53,7 +53,7 @@ import type {
   MemorySearchResult,
   MemoryStats,
   PersonaProfile,
-} from '@proma/shared'
+} from '../shared-types'
 
 // ===== 基础状态 =====
 
@@ -266,7 +266,7 @@ export function pendingAtoms() {
 export function atomsPaged(opts: {
   page?: number
   pageSize?: number
-  type?: import('@proma/shared').MemoryAtomType | 'all'
+  type?: import('../shared-types').MemoryAtomType | 'all'
   sort?: 'newest' | 'priority'
   confirmed?: boolean
 } = {}) {

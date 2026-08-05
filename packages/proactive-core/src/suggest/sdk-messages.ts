@@ -9,7 +9,7 @@
  * 读取会话，并提取 user/assistant 的纯文本消息，供记忆捕获 / 建议引擎使用。
  */
 
-import type { SDKMessage } from '@proma/shared'
+import type { SDKMessage } from '../shared-types'
 
 /** 从 SDK 内容块中提取纯文本 */
 export function sdkBlockText(block: unknown): string {

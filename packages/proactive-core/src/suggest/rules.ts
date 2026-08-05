@@ -12,7 +12,7 @@
  */
 
 import type { RuleContext, RuleMatch } from './types'
-import type { SuggestionCandidate } from '@proma/shared'
+import type { SuggestionCandidate } from '../shared-types'
 import { extractSignals, normalizeRule, isMeaningfulRule, type Signal } from './signals'
 
 /** SOP 候选数量阈值：达到后建议沉淀为 Skill */
@@ -52,7 +52,7 @@ function signalToCandidate(signal: Signal, ctx: RuleContext): RuleMatch | undefi
           duplicateKey: `correction:${rule.slice(0, 30)}`,
           kind: 'correction',
           title: '记住这个纠正',
-          reason: '你刚刚纠正了 Proma 的行为，建议把这条规则写入长期记忆，以后不再犯同样的错。',
+          reason: '你刚刚纠正了助手的行为，建议把这条规则写入长期记忆，以后不再犯同样的错。',
           evidence: signal.raw,
           rawConfidence: signal.confidence,
           action: {
@@ -95,7 +95,7 @@ function signalToCandidate(signal: Signal, ctx: RuleContext): RuleMatch | undefi
           duplicateKey: `automation:${title}`,
           kind: 'automation',
           title: '开启定时任务',
-          reason: '你表达的是周期性/长期关注的需求，建议创建一个定时任务，让 Proma 无人值守地自动处理。',
+          reason: '你表达的是周期性/长期关注的需求，建议创建一个定时任务，让助手无人值守地自动处理。',
           evidence: signal.raw,
           rawConfidence: signal.confidence,
           action: {
@@ -144,7 +144,7 @@ function signalToCandidate(signal: Signal, ctx: RuleContext): RuleMatch | undefi
           action: {
             type: 'open_todo_create',
             title: signal.raw.slice(0, 120),
-            notes: '由 Proma 主动建议创建；请确认内容和截止时间。',
+            notes: '由 ProactiveAgent 主动建议创建；请确认内容和截止时间。',
           },
         },
       }

@@ -3,7 +3,7 @@
  */
 
 import { describe, expect, test } from 'bun:test'
-import type { MemoryAtom } from '@proma/shared'
+import type { MemoryAtom } from '../shared-types'
 import { atomTopicTerms, clusterAtomsToScenes, sceneHeat, SCENE_MERGE_MIN_SHARED } from '../memory/scene'
 
 function makeAtom(partial: Partial<MemoryAtom> & { content: string; type?: MemoryAtom['type'] }): MemoryAtom {

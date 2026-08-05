@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { sdkBlockText, sdkMessageText, extractRecentConversationText } from './sdk-messages'
-import type { SDKMessage } from '@proma/shared'
+import type { SDKMessage } from '../shared-types'
 
 describe('suggest/sdk-messages: 块文本提取', () => {
   test('text 块提取文本', () => {

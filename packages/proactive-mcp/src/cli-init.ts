@@ -116,5 +116,5 @@ export function runInit(args: string[]): void {
   console.log('  1. 在支持 MCP 的 agent（Claude Code / Kimi Code / Cline / Cursor）中启动会话')
   console.log('  2. 数据默认存 ~/.proma-proactive/（用户级一份共享），用 PROACTIVE_DATA_DIR 可改')
   console.log('  3. 试试 memory_capture / memory_recall / suggest_now，或打开 http://127.0.0.1:8737/today')
-  console.log('  更多：https://github.com/proma-ai/Proma (ProactiveAgent)')
+  console.log('  更多：https://github.com/ConradLu2740/ProactiveAgent')
 }

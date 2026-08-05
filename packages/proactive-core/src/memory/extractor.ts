@@ -15,7 +15,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { homedir } from 'node:os'
 import { getConfigDir } from '../paths'
-import type { MemoryCandidate } from '@proma/shared'
+import type { MemoryCandidate } from '../shared-types'
 
 // ===== 配置 =====
 

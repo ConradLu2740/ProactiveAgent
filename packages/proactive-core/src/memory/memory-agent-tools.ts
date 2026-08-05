@@ -17,7 +17,7 @@ import {
   rejectCorrection,
 } from './service'
 import { runAnalysisAndPersist } from '../suggest/service'
-import type { MemoryAtomType } from '@proma/shared'
+import type { MemoryAtomType } from '../shared-types'
 
 interface MemoryAgentToolContext {
   sessionId: string

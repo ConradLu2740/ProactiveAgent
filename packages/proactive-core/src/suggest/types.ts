@@ -6,7 +6,7 @@ import type {
   SuggestionCandidate,
   SuggestionKind,
   SuggestionRecord,
-} from '@proma/shared'
+} from '../shared-types'
 
 /** 频率学习权重：每个建议类型一个权重（0.2~2.0，初始 1.0） */
 export interface SuggestionTypeWeights {

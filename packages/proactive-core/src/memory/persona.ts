@@ -14,7 +14,7 @@
 
 import { callLlm } from './extractor'
 import { readAllAtoms, readPersonaRaw } from './store'
-import type { MemoryAtom } from '@proma/shared'
+import type { MemoryAtom } from '../shared-types'
 
 // ===== Prompt =====
 

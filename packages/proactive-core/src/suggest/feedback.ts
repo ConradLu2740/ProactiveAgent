@@ -20,7 +20,7 @@ import type {
   SuggestionFeedback,
   SuggestionKind,
   SuggestionRecord,
-} from '@proma/shared'
+} from '../shared-types'
 import { defaultTypeWeights } from './engine'
 
 const INDEX_VERSION = 1

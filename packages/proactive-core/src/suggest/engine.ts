@@ -21,7 +21,7 @@ import type {
   SuggestionEvaluationResult,
   SuggestionKind,
   SuggestionRecord,
-} from '@proma/shared'
+} from '../shared-types'
 import { applyRules, buildSkillCandidate } from './rules'
 import { NEGATIVE_PATTERNS, hasStrongSignal } from './signals'
 

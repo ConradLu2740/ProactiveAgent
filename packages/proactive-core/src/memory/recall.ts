@@ -10,7 +10,7 @@
  * 召回预算：默认最多 5 条，超长内容截断；防止上下文膨胀。
  */
 
-import type { MemoryAtom, MemorySearchHit, MemorySearchRequest, MemorySearchResult } from '@proma/shared'
+import type { MemoryAtom, MemorySearchHit, MemorySearchRequest, MemorySearchResult } from '../shared-types'
 import { readAllAtoms, isDuplicate } from './store'
 import { getEmbeddingProvider, cosineSimilarity } from './embedding'
 import { rewriteQuery } from './query-rewriter'

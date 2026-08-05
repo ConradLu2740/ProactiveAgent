@@ -16,7 +16,7 @@
 import { callLlm, isMemoryLlmConfigured } from '../memory/extractor'
 import { recentAtoms, persona, corrections as memoryCorrections, hotScenesSummary } from '../memory/service'
 import { getAutomationTitles } from '../provider'
-import type { SuggestionCandidate, SuggestionKind } from '@proma/shared'
+import type { SuggestionCandidate, SuggestionKind } from '../shared-types'
 
 /** 分析器允许产出的建议类型（保守：只产出规则引擎也能处理、有明确动作的类型） */
 const ALLOWED_KINDS: SuggestionKind[] = ['automation', 'skill', 'todo']

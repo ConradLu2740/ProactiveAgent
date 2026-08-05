@@ -16,7 +16,7 @@
  */
 
 import { randomUUID } from 'node:crypto'
-import type { MemoryAtom, SceneBlock } from '@proma/shared'
+import type { MemoryAtom, SceneBlock } from '../shared-types'
 import { readAllAtoms, writeSceneBlock, readAllScenes } from './store'
 import { tokenize, timeDecay } from './recall'
 import { getSuppressedSuggestionKeys } from '../suggest/service'
