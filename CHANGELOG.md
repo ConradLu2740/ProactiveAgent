@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.5.1 (2026-08-06)
+
+「评审修复」批次：0.5.0 重评估发现问题的修补。
+
+### 修复
+
+- **Kimi hooks 安装文档改 TOML**（P0-1）：Kimi Code 实际配置是 `~/.kimi-code/config.toml` 的 `[[hooks]]` 数组（event/matcher/command/timeout），不是 JSON；修正 hook 注释与 README 安装说明
+- **CI 加测试门禁**（P0-2）：publish workflow 在 build 前跑 `bun test` + typecheck，防发布前不验证
+- **suggest_now 暴露 trigger 参数**（P1-1）：支持 session_end（默认）/ session_mid（强信号才推）/ manual，转发 evaluateNow
+
+### 文档
+
+- README FAQ 增加 M9 性能边界说明（记忆上万条后 recall 全量扫描，建议索引化）
+
 ## 0.5.0 (2026-08-06)
 
 「主动推送闭环」批次：建议从"等用户来看"升级为"送到用户面前"。
