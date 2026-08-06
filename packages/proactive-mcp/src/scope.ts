@@ -6,14 +6,14 @@
  * - 读取工具（recall/persona/stats）：'auto' | 'project' | 'global'（默认 auto=双层合并）
  */
 
-import { isSingleLayerMode } from '@proactive-agent/core'
+import { isSingleLayerMode, isEscapeGlobal } from '@proactive-agent/core'
 
 export type WriteScope = 'project' | 'global'
 export type ReadScope = 'auto' | 'project' | 'global'
 
-/** 写入层归一化：非法值回退 project；单层模式强制 project（写 PROMA_MEMORY_DIR） */
+/** 写入层归一化：非法值回退 project；单层/逃生模式强制 project（写 configDir/memory） */
 export function normalizeWriteScope(v: unknown): WriteScope {
-  if (isSingleLayerMode()) return 'project'
+  if (isSingleLayerMode() || isEscapeGlobal()) return 'project'
   return v === 'global' ? 'global' : 'project'
 }
 

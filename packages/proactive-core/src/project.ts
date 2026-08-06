@@ -108,9 +108,17 @@ export function normalizeGitRemote(url: string): string | undefined {
   return `${host}-${path}`
 }
 
-/** 清理 key 段（不可读字符替换） */
+/** 清理 key 段（不可读字符替换）。🔴#5 修复：非 ASCII 全变 '-' 会碰撞 → 中文等用编码，保留可读前缀 */
 export function sanitizeKeyPart(s: string): string {
-  return s.replace(/[^a-zA-Z0-9._-]/g, '-').replace(/-+/g, '-').slice(0, 60)
+  const ascii = s.replace(/[^a-zA-Z0-9._-]/g, '-')
+  const hasNonAscii = ascii !== s || /[\u0080-\uFFFF]/.test(s)
+  // 纯 ASCII 直接清理
+  if (!hasNonAscii) {
+    return ascii.replace(/-+/g, '-').slice(0, 60)
+  }
+  // 含非 ASCII（中文/emoji 等）：取可读 ascii 前缀 + 内容 hash，避免 '中文项目一'/'中文项目二' 都变 '-'
+  const prefix = ascii.replace(/-+/g, '-').slice(0, 40) || 'non-ascii'
+  return `${prefix}-${sha256Hex(s).slice(0, 8)}`.slice(0, 60)
 }
 
 function sha256Hex(input: string): string {
@@ -305,19 +313,38 @@ export function currentLayerKey(): string {
 export function migrateLegacyData(): MigrationResult {
   const root = configDir()
   const top = readTopIndex()
-  if (top?.schemaVersion === 2) return { status: 'already-v2' }
+  const oldMemory = join(root, 'memory')
+  const oldSuggestions = join(root, 'suggestions.json')
+  const oldSuggestionsBackup = join(root, 'suggestions.json.bak')
+  const hasOld = existsSync(oldMemory) || existsSync(oldSuggestions)
 
-  // 迁移 lock：防多进程竞争（对抗审查 2.3/8 修正）
+  // 幂等判断（修复 🔴#1：不能只查 schemaVersion——doctor/stats 先跑会 ensureTopIndex 写成 v2 但没迁数据）
+  if (top?.schemaVersion === 2 && !hasOld) {
+    return { status: 'already-v2' }
+  }
+  if (top?.schemaVersion === 2 && hasOld) {
+    // v2 标记但旧数据仍残留（此前被 ensureTopIndex 抢先写过 v2）：继续迁移
+    return doMigrate(root, oldMemory, oldSuggestions, oldSuggestionsBackup)
+  }
+  if (top?.schemaVersion === undefined && !hasOld) {
+    ensureTopIndex()
+    return { status: 'nothing-to-do' }
+  }
+  // 有旧数据：执行迁移（含 lock 保护）
+  return doMigrate(root, oldMemory, oldSuggestions, oldSuggestionsBackup)
+}
+
+/** 实际执行迁移（带 lockfile 防多进程竞争） */
+function doMigrate(
+  root: string,
+  oldMemory: string,
+  oldSuggestions: string,
+  oldSuggestionsBackup: string,
+): MigrationResult {
+  // 迁移 lock：防多进程竞争
   const lockPath = join(root, '.migration.lock')
   if (existsSync(lockPath)) {
     return { status: 'failed', detail: `存在迁移锁 ${lockPath}（另一进程迁移中），跳过` }
-  }
-  const oldMemory = join(root, 'memory')
-  const oldSuggestions = join(root, 'suggestions.json')
-  const hasOld = existsSync(oldMemory) || existsSync(oldSuggestions)
-  if (!hasOld) {
-    ensureTopIndex()
-    return { status: 'nothing-to-do' }
   }
 
   // 写锁
@@ -327,8 +354,9 @@ export function migrateLegacyData(): MigrationResult {
     const movedFiles: string[] = []
     // 存在即迁（对抗审查 2.1 修正：含 .bak）
     const candidates = [
-      ['memory', join(root, 'memory'), join(root, 'global', 'memory')],
+      ['memory', oldMemory, join(root, 'global', 'memory')],
       ['suggestions.json', oldSuggestions, join(root, 'global', 'suggestions.json')],
+      ['suggestions.json.bak', oldSuggestionsBackup, join(root, 'global', 'suggestions.json.bak')],
     ]
     for (const [label, from, to] of candidates) {
       if (existsSync(from)) {
@@ -377,22 +405,22 @@ export function mergeProjectsToGlobal(opts: { preview?: boolean; project?: strin
   for (const key of keys) {
     const projMemory = join(projectsRoot, key, 'memory')
     const projSuggestions = join(projectsRoot, key, 'suggestions.json')
-    const globalMemory = join(getGlobalDir(), 'memory')
+    const globalDir = getGlobalDir()
+    const globalMemory = join(globalDir, 'memory')
     if (existsSync(projMemory) || existsSync(projSuggestions)) {
       items.push(key)
       if (!opts.preview) {
-        mkdirSync(globalMemory, { recursive: true })
-        if (existsSync(projMemory) && !existsSync(join(globalMemory))) {
-          try {
-            renameSync(projMemory, globalMemory)
-          } catch (error) {
-            // 目标已存在/跨设备：无法原子合并，标记跳过（文档说明主通道是 merge 工具）
-            items.push(`${key} (memory 合并跳过: 目标已存在，用 migrate --merge-to-global 数据侧处理)`)
-          }
+        // 🔴#2 修复：mkdir 先于 exists 判断导致 memory 永不移动 → 改为目录级数据合并
+        // memory 目录：把项目层 atoms 按 fingerprint 去重后追加进 global
+        try {
+          mergeMemoryInto(projMemory, globalMemory)
+        } catch (error) {
+          items.push(`${key} (memory 合并失败: ${error instanceof Error ? error.message : String(error)})`)
         }
-        if (existsSync(projSuggestions) && !existsSync(join(getGlobalDir(), 'suggestions.json'))) {
+        // suggestions.json：目标不存在才 move（简单合并，避免覆盖用户已迁移数据）
+        if (existsSync(projSuggestions) && !existsSync(join(globalDir, 'suggestions.json'))) {
           try {
-            renameSync(projSuggestions, join(getGlobalDir(), 'suggestions.json'))
+            renameSync(projSuggestions, join(globalDir, 'suggestions.json'))
           } catch {
             // 同上
           }
@@ -403,10 +431,88 @@ export function mergeProjectsToGlobal(opts: { preview?: boolean; project?: strin
   return { preview: !!opts.preview, items, done: !opts.preview }
 }
 
+/** 把项目层 memory 数据合并进 global（atoms 按 fingerprint 去重；scenes/corrections/profile 简单 move，冲突保留 global） */
+function mergeMemoryInto(fromDir: string, toDir: string): void {
+  if (!existsSync(fromDir)) return
+  mkdirSync(toDir, { recursive: true })
+  // atoms：读取项目层全部 atoms，与 global 层按 fingerprint 去重后追加写回
+  const fromAtoms = join(fromDir, 'atoms')
+  const toAtoms = join(toDir, 'atoms')
+  if (existsSync(fromAtoms)) {
+    mkdirSync(toAtoms, { recursive: true })
+    const seen = new Set<string>()
+    // 已有 global atoms 指纹
+    for (const f of readFilesSafe(toAtoms).filter((f) => f.endsWith('.jsonl'))) {
+      try {
+        for (const line of readFileSync(join(toAtoms, f), 'utf-8').split('\n')) {
+          if (!line.trim()) continue
+          try {
+            const a = JSON.parse(line) as { fingerprint?: string; content?: string }
+            const fp = a.fingerprint ?? a.content
+            if (fp) seen.add(fp)
+          } catch {
+            // 跳过损坏行
+          }
+        }
+      } catch {
+        // 跳过不可读
+      }
+    }
+    // 追加项目层 atoms（去重）
+    const toWrite: string[] = []
+    for (const f of readFilesSafe(fromAtoms).filter((f) => f.endsWith('.jsonl'))) {
+      try {
+        for (const line of readFileSync(join(fromAtoms, f), 'utf-8').split('\n')) {
+          if (!line.trim()) continue
+          try {
+            const a = JSON.parse(line) as { fingerprint?: string; content?: string; scope?: string }
+            const fp = a.fingerprint ?? a.content
+            if (!fp || seen.has(fp)) continue
+            seen.add(fp)
+            toWrite.push(JSON.stringify({ ...a, scope: 'global' }))
+          } catch {
+            // 跳过损坏行
+          }
+        }
+      } catch {
+        // 跳过不可读
+      }
+    }
+    if (toWrite.length > 0) {
+      const day = new Date().toISOString().slice(0, 10)
+      const target = join(toAtoms, `${day}.jsonl`)
+      const existing = existsSync(target) ? readFileSync(target, 'utf-8') : ''
+      writeFileSync(target, existing + toWrite.join('\n') + '\n', 'utf-8')
+    }
+  }
+  // scenes / corrections / profile：目标不存在才 move（目录/文件都直接 rename）
+  for (const sub of ['scenes', 'corrections.json', 'profile.md', 'index.json', 'memory_log']) {
+    const from = join(fromDir, sub)
+    const to = join(toDir, sub)
+    if (existsSync(from) && !existsSync(to)) {
+      try {
+        renameSync(from, to)
+      } catch {
+        // 目标冲突保留 global，项目层原样保留（不删）
+      }
+    }
+  }
+}
+
 function readdirSafe(dir: string): string[] {
   const { readdirSync } = require('node:fs') as typeof import('node:fs')
   try {
     return readdirSync(dir, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name)
+  } catch {
+    return []
+  }
+}
+
+/** 读取目录内所有文件名（含文件，不含子目录） */
+function readFilesSafe(dir: string): string[] {
+  const { readdirSync } = require('node:fs') as typeof import('node:fs')
+  try {
+    return readdirSync(dir, { withFileTypes: true }).filter((d) => d.isFile()).map((d) => d.name)
   } catch {
     return []
   }

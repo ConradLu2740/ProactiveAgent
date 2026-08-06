@@ -92,7 +92,7 @@ export {
 export function getMemoryRootDir(): string {
   const memOverride = process.env.PROMA_MEMORY_DIR?.trim()
   if (memOverride) return memOverride
-  if (isEscapeGlobal()) return getGlobalMemoryRootDir()
+  if (isEscapeGlobal()) return join(getConfigDir(), 'memory') // 🔴#4：逃生回退 0.2 单层（configDir/memory），与 global/ 物理分离
   if (isSingleLayerMode()) return join(getConfigDir(), 'memory')
   return getProjectMemoryRootDir()
 }

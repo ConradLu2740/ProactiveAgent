@@ -294,8 +294,8 @@ function readLayerAtoms(layerRoot: string, opts: { includeUnconfirmed?: boolean 
  */
 export function readAllAtoms(opts: { includeUnconfirmed?: boolean; scope?: 'project' | 'global' | 'auto' } = {}): MemoryAtom[] {
   const scope = opts.scope ?? 'auto'
-  // 单层模式（PROMA_MEMORY_DIR 显式）：全部数据在 getMemoryRootDir()/atoms，读写一致
-  if (isSingleLayerMode()) {
+  // 单层模式（PROMA_MEMORY_DIR 显式 或 逃生 PROACTIVE_SCOPE=global）：全部数据在 getMemoryRootDir()/atoms，读写一致
+  if (isSingleLayerMode() || isEscapeGlobal()) {
     return readLayerAtoms(getMemoryAtomsDir(), opts).map((a) => ({ ...a, scope: 'project' as const }))
   }
   if (scope === 'global') {

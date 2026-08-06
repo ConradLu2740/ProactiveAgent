@@ -12,7 +12,7 @@ import { randomUUID } from 'node:crypto'
 import { mkdirSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { readJsonFileSafe, writeJsonFileAtomic } from '../safe-file'
-import { getSuggestionsPath } from '../paths'
+import { getSuggestionsPath, getProjectKeyPublic } from '../paths'
 import { currentLayerKey, GLOBAL_KEY } from '../project'
 import type { SuggestionsIndex, SuggestionTypeWeights, SuggestionDndConfig, SuggestionAnalysisState } from './types'
 import { DEFAULT_DND_CONFIG } from './types'
@@ -188,9 +188,13 @@ export function persistSuggestion(candidate: SuggestionCandidate, sessionId?: st
 }
 
 /** 记录用户反馈，更新类型权重 */
-export function recordFeedback(suggestionId: string, feedback: SuggestionFeedback): SuggestionRecord | undefined {
+export function recordFeedback(suggestionId: string, feedback: SuggestionFeedback, layer?: 'project' | 'global'): SuggestionRecord | undefined {
   // 入口白名单：防止非法枚举污染 status
   if (feedback !== 'accepted' && feedback !== 'ignored' && feedback !== 'never') return undefined
+  // 🔴#3：支持写回指定层（跨层操作时用；默认当前层）
+  if (layer && layer !== (currentLayerKey() === GLOBAL_KEY ? 'global' : 'project')) {
+    return recordFeedbackInLayer(suggestionId, feedback, layer)
+  }
   const index = readIndex()
   const record = index.records.find((r) => r.id === suggestionId)
   if (!record) return undefined
@@ -214,6 +218,37 @@ export function recordFeedback(suggestionId: string, feedback: SuggestionFeedbac
   }
 
   writeIndex()
+  return record
+}
+
+/** 在指定层内写反馈（跨层路由用） */
+function recordFeedbackInLayer(suggestionId: string, feedback: SuggestionFeedback, layer: 'project' | 'global'): SuggestionRecord | undefined {
+  const { getGlobalSuggestionsPath, getProjectSuggestionsPath } = require('../paths') as {
+    getGlobalSuggestionsPath: () => string
+    getProjectSuggestionsPath: (k?: string) => string
+  }
+  const targetPath = layer === 'global' ? getGlobalSuggestionsPath() : getProjectSuggestionsPath()
+  const { readJsonFileSafe: _read, writeJsonFileAtomic: _write } = require('../safe-file') as typeof import('../safe-file')
+  const data = _read<SuggestionsIndex>(targetPath)
+  if (!data) return undefined
+  const record = data.records.find((r) => r.id === suggestionId)
+  if (!record) return undefined
+  record.status = feedback === 'never' ? 'never' : feedback
+  record.feedbackAt = Date.now()
+  const weight = data.typeWeights?.[record.kind] ?? 1
+  switch (feedback) {
+    case 'accepted':
+      data.typeWeights[record.kind] = Math.min(2.0, weight * 1.2)
+      break
+    case 'ignored':
+      data.typeWeights[record.kind] = Math.max(0.2, weight * 0.8)
+      break
+    case 'never':
+      data.typeWeights[record.kind] = Math.max(0.2, weight * 0.5)
+      break
+  }
+  mkdirSync(dirname(targetPath), { recursive: true })
+  _write(targetPath, data)
   return record
 }
 
@@ -243,6 +278,56 @@ export function clearSuggestions(): void {
 /** 按 ID 读取建议 */
 export function getSuggestion(id: string): SuggestionRecord | undefined {
   return readIndex().records.find((r) => r.id === id)
+}
+
+/**
+ * 跨层查找建议（🔴#3 修复）：当前层找不到时回退另一层（迁移后的 global 老建议可操作）。
+ * 返回 record + 所在层，供反馈写回正确位置。
+ */
+export function getSuggestionAcrossLayers(id: string): { record: SuggestionRecord; layer: 'project' | 'global' } | undefined {
+  // 当前层优先
+  const local = getSuggestion(id)
+  if (local) return { record: local, layer: currentLayerKey() === GLOBAL_KEY ? 'global' : 'project' }
+  // 另一层兜底：临时切 key 读取再切回
+  const otherKey = currentLayerKey() === GLOBAL_KEY ? getProjectKeyPublic() : GLOBAL_KEY
+  const saved = currentLayerKey()
+  try {
+    const data = readIndexForLayer(otherKey)
+    const found = data.records.find((r) => r.id === id)
+    if (found) return { record: found, layer: otherKey === GLOBAL_KEY ? 'global' : 'project' }
+  } finally {
+    // 不改变当前层缓存状态（只读探测）
+    void saved
+  }
+  return undefined
+}
+
+/** 按指定层读取索引（不改变 currentLayerKey） */
+function readIndexForLayer(key: string): SuggestionsIndex {
+  if (suggestionsCache.has(key)) return suggestionsCache.get(key)!
+  const savedPath = getSuggestionsPath()
+  // 临时构造目标层路径
+  const { getGlobalSuggestionsPath, getProjectSuggestionsPath } = require('../paths') as {
+    getGlobalSuggestionsPath: () => string
+    getProjectSuggestionsPath: (k?: string) => string
+  }
+  const targetPath = key === GLOBAL_KEY ? getGlobalSuggestionsPath() : getProjectSuggestionsPath(key)
+  const { readJsonFileSafe: _read, writeJsonFileAtomic: _write } = require('../safe-file') as typeof import('../safe-file')
+  const data = _read<SuggestionsIndex>(targetPath)
+  const fresh: SuggestionsIndex =
+    data ?? { version: INDEX_VERSION, records: [], typeWeights: defaultTypeWeights(), enabled: true }
+  if (data) {
+    if (!fresh.typeWeights || typeof fresh.typeWeights !== 'object') fresh.typeWeights = defaultTypeWeights()
+    if (typeof fresh.enabled !== 'boolean') fresh.enabled = true
+    if (!Array.isArray(fresh.records)) fresh.records = []
+    if (!fresh.dnd || typeof fresh.dnd !== 'object') fresh.dnd = { ...DEFAULT_DND_CONFIG }
+    fresh.analysis = sanitizeAnalysisState(fresh.analysis)
+    fresh.records = fresh.records.filter(isValidSuggestionRecord).map(sanitizeSuggestionRecord).slice(0, MAX_RECORDS)
+    const inferredScope: 'project' | 'global' = key === GLOBAL_KEY ? 'global' : 'project'
+    fresh.records = fresh.records.map((r) => ({ ...r, scope: r.scope ?? inferredScope }))
+  }
+  suggestionsCache.set(key, fresh)
+  return fresh
 }
 
 /** 判断某类型的建议是否已被"连续忽略自动静默" */

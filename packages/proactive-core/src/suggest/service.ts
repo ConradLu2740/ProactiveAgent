@@ -15,6 +15,7 @@ import {
   recordFeedback,
   listSuggestions,
   getSuggestion,
+  getSuggestionAcrossLayers,
   suggestionsEnabled,
   setSuggestionsEnabled,
   suggestionStats,
@@ -129,8 +130,10 @@ export function getSuggestionById(id: string): SuggestionRecord | undefined {
  */
 export function handleSuggestionFeedback(id: string, feedback: SuggestionFeedback): { ok: boolean; error?: string } {
   if (!suggestionsEnabled()) return { ok: false, error: '主动建议已关闭' }
-  const record = getSuggestion(id)
-  if (!record) return { ok: false, error: '建议不存在' }
+  // 🔴#3：跨层查找（当前层优先，global 兜底），反馈写回所在层
+  const across = getSuggestionAcrossLayers(id)
+  if (!across) return { ok: false, error: '建议不存在' }
+  const { record, layer } = across
 
   // 接受 correction 动作：直接创建并立即生效（P0 修复：不再两步确认）。
   // 用户点"接受"= 明确认可这条规则，直接写入并回流 persona。
@@ -149,7 +152,7 @@ export function handleSuggestionFeedback(id: string, feedback: SuggestionFeedbac
 
   // 反馈回流补充：高频 ignore/never 的 duplicateKey 将抑制对应记忆场景热度（供 P0-2 scene 计算读取）
   // 此处只需记录反馈（recordFeedback 已更新状态与类型权重），不需要额外写入。
-  recordFeedback(id, feedback)
+  recordFeedback(id, feedback, layer)
   return { ok: true }
 }
 
