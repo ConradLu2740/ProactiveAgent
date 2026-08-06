@@ -87,24 +87,37 @@ npx proactive-mcp --today
 
 ## 数据位置
 
-默认 `~/.proma-proactive/`（**用户级一份共享**，跨工具、跨会话复用同一份记忆）。
+默认 `~/.proma-proactive/`。**0.3.0 起按项目隔离**（每个项目一份记忆），显式全局共享放 `global/` 层。
 
 | 环境变量 | 说明 |
 |---|---|
 | `PROACTIVE_DATA_DIR` | 覆盖数据根目录（推荐：不同机器/环境隔离） |
-| `PROMA_MEMORY_DIR` | 兼容 Proma 旧记忆目录（memory 部分直接指向） |
+| `PROMA_MEMORY_DIR` | 兼容 Proma 旧记忆目录（memory 部分直接指向；设置后为单层 global 模式） |
+| `PROACTIVE_PROJECT` | 显式指定项目标识（跳过自动解析） |
+| `PROACTIVE_SCOPE=global` | 逃生开关：全部读写回退 0.2 单层（`<root>/memory`），与 global 共享层物理分离 |
+| `PROACTIVE_TODAY_PORT` | /today 面板端口（默认 8737） |
 
-数据布局：
+数据布局（0.3.0）：
 ```text
 ~/.proma-proactive/
-  index.json              # 记忆索引（按需生成：写入开关/提取模式等配置时落盘）
-  profile.md              # L3 用户画像
-  atoms/{YYYY-MM-DD}.jsonl  # L1 原子记忆
-  scenes/                 # L2 场景块
-  corrections.json        # 行为纠正候选
-  suggestions.json        # 主动建议记录
-  memory_log/             # 每日记忆变更日志
+  index.json              # 顶层元数据（schemaVersion:2 / projects[] / migration）
+  projects/<projectKey>/  # 项目隔离数据（每项目一份）
+    meta.json             # 项目身份元数据（displayName / identitySource）
+    memory/               # 与该项目相关的记忆（atoms/profile/scenes/corrections）
+    suggestions.json      # 项目层主动建议
+  global/                 # 显式共享层（跨项目共享的记忆与建议）
+  .env                    # LLM 配置（全局）
 ```
+
+## 按项目记忆（0.3.0）
+
+每个项目独立记忆，**跨项目默认隔离**；需要跨工具/跨项目共享时显式写 `global` 层。
+
+- **项目标识自动解析**：`PROACTIVE_PROJECT` env → git remote（origin 优先）→ package.json name → 路径 hash。同一仓库在任意路径打开都是同一份记忆。
+- **写入**：`memory_capture { scope: 'project' | 'global' }`（默认 project）；`persona_save` 可写项目层画像覆盖。
+- **读取**：`memory_recall { scope: 'auto' | 'project' | 'global' }`（默认 auto = 项目 + 全局合并，全局命中降权并标注 `[shared]`）。
+- **迁移**：从 0.2.x 升级后首次启动自动把旧全局数据迁入 `global/` 层；也可手动 `proactive-mcp migrate`。
+- **逃生**：`PROACTIVE_SCOPE=global` 临时回退全局单层（数据写 `<root>/memory`，不会混入共享层）；数据侧反向收敛用 `proactive-mcp migrate --merge-to-global`。
 
 ## 设计原则
 

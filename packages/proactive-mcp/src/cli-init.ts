@@ -275,8 +275,8 @@ export function runInit(args: string[]): void {
 
   console.log('下一步：')
   console.log('  1. 在支持 MCP 的 agent（Claude Code / Kimi Code / Cline / Cursor）中启动会话')
-  console.log('  2. 数据默认存 ~/.proma-proactive/（用户级一份共享），用 PROACTIVE_DATA_DIR 可改')
+  console.log('  2. 数据按项目隔离（~/.proma-proactive/projects/<key>/），显式共享用 global（0.3.0）')
   console.log('  3. 试试 memory_capture / memory_recall / suggest_now，或打开 http://127.0.0.1:8737/today')
-  console.log('  4. 诊断: proactive-mcp doctor · 状态: proactive-mcp stats · 教学: proactive-mcp demo')
+  console.log('  4. 诊断: proactive-mcp doctor · 状态: proactive-mcp stats · 教学: proactive-mcp demo · 迁移: proactive-mcp migrate')
   console.log('  更多：https://github.com/ConradLu2740/ProactiveAgent')
 }

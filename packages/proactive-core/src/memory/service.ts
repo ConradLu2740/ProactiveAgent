@@ -197,7 +197,7 @@ export function captureCandidates(
 // ===== 行为纠正 =====
 
 /** 新增纠正候选（默认 pending，需用户确认） */
-export function proposeCorrection(input: { raw: string; rule: string; sessionId?: string }) {
+export function proposeCorrection(input: { raw: string; rule: string; sessionId?: string; scope?: 'project' | 'global' }) {
   if (!isMemoryEnabled()) throw new Error('记忆功能已关闭')
   // P2-2 白名单：规则必须有实质内容且长度受控，防投毒/膨胀
   const rule = (input.rule ?? '').trim()
@@ -205,7 +205,7 @@ export function proposeCorrection(input: { raw: string; rule: string; sessionId?
     console.warn('[Memory] 拒绝非法纠正规则（长度异常）:', rule.slice(0, 40))
     throw new Error('纠正规则内容不合法')
   }
-  const correction = addCorrection({ raw: (input.raw ?? '').trim().slice(0, 1000), rule, sessionId: input.sessionId })
+  const correction = addCorrection({ raw: (input.raw ?? '').trim().slice(0, 1000), rule, sessionId: input.sessionId, scope: input.scope })
   appendMemoryLog(`新增行为纠正候选: ${correction.rule.slice(0, 60)}`)
   return correction
 }
@@ -314,6 +314,14 @@ export function mergePersonaRaw(globalRaw?: string, projectRaw?: string): string
   if (!g && p) return p
   const sections = new Map<string, string[]>()
   const order: string[] = []
+  // 语义键：剥离（scope: ...）/（src: ...）后缀与 src 溯源，用于跨层同语义去重（🟡-3 修复）
+  const semanticKey = (item: string): string =>
+    item
+      .replace(/（scope: [^）]+）/g, '')
+      .replace(/（src: [^）]+）/g, '')
+      .replace(/\s+\[src:[^\]]+\]$/g, '')
+      .replace(/\s+（scope: [^）]+）$/g, '')
+      .trim()
   const addSection = (raw: string, scopeLabel: 'project' | 'global') => {
     let current = 'general'
     for (const line of raw.split('\n')) {
@@ -328,9 +336,11 @@ export function mergePersonaRaw(globalRaw?: string, projectRaw?: string): string
       }
       if (!t || !t.startsWith('- ')) continue
       const item = t
-      const seen = sections.get(current)?.some((x) => x === item)
-      if (seen) continue
-      sections.get(current)?.push(`${item}（scope: ${scopeLabel}）`)
+      const existing = sections.get(current) ?? []
+      // 同语义（去标注后相同）则跳过，避免 '- X' 与 '- X（src: a1）' 并存
+      const dup = existing.some((x) => semanticKey(x) === semanticKey(item))
+      if (dup) continue
+      existing.push(`${item}（scope: ${scopeLabel}）`)
     }
   }
   addSection(p as string, 'project')
@@ -517,7 +527,7 @@ export async function extractFromConversation(input: MemoryCaptureInput): Promis
       const correctionMatch = text.match(/(?:以后|下次|记住|别再|不要|请记住)[^。！？\n]{2,80}/)
       if (correctionMatch) {
         const raw = correctionMatch[0].trim()
-        proposeCorrection({ raw, rule: raw, sessionId: input.sessionId })
+        proposeCorrection({ raw, rule: raw, sessionId: input.sessionId, scope: input.scope })
         correctionCount += 1
         mode = 'rule'
       }

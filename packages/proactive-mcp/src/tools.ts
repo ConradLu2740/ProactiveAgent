@@ -11,7 +11,7 @@
 
 import { z } from 'zod'
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
-import { memoryService, suggestService } from '@proactive-agent/core'
+import { memoryService, suggestService, isEscapeGlobal } from '@proactive-agent/core'
 import { buildDailyReviewText, buildOnboardingText } from './prompts'
 import { normalizeWriteScope, normalizeReadScope } from './scope'
 
@@ -19,6 +19,12 @@ const MEMORY_TYPES = ['fact', 'preference', 'correction', 'sop', 'todo_context',
 const SUGGEST_STATUS = ['suggested', 'accepted', 'ignored', 'never'] as const
 const WRITE_SCOPES = ['project', 'global'] as const
 const READ_SCOPES = ['auto', 'project', 'global'] as const
+
+/** 展示层标签：逃生模式时统一显示 global（🟡-5 修复，避免误导） */
+function displayScope(scope?: string): string {
+  if (isEscapeGlobal()) return 'global（逃生单层）'
+  return scope ?? 'project'
+}
 
 function text(msg: string): { content: Array<{ type: 'text'; text: string }> } {
   return { content: [{ type: 'text', text: msg }] }
@@ -63,8 +69,8 @@ export function registerTools(server: McpServer): void {
         )
         return text(
           result.deduplicated
-            ? `已合并到已有记忆（未新增）：[${result.atom.type}] ${result.atom.content}${result.atom.scope ? `（${result.atom.scope} 层）` : ''}`
-            : `已记住（${result.atom.scope ?? 'project'} 层）：[${result.atom.type}] ${result.atom.content}`,
+            ? `已合并到已有记忆（未新增）：[${result.atom.type}] ${result.atom.content}${result.atom.scope ? `（${displayScope(result.atom.scope)} 层）` : ''}`
+            : `已记住（${displayScope(result.atom.scope)} 层）：[${result.atom.type}] ${result.atom.content}`,
         )
       } catch (error) {
         return text(`记忆写入失败：${error instanceof Error ? error.message : String(error)}`)

@@ -30,6 +30,8 @@ function toolText(res: unknown): string {
 }
 beforeAll(() => {
   process.env.PROACTIVE_DATA_DIR = TEST_DIR
+  // 固定项目身份：防止测试从 cwd 解析 git remote 导致身份漂移（0.3.0 测试策略）
+  process.env.PROACTIVE_PROJECT = 'test'
   // 强制规则模式：memory_extract 走 corrections.json 通道（验证 correction 防投毒闭环）
   process.env.PROMA_MEMORY_LLM_DISABLED = '1'
   Bun.spawnSync(['rm', '-rf', TEST_DIR])
@@ -38,6 +40,7 @@ beforeAll(() => {
 afterAll(() => {
   Bun.spawnSync(['rm', '-rf', TEST_DIR])
   delete process.env.PROACTIVE_DATA_DIR
+  delete process.env.PROACTIVE_PROJECT
   delete process.env.PROMA_MEMORY_LLM_DISABLED
 })
 

@@ -379,7 +379,7 @@ export async function searchMemoriesHybrid(request: MemorySearchRequest): Promis
   const started = Date.now()
   const query = request.query.trim()
   const limit = Math.min(Math.max(request.limit ?? DEFAULT_RECALL_LIMIT, 1), MAX_RECALL_LIMIT)
-  const allAtoms = readAllAtoms({ includeUnconfirmed: request.includeUnconfirmed === true })
+  const allAtoms = readAllAtoms({ includeUnconfirmed: request.includeUnconfirmed === true, scope: request.scope ?? 'auto' })
 
   if (!query || allAtoms.length === 0) {
     // 空查询：返回最近 N 条

@@ -428,15 +428,19 @@ export function confirmAtom(id: string): MemoryAtom | undefined {
   const atom = getAtomById(id)
   if (!atom) return undefined
   const updated: MemoryAtom = { ...atom, confirmed: true, updatedAt: Date.now() }
-  updateAtomById(id, updated)
+  // 🟡-4：按 atom 自身 scope 更新（迁移后 global 的 pending 不会在项目层产生副本）
+  updateAtomById(id, updated, atom.scope === 'global' ? 'global' : 'project')
   return updated
 }
 
 /** 拒绝并删除一条待确认记忆 */
 export function deleteAtom(id: string): boolean {
-  const files = existsSync(getMemoryAtomsDir()) ? readdirSync(getMemoryAtomsDir()).filter((f) => f.endsWith('.jsonl')) : []
+  // 🟡-4：按 atom 自身 scope 定位层（readAllAtoms auto 已带 scope）
+  const target = getAtomById(id)
+  const atomsDir = target?.scope === 'global' ? getGlobalAtomsDir() : getMemoryAtomsDir()
+  const files = existsSync(atomsDir) ? readdirSync(atomsDir).filter((f) => f.endsWith('.jsonl')) : []
   for (const file of files) {
-    const filePath = join(getMemoryAtomsDir(), file)
+    const filePath = join(atomsDir, file)
     const lines = readFileSync(filePath, 'utf-8').split('\n')
     const kept = lines.filter((line) => {
       if (!line?.trim()) return false
@@ -624,10 +628,11 @@ const MAX_CORRECTIONS = 300
 
 let cachedCorrections: CorrectionsIndex | null = null
 
-function readCorrections(): CorrectionsIndex {
-  const key = currentLayerKey()
+function readCorrections(scope?: 'project' | 'global'): CorrectionsIndex {
+  // 层语义 → 缓存键：project 用 currentLayerKey()（当前项目），global 用 GLOBAL_KEY
+  const key = scope === 'global' ? GLOBAL_KEY : currentLayerKey()
   if (correctionsCache.has(key)) return correctionsCache.get(key)!
-  const data = readJsonFileSafe<CorrectionsIndex>(getCorrectionsPath())
+  const data = readJsonFileSafe<CorrectionsIndex>(correctionsPathForScope(scope))
   if (!data || !Array.isArray(data.corrections)) {
     const fresh: CorrectionsIndex = { version: CORRECTIONS_VERSION, corrections: [] }
     correctionsCache.set(key, fresh)
@@ -637,6 +642,15 @@ function readCorrections(): CorrectionsIndex {
   data.corrections = data.corrections.filter(isValidCorrection).slice(0, MAX_CORRECTIONS)
   correctionsCache.set(key, data)
   return data
+}
+
+/** corrections 路径按 scope 路由（global 层单独文件；默认当前层） */
+function correctionsPathForScope(scope?: 'project' | 'global'): string {
+  if (scope === 'global') {
+    const { getGlobalMemoryRootDir } = require('../paths') as { getGlobalMemoryRootDir: () => string }
+    return join(getGlobalMemoryRootDir(), 'corrections.json')
+  }
+  return getCorrectionsPath()
 }
 
 /** 合法纠正记录：必须有 id、rule、status，状态为已知枚举 */
@@ -650,11 +664,12 @@ function isValidCorrection(r: unknown): r is MemoryCorrection {
   )
 }
 
-function writeCorrections(index: CorrectionsIndex): void {
-  const key = currentLayerKey()
+function writeCorrections(index: CorrectionsIndex, scope?: 'project' | 'global'): void {
+  // 与 readCorrections 同语义：project → currentLayerKey()，global → GLOBAL_KEY
+  const key = scope === 'global' ? GLOBAL_KEY : currentLayerKey()
   try {
     correctionsCache.set(key, index)
-    writeJsonFileAtomic(getCorrectionsPath(), index)
+    writeJsonFileAtomic(correctionsPathForScope(scope), index)
   } catch (error) {
     correctionsCache.delete(key)
     console.error('[Memory] 写入 corrections 失败:', error)
@@ -663,9 +678,10 @@ function writeCorrections(index: CorrectionsIndex): void {
 }
 
 /** 新增一条纠正候选（默认 pending） */
-export function addCorrection(input: { raw: string; rule: string; sessionId?: string }): MemoryCorrection {
+export function addCorrection(input: { raw: string; rule: string; sessionId?: string; scope?: 'project' | 'global' }): MemoryCorrection {
   ensureMemoryDirs()
-  const index = readCorrections()
+  const scope = input.scope
+  const index = readCorrections(scope)
   const correction: MemoryCorrection = {
     id: generateCorrectionId(),
     raw: input.raw,
@@ -675,24 +691,24 @@ export function addCorrection(input: { raw: string; rule: string; sessionId?: st
     status: 'pending',
   }
   index.corrections.unshift(correction)
-  writeCorrections(index)
+  writeCorrections(index, scope)
   return correction
 }
 
 /** 读取纠正列表（可按状态过滤） */
-export function listCorrections(status?: MemoryCorrection['status']): MemoryCorrection[] {
-  const index = readCorrections()
+export function listCorrections(status?: MemoryCorrection['status'], scope?: 'project' | 'global'): MemoryCorrection[] {
+  const index = readCorrections(scope)
   const list = status ? index.corrections.filter((c) => c.status === status) : index.corrections
   return [...list].sort((a, b) => b.createdAt - a.createdAt)
 }
 
 /** 更新纠正状态（确认/拒绝/替代） */
-export function updateCorrectionStatus(id: string, status: MemoryCorrection['status']): MemoryCorrection | undefined {
-  const index = readCorrections()
+export function updateCorrectionStatus(id: string, status: MemoryCorrection['status'], scope?: 'project' | 'global'): MemoryCorrection | undefined {
+  const index = readCorrections(scope)
   const target = index.corrections.find((c) => c.id === id)
   if (!target) return undefined
   target.status = status
-  writeCorrections(index)
+  writeCorrections(index, scope)
   return target
 }
 

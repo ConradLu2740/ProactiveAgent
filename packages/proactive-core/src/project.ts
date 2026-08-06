@@ -100,6 +100,8 @@ export function normalizeGitRemote(url: string): string | undefined {
   let path = rest.slice(host.length).replace(/^[:/]+/, '')
   // 去端口
   path = path.replace(/^(\d+)\//, '')
+  // 去尾部斜杠（🟡-2 修复：/repo.git/ 与 /repo 必须同 key）
+  path = path.replace(/\/+$/, '')
   // 去 .git 后缀
   path = path.replace(/\.git$/, '')
   // 归一化重复斜杠
