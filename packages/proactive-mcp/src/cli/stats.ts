@@ -6,7 +6,7 @@
  */
 
 import os from 'node:os'
-import { memoryService, suggestService, getConfigDir, getMemoryRootDir } from '@proactive-agent/core'
+import { memoryService, suggestService, getConfigDir, getMemoryRootDir, getProjectIdentity, isEscapeGlobal } from '@proactive-agent/core'
 
 const KIND_LABEL: Record<string, string> = {
   fact: '事实',
@@ -32,6 +32,17 @@ export function runStats(): number {
 
   console.log('📊 ProactiveAgent 统计')
   console.log('')
+  // 0.3.0：项目身份
+  try {
+    if (isEscapeGlobal()) {
+      console.log('  项目: （逃生模式 PROACTIVE_SCOPE=global）')
+    } else {
+      const ident = getProjectIdentity()
+      console.log(`  项目: ${ident.displayName}（${ident.identitySource}，key=${ident.key}）`)
+    }
+  } catch {
+    // 忽略
+  }
   console.log('  记忆')
   console.log(`    atom 总数:  ${mem.atomCount}`)
   const byType = Object.entries(mem.byType)

@@ -110,6 +110,8 @@ export interface MemoryCaptureInput {
   sessionId?: string
   workspaceSlug?: string
   withCorrections?: boolean
+  /** 0.3.0：提取候选写入层（默认 project） */
+  scope?: 'project' | 'global'
 }
 
 /** 提取器对单条消息的可选记忆候选 */

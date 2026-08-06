@@ -147,19 +147,22 @@ export function searchAsText(request: MemorySearchRequest): string {
  */
 export function captureCandidate(
   candidate: MemoryCandidate,
-  ctx: { sessionId?: string; workspaceSlug?: string } = {},
-  opts: { confirmed?: boolean } = {},
+  ctx: { sessionId?: string; workspaceSlug?: string; projectKey?: string; scope?: 'project' | 'global' } = {},
+  opts: { confirmed?: boolean; forceScope?: boolean } = {},
 ): { stored: boolean; deduplicated: boolean; atom: MemoryAtom } {
   if (!isMemoryEnabled()) throw new Error('记忆功能已关闭')
-  const result = writeAtomWithDedup({
-    content: candidate.content.trim(),
-    type: candidate.type,
-    priority: candidate.priority ?? 50,
-    sessionId: ctx.sessionId,
-    workspaceSlug: ctx.workspaceSlug,
-    confirmed: opts.confirmed ?? true,
-  })
-  appendMemoryLog(`手动沉淀: [${result.atom.type}] ${result.atom.content.slice(0, 60)}${result.deduplicated ? '（合并已有）' : ''}${result.atom.confirmed ? '' : '（待确认）'}`)
+  const result = writeAtomWithDedup(
+    {
+      content: candidate.content.trim(),
+      type: candidate.type,
+      priority: candidate.priority ?? 50,
+      sessionId: ctx.sessionId,
+      workspaceSlug: ctx.workspaceSlug,
+      confirmed: opts.confirmed ?? true,
+    },
+    { scope: ctx.scope, forceScope: opts.forceScope },
+  )
+  appendMemoryLog(`手动沉淀: [${result.atom.type}] ${result.atom.content.slice(0, 60)}${result.deduplicated ? '（合并已有' + (result.source ? '，源自' + result.source + '层' : '') + '）' : ''}${result.atom.confirmed ? '' : '（待确认）'}`)
   return { stored: !result.deduplicated, deduplicated: result.deduplicated, atom: result.atom }
 }
 
@@ -171,7 +174,7 @@ export function captureCandidate(
  */
 export function captureCandidates(
   candidates: MemoryCandidate[],
-  ctx: { sessionId?: string; workspaceSlug?: string } = {},
+  ctx: { sessionId?: string; workspaceSlug?: string; projectKey?: string; scope?: 'project' | 'global' } = {},
   opts: { confirmed?: boolean } = {},
 ): { storedCount: number; deduplicatedCount: number; atoms: MemoryAtom[] } {
   let storedCount = 0
@@ -527,7 +530,11 @@ export async function extractFromConversation(input: MemoryCaptureInput): Promis
   }
 
   // LLM/规则提取的记忆为自动生成，默认 pending（需用户确认后才注入上下文），阻断投毒链
-  const result = captureCandidates(candidates, { sessionId: input.sessionId, workspaceSlug: input.workspaceSlug }, { confirmed: false })
+  const result = captureCandidates(
+    candidates,
+    { sessionId: input.sessionId, workspaceSlug: input.workspaceSlug, scope: input.scope },
+    { confirmed: false },
+  )
   if (result.storedCount > 0 || correctionCount > 0) {
     markExtractionCompleted()
     // 有新增记忆时，异步刷新 persona（不阻塞提取返回）

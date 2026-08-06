@@ -13,9 +13,12 @@ import { z } from 'zod'
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { memoryService, suggestService } from '@proactive-agent/core'
 import { buildDailyReviewText, buildOnboardingText } from './prompts'
+import { normalizeWriteScope, normalizeReadScope } from './scope'
 
 const MEMORY_TYPES = ['fact', 'preference', 'correction', 'sop', 'todo_context', 'event'] as const
 const SUGGEST_STATUS = ['suggested', 'accepted', 'ignored', 'never'] as const
+const WRITE_SCOPES = ['project', 'global'] as const
+const READ_SCOPES = ['auto', 'project', 'global'] as const
 
 function text(msg: string): { content: Array<{ type: 'text'; text: string }> } {
   return { content: [{ type: 'text', text: msg }] }
@@ -48,19 +51,20 @@ export function registerTools(server: McpServer): void {
         content: z.string().min(1).max(2000).describe('记忆内容'),
         type: z.enum(MEMORY_TYPES).default('fact').describe('记忆类型'),
         priority: z.number().int().min(0).max(100).optional().describe('重要度 0-100，默认 50'),
+        scope: z.enum(WRITE_SCOPES).optional().describe('写入层：project 项目层（默认）/ global 全局共享层'),
       },
     },
-    async ({ content, type, priority }) => {
+    async ({ content, type, priority, scope }) => {
       try {
         const result = memoryService.captureCandidate(
           { content, type, priority },
-          {},
+          { scope: normalizeWriteScope(scope) },
           { confirmed: true },
         )
         return text(
           result.deduplicated
-            ? `已合并到已有记忆（未新增）：[${result.atom.type}] ${result.atom.content}`
-            : `已记住：[${result.atom.type}] ${result.atom.content}`,
+            ? `已合并到已有记忆（未新增）：[${result.atom.type}] ${result.atom.content}${result.atom.scope ? `（${result.atom.scope} 层）` : ''}`
+            : `已记住（${result.atom.scope ?? 'project'} 层）：[${result.atom.type}] ${result.atom.content}`,
         )
       } catch (error) {
         return text(`记忆写入失败：${error instanceof Error ? error.message : String(error)}`)
@@ -79,14 +83,16 @@ export function registerTools(server: McpServer): void {
       inputSchema: {
         messages: z.array(messageSchema).min(1).max(100).describe('对话消息（按时间顺序）'),
         sessionId: z.string().optional().describe('来源会话 ID（可回溯）'),
+        scope: z.enum(WRITE_SCOPES).optional().describe('提取候选写入层：project（默认）/ global'),
       },
     },
-    async ({ messages, sessionId }) => {
+    async ({ messages, sessionId, scope }) => {
       try {
         const result = await memoryService.extractFromConversation({
           messages: messages as Array<{ role: 'user' | 'assistant'; content: string }>,
           sessionId,
-        })
+          scope: normalizeWriteScope(scope),
+        } as never)
         if (result.mode === 'none') {
           return text('未提取到记忆（提取模式为 off 或无有效消息）。')
         }
@@ -113,16 +119,18 @@ export function registerTools(server: McpServer): void {
         query: z.string().min(1).describe('检索关键词/问题'),
         limit: z.number().int().min(1).max(20).default(5).describe('返回条数上限，默认 5'),
         type: z.enum(MEMORY_TYPES).optional().describe('按类型过滤'),
+        scope: z.enum(READ_SCOPES).optional().describe('读取层：auto 项目+全局合并（默认）/ project / global'),
       },
     },
-    async ({ query, limit, type }) => {
+    async ({ query, limit, type, scope }) => {
       try {
-        const result = await memoryService.searchAsync({ query, limit, type })
+        const result = await memoryService.searchAsync({ query, limit, type, scope: normalizeReadScope(scope) })
         if (result.hits.length === 0) return text('未找到相关记忆。')
         const lines = result.hits.map((h, i) => {
           const atom = h.atom
           const meta = atom.confirmed ? '' : '（待确认）'
-          return `${i + 1}. [${atom.type}]${meta} ${atom.content} (优先级 ${atom.priority}, 相关度 ${(h.score * 100).toFixed(0)}%)`
+          const shared = h.scope === 'global' || atom.scope === 'global' ? ' [shared]' : ''
+          return `${i + 1}. [${atom.type}]${meta}${shared} ${atom.content} (优先级 ${atom.priority}, 相关度 ${(h.score * 100).toFixed(0)}%)`
         })
         return text(`相关记忆（${result.hits.length} 条）：\n` + lines.join('\n'))
       } catch (error) {
@@ -194,12 +202,38 @@ export function registerTools(server: McpServer): void {
     'persona_get',
     {
       title: '读取用户画像',
-      description: '读取 L3 用户画像 markdown（稳定的用户偏好/行为规则摘要）。适合宿主注入系统提示或初始化上下文。',
-      inputSchema: {},
+      description:
+        '读取 L3 用户画像 markdown（稳定的用户偏好/行为规则摘要）。适合宿主注入系统提示或初始化上下文。' +
+        '默认返回合并视图（global 基础画像 + 当前项目覆盖，逐条标注 scope）。',
+      inputSchema: {
+        scope: z.enum(READ_SCOPES).optional().describe('读取层：auto 合并视图（默认）/ project / global'),
+      },
     },
-    async () => {
-      const persona = memoryService.personaRaw()
+    async ({ scope }) => {
+      const persona = memoryService.personaRaw(normalizeReadScope(scope) as 'auto' | 'project' | 'global')
       return persona ? text(persona) : text('尚未生成用户画像。')
+    },
+  )
+
+  server.registerTool(
+    'persona_save',
+    {
+      title: '保存用户画像（项目覆盖）',
+      description:
+        '手动保存/覆盖用户画像 markdown。默认写当前项目层（覆盖合并视图中该项目部分）；' +
+        'scope=global 时写全局基础画像。供用户主动维护画像或项目专属行为规则。',
+      inputSchema: {
+        content: z.string().min(1).max(10000).describe('画像 markdown 内容'),
+        scope: z.enum(WRITE_SCOPES).optional().describe('写入层：project（默认）/ global'),
+      },
+    },
+    async ({ content, scope }) => {
+      try {
+        memoryService.savePersona(content, normalizeWriteScope(scope))
+        return text(`已保存画像（${normalizeWriteScope(scope)} 层）。`)
+      } catch (error) {
+        return text(`保存失败：${error instanceof Error ? error.message : String(error)}`)
+      }
     },
   )
 

@@ -20,6 +20,7 @@ import { runInit } from './cli-init'
 import { runDoctor } from './cli/doctor'
 import { runStats } from './cli/stats'
 import { runDemo } from './cli/demo'
+import { runMigrate } from './cli/migrate'
 
 /**
  * 包版本。发布时由 scripts/publish-proactive.sh 通过 bun build
@@ -50,12 +51,13 @@ async function main(): Promise<void> {
 用法:
   proactive-mcp                # 以 stdio 方式启动 MCP server（供 agent 挂载）
   proactive-mcp init           # 一键生成挂载配置 + hooks（可选 --local / --kimi / --force / --dry-run）
-  proactive-mcp doctor         # 健康检查（配置/数据/hooks/端口）
+  proactive-mcp doctor         # 健康检查（配置/数据/hooks/端口/项目身份）
   proactive-mcp stats          # 记忆与建议统计
   proactive-mcp demo           # 教程式示例（隔离数据，--clean 清理）
+  proactive-mcp migrate        # 0.3.0 数据迁移 / 反向收敛（--merge-to-global / --status / --preview）
   proactive-mcp --today        # 启动本地主动中心 Web 面板（端口 PROACTIVE_TODAY_PORT，默认 8737）
 
-数据目录: 默认 ~/.proma-proactive/，可用 PROACTIVE_DATA_DIR（或 PROMA_MEMORY_DIR）覆盖
+数据目录: 默认 ~/.proma-proactive/（0.3.0 起按项目隔离，显式共享用 global）
 更多: https://github.com/ConradLu2740/ProactiveAgent`)
     return
   }
@@ -84,6 +86,12 @@ async function main(): Promise<void> {
     await runDemo(argv.includes('--clean'))
     return
   }
+  // migrate：旧数据迁移 / 反向收敛
+  if (argv.includes('migrate')) {
+    const code = runMigrate(argv)
+    process.exitCode = code
+    return
+  }
   // --today：启动本地主动中心 Web 面板（不进入 stdio MCP）
   if (argv.includes('--today')) {
     const port = Number(process.env.PROACTIVE_TODAY_PORT ?? 8737)
@@ -96,11 +104,11 @@ async function main(): Promise<void> {
   }
 
   // 未知首参数：友好提示而非静默进入 stdio（避免用户手滑后进程永久挂起）
-  const KNOWN = new Set(['init', 'doctor', 'stats', 'demo', '--today', '--help', '-h', '--version', '-v'])
+  const KNOWN = new Set(['init', 'doctor', 'stats', 'demo', 'migrate', '--today', '--help', '-h', '--version', '-v'])
   const first = argv[0]
   if (first && !first.startsWith('-') && !KNOWN.has(first)) {
     console.error(`未知子命令: ${first}`)
-    console.error('可用命令: init · doctor · stats · demo · --today · --help · --version')
+    console.error('可用命令: init · doctor · stats · demo · migrate · --today · --help · --version')
     process.exit(1)
   }
   const server = createServer()
@@ -108,6 +116,22 @@ async function main(): Promise<void> {
   await server.connect(transport)
   // 启动成功提示（stderr，避免污染 stdio 协议）
   console.error('[proactive-mcp] ProactiveAgent MCP server 已启动')
+  // 0.3.0：stdio 启动时自动迁移旧数据（只读命令不触发），并打印项目身份到 stderr 便于诊断
+  try {
+    const { migrateLegacyData, getProjectIdentity, isEscapeGlobal } = await import('@proactive-agent/core')
+    const mig = migrateLegacyData()
+    if (mig.status === 'migrated') {
+      console.error(`[proactive-mcp] 旧数据已迁移到 global 层（${mig.detail ?? ''}）`)
+    }
+    if (!isEscapeGlobal()) {
+      const ident = getProjectIdentity()
+      console.error(`[proactive-mcp] 项目: ${ident.displayName}（${ident.identitySource}，key=${ident.key}）`)
+    } else {
+      console.error('[proactive-mcp] 逃生模式: PROACTIVE_SCOPE=global（全部读写全局单层）')
+    }
+  } catch {
+    // 迁移/身份打印失败不阻塞 server 启动
+  }
   const dataDir = process.env.PROACTIVE_DATA_DIR || process.env.PROMA_MEMORY_DIR || '~/.proma-proactive/'
   const expanded = dataDir.startsWith('~') ? dataDir.replace(/^~/, os.homedir()) : dataDir
   console.error(`[proactive-mcp] 数据目录: ${expanded}`)

@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import os from 'node:os'
 import { createConnection } from 'node:net'
-import { memoryService, suggestService, getConfigDir, getMemoryRootDir } from '@proactive-agent/core'
+import { memoryService, suggestService, getConfigDir, getMemoryRootDir, getProjectIdentity, isEscapeGlobal, readTopIndex } from '@proactive-agent/core'
 
 interface CheckResult {
   status: 'ok' | 'warn' | 'error'
@@ -148,6 +148,21 @@ export async function runDoctor(): Promise<number> {
   console.log('ProactiveAgent 健康检查')
   console.log(`  数据根目录: ${dataDir}`)
   console.log(`  记忆目录:   ${memRoot}`)
+  // 0.3.0：项目身份与迁移状态
+  try {
+    if (isEscapeGlobal()) {
+      console.log('  项目:       （逃生模式 PROACTIVE_SCOPE=global，全部读写全局单层）')
+    } else {
+      const ident = getProjectIdentity()
+      console.log(`  项目:       ${ident.displayName}（${ident.identitySource}，key=${ident.key}）`)
+    }
+    const top = readTopIndex()
+    if (top?.migration?.status === 'done') {
+      console.log(`  迁移:       旧数据已迁移到 global 层（${new Date(top.migration.at).toISOString().slice(0, 10)}）`)
+    }
+  } catch {
+    // 身份/迁移展示失败不阻塞
+  }
   console.log('')
   let errors = 0
   let warns = 0
