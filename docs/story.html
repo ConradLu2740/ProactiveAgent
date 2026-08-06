@@ -7,7 +7,7 @@
 <meta name="description" content="ProactiveAgent 实测验证：Claude Code 记住 → Kimi Code 召回，跨工具共享记忆；主动建议命中行为纠正与自动化需求。">
 <!-- SEO：OG / Twitter / canonical（2026-08-06 推广三件套） -->
 <meta property="og:title" content="ProactiveAgent · 验证故事 — 教一次，处处用">
-<meta property="og:description" content="零依赖 MCP 主动记忆+建议 Server：Claude Code 记住 → Kimi Code 召回，跨工具共享记忆；按项目隔离 + 全局共享；npm 0.4.2。">
+<meta property="og:description" content="零依赖 MCP 主动记忆+建议 Server：Claude Code 记住 → Kimi Code 召回，跨工具共享记忆；会话中主动推送 + 时间感知建议 + ROI 指标；npm 0.5.0。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://conradlu2740.github.io/ProactiveAgent/story.html">
 <meta property="og:image" content="https://conradlu2740.github.io/ProactiveAgent/docs/today-panel.png">
@@ -24,7 +24,7 @@
   "name": "ProactiveAgent",
   "description": "零依赖 MCP Server：跨工具共享记忆 + 主动建议，按项目隔离记忆。",
   "operatingSystem": "macOS, Linux, Windows",
-  "softwareVersion": "0.4.2",
+  "softwareVersion": "0.5.0",
   "url": "https://github.com/ConradLu2740/ProactiveAgent",
   "applicationCategory": "DeveloperApplication"
 }
@@ -188,9 +188,9 @@
 
 <!-- ============ HERO ============ -->
 <header class="hero">
-  <div class="hero-badge"><span class="dot"></span> 实测验证 · 2026-08-05</div>
+  <div class="hero-badge"><span class="dot"></span> 实测验证 · 2026-08-06 · v0.5.0</div>
   <h1>教一次，<em>处处用</em></h1>
-  <p class="sub">给 <strong>Claude Code / Kimi Code / Cline / Cursor / Proma</strong> 即插即用的主动能力外挂。<br>跨工具共享的主动记忆 + 该沉默时沉默的主动建议 —— 一个 MCP 挂载，所有 agent 立即拥有。</p>
+  <p class="sub">给 <strong>Claude Code / Kimi Code / Cline / Cursor / Proma</strong> 即插即用的主动能力外挂。<br>跨工具共享的主动记忆 + 该沉默时沉默的主动建议 —— <strong>会话中主动推送</strong> + 时间感知预填 + ROI 反馈闭环，一个 MCP 挂载，所有 agent 立即拥有。</p>
   <div class="hero-cta">
     <a class="btn primary" href="https://github.com/ConradLu2740/ProactiveAgent" target="_blank" rel="noopener">GitHub 仓库 →</a>
     <a class="btn" href="#scene1">看跨工具共享</a>
@@ -252,7 +252,7 @@
   <div class="section-head">
     <div class="section-kicker">Story 02</div>
     <h2>主动建议命中：该开口时才开口</h2>
-    <p>不是话痨推送。suggest 引擎只对两类信号主动开口：<strong>你纠正了 agent</strong>（correction）与 <strong>你表达周期性需求</strong>（automation）。以下为真实实测输出。</p>
+    <p>不是话痨推送。suggest 引擎只对明确信号主动开口：<strong>你纠正了 agent</strong>（correction）、<strong>你表达周期性需求</strong>（automation）、<strong>你说要稍后继续</strong>（followup）——0.5.0 起支持 <strong>会话中实时推送</strong>（UserPromptSubmit hook，不必等会话结束）。以下为真实实测输出。</p>
   </div>
 
   <div class="scene">
@@ -290,7 +290,7 @@
 <div class="final">
   <h2>一个 MCP 挂载，<em>所有 agent 立即拥有主动能力</em></h2>
   <p>ProactiveAgent 已在 Claude Code、Kimi Code、Proma 三个完全不同的宿主真实验证。即插即用，零宿主代码改动。</p>
-  <div class="cmd"><span class="pmt">$</span> npm install <span class="hl">…/proactive-agent-mcp-0.1.3.tgz</span> <span class="dim"># 然后 npx proactive-mcp init</span></div>
+  <div class="cmd"><span class="pmt">$</span> npm install <span class="hl">@proactive-agent/mcp</span> <span class="dim"># 然后 npx proactive-mcp init（生成 .mcp.json + hooks）</span></div>
   <div class="links">
     <a href="https://github.com/ConradLu2740/ProactiveAgent" target="_blank" rel="noopener">GitHub</a>
     <a href="https://github.com/ConradLu2740/ProactiveAgent/releases" target="_blank" rel="noopener">Releases</a>
