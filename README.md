@@ -121,8 +121,12 @@ agent: 我偏好用 TypeScript 和 Bun
 
 ### 附加能力
 
-- **/today Web 面板**：本地主动中心（15s 自动刷新），任何宿主都能开浏览器看
-- **Claude Code hooks**：会话开始时推送今日建议（today-push），结束时自动沉淀记忆 + 评估建议（session-end）
+- **/today Web 面板**：本地主动中心（15s 自动刷新），任何宿主都能开浏览器看；`POST /api/evaluate` 支持宿主把最近消息推过来触发会话中评估
+- **Claude Code hooks（三层）**：
+  - `SessionStart`（today-push）：会话开始推送待处理建议 + 热点场景
+  - `UserPromptSubmit`（user-prompt）：**会话中实时评估**——你说"以后都用 pnpm"，立即收到纠正建议；弱信号自动沉默
+  - `Stop`（session-end）：会话结束沉淀记忆 + 评估建议
+- **Kimi Code hooks（实验性）**：`UserPromptSubmit` 同构推送（kimi-user-prompt）
 
 ---
 
@@ -142,12 +146,19 @@ agent: 我偏好用 TypeScript 和 Bun
 → 以后所有 agent 都遵守这条规则
 ```
 
-### 场景 3：每日复盘自动沉淀
+### 场景 3：会话中主动建议（0.5.0）
 ```
-会话结束（Claude Code Stop hook / 手动 daily_review）
-→ memory_extract 提取今天的记忆（待确认）
-→ suggest_now 评估是否有值得的建议
-→ 打开 /today 面板：今日建议 + 热点场景 + 画像
+你在 Claude Code 里输入："以后提交前先跑测试"
+→ UserPromptSubmit hook 实时评估（evaluateNow, session_mid）
+→ 建议注入当前会话："记住这个纠正？接受：suggest_accept"
+→ 接受后规则写入记忆，所有宿主下次遵守
+```
+
+### 场景 4：时间感知的定时任务建议（0.5.0）
+```
+你说："每天下午5点帮我检查发布状态"
+→ 时间解析器识别周期 → cron: 0 17 * * *
+→ 建议预填真实 cron，接受后直接建好定时任务
 ```
 
 ---
@@ -217,6 +228,13 @@ A：只有 `memory_extract` 的 LLM 模式会把**当前对话片段**发给你�
 - [x] Proma / Claude Code / Kimi Code 真实验证
 - [x] npm 发布（@proactive-agent/core + @proactive-agent/mcp）
 - [x] 按项目记忆（0.3.0：项目隔离 + 显式全局共享 + 迁移 + 逃生开关）
+- [x] 主动推送闭环（0.5.0：evaluateNow 统一入口 + 会话中 UserPromptSubmit hooks + Today push 端点）
+- [x] 时间/周期解析（0.5.0：中英文时间表达 → cron/dueAt 预填）
+- [x] 英文信号（0.5.0：correction/automation/followup/todo 英文模式）
+- [ ] Kimi notification + turn.steer 主动转述（M3）
+- [ ] Action Executor：建议接受即真实创建（automation/todo 接宿主 API）
+- [ ] 指标面板：建议接受率 / 打扰率（suggested → pushed → accepted → executed 漏斗）
+- [ ] 记忆索引化（倒排索引，支撑上万条）
 - [ ] embedding 本地化（默认可选）
 - [ ] 多语言 README
 - [ ] 自动归档 / TTL 记忆管理

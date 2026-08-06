@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.5.0 (2026-08-06)
+
+「主动推送闭环」批次：建议从"等用户来看"升级为"送到用户面前"。
+
+### 新增
+
+- **`evaluateNow(context)` 统一入口**：5 种触发点（session_start / session_mid / session_end / manual / timer）
+  - `session_mid`：会话中实时评估，只推强信号（correction/automation），单次 1 条
+  - `session_start`：返回存量待处理建议（today-push 逻辑内聚 core）
+  - `session_end`：兼容旧 evaluateSessionSuggestions（内部转发）
+- **Claude Code UserPromptSubmit hook**（`hooks/user-prompt.ts`）：会话中输入"以后都用 pnpm"立即收到建议；弱信号自动沉默
+- **Kimi Code 实验性 hook**（`hooks/kimi-user-prompt.ts`）：同构 UserPromptSubmit 推送
+- **Today 面板 `POST /api/evaluate`**：宿主 push 端点，把最近消息推过来触发会话中评估
+- **时间/周期解析器**（`suggest/time-parse.ts`）：中英文时间表达 → `{cron?, dueAt?, label}`
+  - "每天下午5点" → `0 17 * * *`；"remind me tomorrow at 10am" → dueAt
+  - automation/followup 建议标题与 action 预填真实时间
+- **英文信号**：correction/automation/followup/todo 英文模式（please always / every day / remind me tomorrow / not done yet）
+- `init` 生成的 Claude Code hooks 配置新增 UserPromptSubmit 事件
+
+### 测试
+
+- 新增 38 个测试（evaluateNow 10 + 英文信号 11 + 时间解析 17），总计 214 全绿
+
 ## 0.4.0 (2026-08-06)
 
 「引导闭环」批次：让第一次使用的开发者对真实项目获得记忆，感受到"它懂我的项目"。
