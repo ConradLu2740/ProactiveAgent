@@ -46,6 +46,8 @@ export interface ProjectIdentity {
 export interface MigrationResult {
   status: 'already-v2' | 'migrated' | 'nothing-to-do' | 'failed'
   detail?: string
+  /** preview 模式：true 表示未实际迁移（仅报告将迁移内容） */
+  preview?: boolean
 }
 
 export interface TopLevelIndex {
@@ -312,7 +314,7 @@ export function currentLayerKey(): string {
 
 // ===== 迁移（对抗审查 2.x 修正：lockfile + 存在即迁 + 幂等） =====
 
-export function migrateLegacyData(): MigrationResult {
+export function migrateLegacyData(opts: { preview?: boolean } = {}): MigrationResult {
   const root = configDir()
   const top = readTopIndex()
   const oldMemory = join(root, 'memory')
@@ -323,6 +325,25 @@ export function migrateLegacyData(): MigrationResult {
   // 幂等判断（修复 🔴#1：不能只查 schemaVersion——doctor/stats 先跑会 ensureTopIndex 写成 v2 但没迁数据）
   if (top?.schemaVersion === 2 && !hasOld) {
     return { status: 'already-v2' }
+  }
+  // preview：只报告将要迁移的文件，不执行（诚实性修复 #1）
+  if (opts.preview) {
+    if (top?.schemaVersion === undefined && !hasOld) {
+      return { status: 'nothing-to-do', detail: '无旧数据（将初始化 v2 顶层索引）' }
+    }
+    const toMove: string[] = []
+    for (const [label, from] of [
+      ['memory', oldMemory],
+      ['suggestions.json', oldSuggestions],
+      ['suggestions.json.bak', oldSuggestionsBackup],
+    ] as const) {
+      if (existsSync(from)) toMove.push(label)
+    }
+    return {
+      status: top?.schemaVersion === 2 ? 'already-v2' : 'migrated',
+      detail: toMove.length > 0 ? `将迁移: ${toMove.join(', ')}（--apply 执行）` : '无可迁移文件（--apply 无操作）',
+      preview: true,
+    }
   }
   if (top?.schemaVersion === 2 && hasOld) {
     // v2 标记但旧数据仍残留（此前被 ensureTopIndex 抢先写过 v2）：继续迁移

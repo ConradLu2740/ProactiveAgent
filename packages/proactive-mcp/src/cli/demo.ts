@@ -87,8 +87,9 @@ export async function runDemo(cleanOnly = false): Promise<number> {
   }
   console.log('')
 
-  console.log('✅ 演示完成！打开 http://127.0.0.1:8737/today 可查看演示数据')
-  console.log('   （注意：demo 数据在 ' + demoDirLabel() + '，不影响真实记忆）')
+  console.log('✅ 演示完成！')
+  console.log('  演示数据在 ' + demoDirLabel() + '（隔离于真实记忆，不影响你的项目数据）')
+  console.log('  提示：/today 面板展示的是真实数据目录，不会显示本次演示数据')
   console.log('   清理: proactive-mcp demo --clean')
   console.log('')
   console.log('   💡 下一步：对真实项目做一次记忆提取（proactive-mcp demo 已演示；extract 命令路线图规划中）')

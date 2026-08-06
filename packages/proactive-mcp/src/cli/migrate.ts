@@ -13,6 +13,7 @@ export function runMigrate(args: string[]): number {
   const preview = args.includes('--preview')
   const mergeToGlobal = args.includes('--merge-to-global')
   const status = args.includes('--status')
+  const apply = args.includes('--apply')
 
   if (status) {
     const top = readTopIndex()
@@ -23,7 +24,7 @@ export function runMigrate(args: string[]): number {
     const hasProjects = existsSync(getProjectsRootDir())
     console.log('ProactiveAgent 迁移状态')
     console.log(`  顶层 index.json: ${top?.schemaVersion === 2 ? `schemaVersion=${top.schemaVersion}（已迁移或全新）` : '未创建（旧布局或未初始化）'}`)
-    console.log(`  旧全局数据: ${hasOldMemory || hasOldSuggestions ? '⚠️ 发现旧布局（运行 proactive-mcp migrate 迁移）' : '无'}`)
+    console.log(`  旧全局数据: ${hasOldMemory || hasOldSuggestions ? '⚠️ 发现旧布局（运行 proactive-mcp migrate --apply 迁移）' : '无'}`)
     console.log(`  global 层: ${hasGlobal ? '存在' : '未创建'}`)
     console.log(`  projects 层: ${hasProjects ? '存在' : '未创建'}`)
     if (top?.migration) {
@@ -37,7 +38,7 @@ export function runMigrate(args: string[]): number {
     if (preview) {
       console.log(`预览：将合并 ${result.items.length} 个项目到 global：`)
       for (const k of result.items) console.log(`  - ${k}`)
-      console.log('（--preview 只读，未执行）')
+      console.log('（--preview 只读，未执行；去掉 --preview 执行合并）')
     } else {
       console.log(`已合并 ${result.items.length} 个项目到 global：`)
       for (const k of result.items) console.log(`  - ${k}`)
@@ -46,8 +47,20 @@ export function runMigrate(args: string[]): number {
     return 0
   }
 
-  // 默认：执行迁移
-  const result = migrateLegacyData()
+  // 默认：--preview 只报告；--apply 才真正迁移（诚实性修复 #1）
+  const result = migrateLegacyData({ preview: preview || !apply })
+  if (result.preview) {
+    console.log('🔍 迁移预览（未执行）：')
+    if (result.status === 'already-v2') {
+      console.log('  数据已是 v2 布局，无需迁移。')
+    } else if (result.status === 'nothing-to-do') {
+      console.log(`  ${result.detail ?? '无旧数据'}`)
+    } else {
+      console.log(`  ${result.detail ?? '将迁移旧数据到 global 层'}`)
+    }
+    console.log('  执行迁移：proactive-mcp migrate --apply')
+    return 0
+  }
   if (result.status === 'already-v2') {
     console.log('数据已是 v2 布局，无需迁移。')
   } else if (result.status === 'nothing-to-do') {

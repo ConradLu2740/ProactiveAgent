@@ -74,6 +74,7 @@ agent: 我偏好用 TypeScript
 | `proactive-mcp doctor` | 健康检查：数据目录 / LLM 配置 / hooks 产物 / 记忆索引 / 端口占用 |
 | `proactive-mcp stats` | 记忆与建议统计快照（atom/类型/场景/画像/建议反馈） |
 | `proactive-mcp demo` | 教程式示例：隔离数据演示 capture→recall→suggest→persona（--clean 清理） |
+| `proactive-mcp migrate` | 0.3.0 数据迁移（--apply 执行 / --preview 预览 / --status 状态 / --merge-to-global 反向收敛） |
 | `proactive-mcp --today` | 启动本地主动中心 Web 面板（端口 PROACTIVE_TODAY_PORT，默认 8737） |
 
 ## /today Web 面板
@@ -96,6 +97,10 @@ npx proactive-mcp --today
 | `PROACTIVE_PROJECT` | 显式指定项目标识（跳过自动解析） |
 | `PROACTIVE_SCOPE=global` | 逃生开关：全部读写回退 0.2 单层（`<root>/memory`），与 global 共享层物理分离 |
 | `PROACTIVE_TODAY_PORT` | /today 面板端口（默认 8737） |
+| `MEMORY_LLM_API_KEY` / `MEMORY_LLM_BASE_URL` / `MEMORY_LLM_MODEL` | 可选 LLM 提取（OpenAI 兼容；未配置自动降级规则模式，零外发可用） |
+
+> **npx 提示**：`npx proactive-mcp` 需要先在当前目录安装本包（`npm install @proactive-agent/mcp`）。
+> 如遇 npx 404（本地包已装但 npx 误去 registry 拉取），用 `node node_modules/.bin/proactive-mcp` 直接执行。
 
 数据布局（0.3.0）：
 ```text

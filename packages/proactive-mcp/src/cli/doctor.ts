@@ -44,7 +44,8 @@ function checkLlm(): CheckResult {
     return { status: 'warn', label: '提取模式', detail: '已关闭（记忆提取不工作）' }
   }
   if (mode === 'llm' && !configured) {
-    return { status: 'warn', label: 'LLM 提取', detail: '模式为 llm 但未配置 MEMORY_LLM_API_KEY，将降级规则模式（功能可用，精度较低）' }
+    // 全新安装未配 LLM：说明这是默认状态而非用户配置错误（措辞修复 #4）
+    return { status: 'ok', label: '提取模式', detail: '规则模式（未配置 LLM，零外发可用；配置 MEMORY_LLM_API_KEY 可提升提取精度）' }
   }
   return { status: 'ok', label: '提取模式', detail: `${mode}${configured ? ' · LLM 已配置' : ' · 规则模式（零外发）'}` }
 }

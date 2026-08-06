@@ -99,15 +99,15 @@ agent: 我偏好用 TypeScript 和 Bun
 
 ## 能力总览
 
-### Tools（17 个，任何宿主可用）
+### Tools（18 个，任何宿主可用）
 
 | 类别 | 工具 | 干什么 |
 |---|---|---|
-| 🧠 记忆写入 | `memory_capture` | 显式记住一条（偏好/事实/纠正/流程，立即生效） |
+| 🧠 记忆写入 | `memory_capture` | 显式记住一条（偏好/事实/纠正/流程，立即生效；支持 scope: project/global） |
 | 🧠 记忆提取 | `memory_extract` | 把对话交给引擎自动提取（默认待确认，防投毒） |
-| 🔍 记忆检索 | `memory_recall` | 关键词/混合检索，任务开始前注入上下文 |
+| 🔍 记忆检索 | `memory_recall` | 关键词/混合检索，任务开始前注入上下文（默认 auto：项目+全局合并） |
 | ✅ 记忆闭环 | `memory_pending` / `confirm` / `reject` | 待确认记忆 + 行为纠正的确认/拒绝 |
-| 👤 画像 | `persona_get` | 读取 L3 用户画像（稳定偏好/行为规则） |
+| 👤 画像 | `persona_get` / `persona_save` | 读取合并画像（global base + 项目覆盖）/ 手动保存画像 |
 | 🔥 场景 | `scene_summary` | 近期热点场景（"你最近在忙什么"） |
 | 📊 统计 | `memory_stats` | 记忆系统统计 |
 | 💡 建议 | `suggest_now` / `list` / `accept` / `ignore` | 主动建议评估 + 反馈闭环（频率学习） |
@@ -215,7 +215,8 @@ A：只有 `memory_extract` 的 LLM 模式会把**当前对话片段**发给你�
 - [x] 核心引擎（记忆 + 建议 + 场景 + 画像）
 - [x] MCP Server + 面板 + hooks
 - [x] Proma / Claude Code / Kimi Code 真实验证
-- [ ] npm 发布（等待 npm 政策 / 账号条件）
+- [x] npm 发布（@proactive-agent/core + @proactive-agent/mcp）
+- [x] 按项目记忆（0.3.0：项目隔离 + 显式全局共享 + 迁移 + 逃生开关）
 - [ ] embedding 本地化（默认可选）
 - [ ] 多语言 README
 - [ ] 自动归档 / TTL 记忆管理
