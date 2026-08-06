@@ -1,0 +1,14 @@
+# Smithery 配置：让 Smithery 自动索引并分发 ProactiveAgent（stdio MCP server）
+# 参考：https://smithery.ai/docs/publish
+# 分发形态：npm 包 @proactive-agent/mcp（零依赖，bin: proactive-mcp）
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    properties: {}
+  commandFunction: |
+    (config) => ({
+      "command": "npx",
+      "args": ["-y", "@proactive-agent/mcp@latest"],
+      "env": {}
+    })
