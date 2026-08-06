@@ -18,11 +18,19 @@ import { registerPrompts } from './prompts'
 import { startTodayServer } from './today'
 import { runInit } from './cli-init'
 
+/**
+ * 包版本。发布时由 scripts/publish-proactive.sh 通过 bun build
+ * --define:PROACTIVE_MCP_VERSION 注入；本地开发（无注入）回退为 dev。
+ */
+declare const PROACTIVE_MCP_VERSION: string | undefined
+const VERSION: string =
+  typeof PROACTIVE_MCP_VERSION !== 'undefined' ? PROACTIVE_MCP_VERSION : '0.0.0-dev'
+
 /** 创建并注册 ProactiveAgent MCP server（测试与 stdio 入口共用） */
 export function createServer(): McpServer {
   const server = new McpServer({
     name: 'proactive-agent',
-    version: '0.2.0',
+    version: VERSION,
   })
   registerTools(server)
   registerResources(server)
@@ -46,7 +54,7 @@ async function main(): Promise<void> {
     return
   }
   if (argv.includes('--version') || argv.includes('-v')) {
-    console.log('0.2.0')
+    console.log(VERSION)
     return
   }
   // init：一键生成挂载配置

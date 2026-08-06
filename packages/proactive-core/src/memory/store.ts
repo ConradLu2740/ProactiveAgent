@@ -4,7 +4,7 @@
  * 存储布局（local-first，对齐 Proma 惯例）：
  * ```text
  * ~/.proma/memory/
- *   index.json            # 元数据/版本/统计（原子写 + .bak 容错）
+ *   index.json            # 记忆索引（按需生成：写入开关/提取模式等配置时落盘；原子写 + .bak 容错）
  *   profile.md            # L3 用户画像
  *   atoms/{YYYY-MM-DD}.jsonl   # L1 原子记忆，按天分文件（append-only）
  *   scenes/{sceneId}.md   # L2 场景块

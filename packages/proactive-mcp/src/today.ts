@@ -200,9 +200,13 @@ export function startTodayServer(port = 8737): Server {
       res.end(`主动中心生成失败: ${error instanceof Error ? error.message : String(error)}`)
     }
   })
+
+  // 端口占用检测：先打印“启动中”，listen 成功后再打印“已启动”，
+  // 避免用户误以为自己的实例已经起来（真实情况可能是旧实例在监听）。
+  console.error(`[proactive-mcp] 主动中心启动中: http://127.0.0.1:${port}/today`)
   server.once('error', (err: NodeJS.ErrnoException) => {
     if (err.code === 'EADDRINUSE') {
-      console.error(`[proactive-mcp] ⚠️ 端口 ${port} 已被占用。`)
+      console.error(`[proactive-mcp] ⚠️ 端口 ${port} 已被占用，未能启动主动中心。`)
       console.error(`  可能已有另一个主动中心在运行（可能是旧实例/其他项目）。`)
       console.error(`  可用环境变量换端口：PROACTIVE_TODAY_PORT=8739 proactive-mcp --today`)
       process.exit(1)
@@ -211,6 +215,20 @@ export function startTodayServer(port = 8737): Server {
     }
   })
   server.listen(port, '127.0.0.1')
-  console.error(`[proactive-mcp] 主动中心已启动: http://127.0.0.1:${port}/today`)
+  server.once('listening', () => {
+    console.error(`[proactive-mcp] 主动中心已启动: http://127.0.0.1:${port}/today`)
+  })
+
+  // 优雅关闭：收到 SIGTERM/SIGINT 时关闭 HTTP server 再退出，避免 npx 包装下
+  // 杀包装进程后 node server 变成孤儿进程继续占用端口。
+  const shutdown = (signal: NodeJS.Signals) => {
+    console.error(`[proactive-mcp] 收到 ${signal}，正在关闭主动中心`)
+    server.close(() => process.exit(0))
+    // 兜底：close 回调不触发时强制退出，避免进程挂住
+    setTimeout(() => process.exit(0), 2000).unref()
+  }
+  process.once('SIGTERM', shutdown)
+  process.once('SIGINT', shutdown)
+
   return server
 }

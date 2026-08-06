@@ -7,7 +7,7 @@
  * 目录布局与 Proma 既有约定一致：
  * ```text
  * ~/.proma-proactive/
- *   index.json            # 记忆索引
+ *   index.json            # 记忆索引（按需生成：写入开关/提取模式等配置时落盘）
  *   profile.md            # L3 用户画像
  *   atoms/{YYYY-MM-DD}.jsonl   # L1 原子记忆
  *   scenes/{sceneId}.md   # L2 场景块

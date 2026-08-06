@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.1.3 (2026-08-06)
+
+首个 npm 公开发布版本（@proactive-agent/core + @proactive-agent/mcp 同步发布）。
+
+### 修复
+
+- 版本号统一：`proactive-mcp --version` 与 MCP `serverInfo.version` 改为由发布脚本
+  `--define` 注入，与 npm 发布版本一致（此前硬编码 0.2.0 导致漂移）；构建后自动自检防止再次漂移
+- /today 面板端口占用提示顺序修正：先打印“启动中”，listen 成功才打印“已启动”，
+  端口被占用时明确提示“未能启动”并退出，避免用户误以为自己的实例已起来
+- /today 面板支持 SIGTERM/SIGINT 优雅关闭（关闭 HTTP server 后退出），
+  修复 npx 包装下杀包装进程后 node server 变孤儿进程继续占端口的问题
+- `index.json` 注释/README 对齐：明确其为按需生成（写入开关/提取模式等配置时落盘），
+  原子记忆实际存储于 `atoms/*.jsonl`
+
 ## 0.1.0 (2026-08-04)
 
 首个公开发布版本。

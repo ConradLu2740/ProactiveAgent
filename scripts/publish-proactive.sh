@@ -20,7 +20,8 @@ LICENSE="${LICENSE:-MIT}"
 
 echo "==> 构建 bundle"
 (cd "$ROOT/packages/proactive-core" && bun run build)
-(cd "$ROOT/packages/proactive-mcp" && bun run build)
+# mcp 构建时注入版本号（--define），保证 --version / serverInfo.version 与发布版本一致
+(cd "$ROOT/packages/proactive-mcp" && bun build src/index.ts --target=node --banner '#!/usr/bin/env node' --define "PROACTIVE_MCP_VERSION=\"$VERSION\"" --outfile=dist/index.js)
 
 rm -rf "$PUBLISH_DIR"
 mkdir -p "$PUBLISH_DIR/core/dist" "$PUBLISH_DIR/mcp/dist"
@@ -72,6 +73,14 @@ cp "$ROOT/packages/proactive-mcp/dist/hooks/session-end.js" "$PUBLISH_DIR/mcp/di
 cp "$ROOT/packages/proactive-mcp/README.md" "$PUBLISH_DIR/mcp/" 2>/dev/null || true
 cp "$ROOT/CHANGELOG.md" "$PUBLISH_DIR/mcp/" 2>/dev/null || true
 cp "$ROOT/CHANGELOG.md" "$PUBLISH_DIR/core/" 2>/dev/null || true
+
+# 构建后自检：--version 输出必须与发布版本一致（防版本号再次漂移）
+VER_CHECK=$(node "$PUBLISH_DIR/mcp/dist/index.js" --version 2>/dev/null || true)
+if [ "$VER_CHECK" != "$VERSION" ]; then
+  echo "==> ⚠️ 版本号不一致：--version 输出 [$VER_CHECK]，预期 [$VERSION]（dist 可能未重新构建或 define 注入失败）"
+  exit 1
+fi
+echo "==> 版本自检通过: $VER_CHECK"
 # ---- @proactive-agent/mcp - NOTICE（第三方组件声明） ----
 cat > "$PUBLISH_DIR/mcp/NOTICE" <<'EOF'
 This package bundles the following third-party MIT-licensed components:
