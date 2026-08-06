@@ -51,20 +51,20 @@
 
 ## 快速开始（< 1 分钟，无需 clone / 无需 bun）
 
-> ⚠️ npm 包即将上线（Trusted Publishing 流程已就绪，受 npm 政策影响暂缓）。当前从 GitHub Release 安装，一条命令搞定。
+> ✅ 已发布到 npm！一条命令搞定。
 
-**方式 A（推荐）：npm 直接安装 tarball**
+**方式 A（推荐）：npm 直接安装**
 ```bash
 # 在你自己的项目里（或任意目录）
-npm install https://github.com/ConradLu2740/ProactiveAgent/releases/download/v0.1.3/proactive-agent-mcp-0.1.3.tgz
+npm install @proactive-agent/mcp
 
 # 一键生成挂载配置（Claude Code / Kimi Code / Cline / Cursor 通用）
 npx proactive-mcp init
 ```
 
-> 只需 node >= 18，不需要 bun，不需要 clone 仓库。`init` 会生成指向你本地安装的 `.mcp.json`，零额外依赖。
+> 只需 node >= 18。`init` 会生成指向你本地安装的 `.mcp.json`，零额外依赖。
 
-**或者手动挂载（不装包，直接用远程 bundle）**：
+**或者手动挂载（不装包，直接用 GitHub Release bundle）**：
 ```bash
 # Claude Code
 claude mcp add proactive-agent -- node <repo>/dist-publish/mcp/dist/index.js

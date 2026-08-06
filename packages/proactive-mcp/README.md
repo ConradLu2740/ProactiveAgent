@@ -8,7 +8,7 @@ ProactiveAgent 的 MCP Server：把主动记忆（proactive memory）+ 主动建
 
 ```bash
 # 在你自己的项目里（或任意目录）
-npm install https://github.com/ConradLu2740/ProactiveAgent/releases/download/v0.1.3/proactive-agent-mcp-0.1.3.tgz
+npm install @proactive-agent/mcp
 
 # 一键生成挂载配置（Claude Code / Kimi Code / Cline / Cursor 通用）
 npx proactive-mcp init
