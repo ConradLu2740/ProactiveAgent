@@ -134,8 +134,16 @@ export type SuggestionKind =
 /** 建议可执行动作 */
 export type SuggestionAction =
   | { type: 'memory_correction'; raw: string; rule: string }
-  | { type: 'open_automation_create'; automationTitle: string; suggestedPrompt: string }
-  | { type: 'open_todo_create'; title: string; notes?: string }
+  | {
+      type: 'open_automation_create'
+      automationTitle: string
+      suggestedPrompt: string
+      /** 预填 cron（时间解析器生成，v0 可选） */
+      cron?: string
+      /** 预填截止时间戳（时间解析器生成，v0 可选） */
+      dueAt?: number
+    }
+  | { type: 'open_todo_create'; title: string; notes?: string; dueAt?: number }
   | { type: 'open_memory_board' }
   | { type: 'open_skill_creator'; topic: string }
 

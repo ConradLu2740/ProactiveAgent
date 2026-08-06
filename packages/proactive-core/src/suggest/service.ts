@@ -67,21 +67,45 @@ export function dndActive(now?: number): boolean {
   return isInDnd(now)
 }
 
-// ===== 会话结束评估（orchestrator 钩子入口） =====
+// ===== 统一评估入口（R1：主动推送闭环） =====
+
+/** 评估触发点：会话开始/中/结束、手动、定时 */
+export type EvaluateNowTrigger = 'session_start' | 'session_mid' | 'session_end' | 'manual' | 'timer'
+
+export interface EvaluateNowContext {
+  trigger: EvaluateNowTrigger
+  sessionId?: string
+  /** 最近对话消息（session_mid/session_end/manual 用） */
+  messages?: Array<{ role: string; content: string }>
+  /** 项目键提示（宿主注入，用于 scope 路由） */
+  projectHint?: string
+  /** 会话中推送默认降噪：弱信号不打扰 */
+  suppressIfQuiet?: boolean
+}
 
 /**
- * 会话结束后评估是否产生建议。
- * 返回本次新增的待展示建议（可为空 = 该沉默）。
- * 调用方应 fire-and-forget（不阻塞会话结束流程）。
+ * 统一建议评估入口（R1）。
+ * 支持 5 种触发点，内部按 trigger 应用不同抑制策略：
+ * - session_start：只推存量待处理建议摘要（today-push 逻辑内聚进 core），不产生新建议
+ * - session_mid：会话中推送，限 1 条 + 强信号门槛（correction/automation，raw ≥ 0.8）
+ * - session_end：等同旧 evaluateSessionSuggestions（兼容转发）
+ * - manual：等同 suggest_now
+ * - timer：Today 面板轮询/定时触发，同 session_mid 抑制
  */
-export async function evaluateSessionSuggestions(
-  messages: Array<{ role: string; content: string }>,
-  ctx: { sessionId?: string } = {},
-): Promise<SuggestionRecord[]> {
+export async function evaluateNow(ctx: EvaluateNowContext): Promise<SuggestionRecord[]> {
   if (!suggestionsEnabled()) return []
   // 免打扰时段：不产生新建议（避免横幅打扰）。Proactive Today 列表不受影响。
   if (isInDnd()) return []
+
   try {
+    // session_start：不评估新建议，只返回存量待处理（宿主注入会话上下文用）
+    if (ctx.trigger === 'session_start') {
+      return listSuggestions('suggested').slice(0, 5)
+    }
+
+    const messages = ctx.messages ?? []
+    if (messages.length === 0) return []
+
     const existing = listSuggestions('suggested')
     const existingForSession = existing.filter((r) => r.sessionId === ctx.sessionId)
     // 同会话已达预算则不再建议
@@ -96,7 +120,13 @@ export async function evaluateSessionSuggestions(
       sopCandidateCount: loadSopCandidateCount(),
     }
 
-    const result = evaluateSuggestions(input, readSuggestionsIndex(), DEFAULT_SUGGEST_OPTIONS)
+    const isMid = ctx.trigger === 'session_mid' || ctx.trigger === 'timer'
+    // 会话中/定时：单次限 1 条 + 更高置信门槛
+    const opts: typeof DEFAULT_SUGGEST_OPTIONS = isMid
+      ? { ...DEFAULT_SUGGEST_OPTIONS, maxPerEvaluation: 1, threshold: 0.8 }
+      : DEFAULT_SUGGEST_OPTIONS
+
+    const result = evaluateSuggestions(input, readSuggestionsIndex(), opts)
     if (result.candidates.length === 0) return []
 
     // 类型已连续忽略自动静默 → 跳过
@@ -104,14 +134,31 @@ export async function evaluateSessionSuggestions(
     if (!candidate) return []
     if (isTypeSilenced(candidate.kind)) return []
 
+    // 会话中/定时：只推 correction / automation 强信号（避免 followup/todo 打断工作流）
+    if (isMid && ctx.suppressIfQuiet !== false) {
+      if (candidate.kind !== 'correction' && candidate.kind !== 'automation') return []
+    }
+
     const record = persistSuggestion(candidate, ctx.sessionId)
     // 新建议生成后广播事件，让当前会话的 SuggestionBanner 实时刷新（不再等重新挂载）
     notifySuggestionsChanged()
     return [record]
   } catch (error) {
-    console.warn('[Suggestion] 会话建议评估失败:', error instanceof Error ? error.message : error)
+    console.warn('[Suggestion] evaluateNow 评估失败:', error instanceof Error ? error.message : error)
     return []
   }
+}
+
+// ===== 会话结束评估（orchestrator 钩子入口，兼容旧接口） =====
+
+/**
+ * 会话结束后评估是否产生建议（内部转发 evaluateNow，保持旧调用方兼容）。
+ */
+export async function evaluateSessionSuggestions(
+  messages: Array<{ role: string; content: string }>,
+  ctx: { sessionId?: string } = {},
+): Promise<SuggestionRecord[]> {
+  return evaluateNow({ trigger: 'session_end', messages, sessionId: ctx.sessionId })
 }
 
 // ===== 建议操作（IPC / UI） =====

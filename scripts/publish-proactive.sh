@@ -69,6 +69,8 @@ mkdir -p "$PUBLISH_DIR/mcp/dist/hooks"
 (cd "$ROOT/packages/proactive-mcp" && bun run build:hooks 2>/dev/null || echo "  (hooks 编译跳过)")
 cp "$ROOT/packages/proactive-mcp/dist/hooks/today-push.js" "$PUBLISH_DIR/mcp/dist/hooks/" 2>/dev/null || true
 cp "$ROOT/packages/proactive-mcp/dist/hooks/session-end.js" "$PUBLISH_DIR/mcp/dist/hooks/" 2>/dev/null || true
+cp "$ROOT/packages/proactive-mcp/dist/hooks/user-prompt.js" "$PUBLISH_DIR/mcp/dist/hooks/" 2>/dev/null || true
+cp "$ROOT/packages/proactive-mcp/dist/hooks/kimi-user-prompt.js" "$PUBLISH_DIR/mcp/dist/hooks/" 2>/dev/null || true
 (cd "$ROOT/packages/proactive-mcp" && bunx tsc --declaration --emitDeclarationOnly --module esnext --moduleResolution bundler --skipLibCheck --downlevelIteration --target es2022 --outDir "$PUBLISH_DIR/mcp/dist" src/index.ts 2>/dev/null || true)
 cp "$ROOT/packages/proactive-mcp/README.md" "$PUBLISH_DIR/mcp/" 2>/dev/null || true
 cp "$ROOT/CHANGELOG.md" "$PUBLISH_DIR/mcp/" 2>/dev/null || true

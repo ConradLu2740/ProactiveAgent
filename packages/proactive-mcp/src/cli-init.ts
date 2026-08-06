@@ -59,26 +59,28 @@ function buildServerConfig(local: boolean): { config: Record<string, unknown>; e
 
 /**
  * 推断 hooks 绝对路径。
- * dist bundle 自身位置 → dist/hooks/{today-push,session-end}.js。
+ * dist bundle 自身位置 → dist/hooks/{today-push,session-end,user-prompt}.js。
  * 返回 undefined 表示无法推断（源码 dev 模式），调用方据此跳过 hooks 配置。
  */
-function inferHooksPaths(): { todayPush: string; sessionEnd: string } | undefined {
+function inferHooksPaths(): { todayPush: string; sessionEnd: string; userPrompt: string } | undefined {
   const self = fileURLToPath(import.meta.url)
   const distDir = dirname(self)
   const hooksDir = join(distDir, 'hooks')
   const todayPush = join(hooksDir, 'today-push.js')
   const sessionEnd = join(hooksDir, 'session-end.js')
-  if (existsSync(todayPush) && existsSync(sessionEnd)) {
-    return { todayPush, sessionEnd }
+  const userPrompt = join(hooksDir, 'user-prompt.js')
+  if (existsSync(todayPush) && existsSync(sessionEnd) && existsSync(userPrompt)) {
+    return { todayPush, sessionEnd, userPrompt }
   }
   return undefined
 }
 
 /** 生成 Claude Code hooks 配置（.claude/settings.json 内容），路径经 shell 转义 */
-function buildHooksSettings(hooks: { todayPush: string; sessionEnd: string }): Record<string, unknown> {
+function buildHooksSettings(hooks: { todayPush: string; sessionEnd: string; userPrompt: string }): Record<string, unknown> {
   return {
     hooks: {
       SessionStart: [{ hooks: [{ type: 'command', command: `node ${shellQuote(hooks.todayPush)}` }] }],
+      UserPromptSubmit: [{ hooks: [{ type: 'command', command: `node ${shellQuote(hooks.userPrompt)}` }] }],
       Stop: [{ hooks: [{ type: 'command', command: `node ${shellQuote(hooks.sessionEnd)}` }] }],
     },
   }
@@ -186,13 +188,17 @@ export function writeClaudeHooks(
   for (const [event, hookList] of Object.entries(newHooks)) {
     const existingList = (mergedHooks[event] ?? []) as Array<Record<string, unknown>>
     const mergedList = [...existingList]
-    const exists = mergedList.some((h) => JSON.stringify(h).includes(SERVER_NAME) || JSON.stringify(h).includes('today-push'))
+    const isProactiveHook = (h: Record<string, unknown>) =>
+      JSON.stringify(h).includes(SERVER_NAME) ||
+      JSON.stringify(h).includes('today-push') ||
+      JSON.stringify(h).includes('user-prompt')
+    const exists = mergedList.some(isProactiveHook)
     if (exists && !force) {
       continue
     }
     if (exists && force) {
       // --force：替换该事件里我们自己的钩子，保留用户的其他钩子
-      const filtered = mergedList.filter((h) => !(JSON.stringify(h).includes(SERVER_NAME) || JSON.stringify(h).includes('today-push')))
+      const filtered = mergedList.filter((h) => !isProactiveHook(h))
       mergedHooks[event] = [...filtered, ...(hookList as Array<Record<string, unknown>>)]
     } else {
       mergedHooks[event] = [...mergedList, ...(hookList as Array<Record<string, unknown>>)]

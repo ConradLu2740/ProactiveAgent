@@ -14,6 +14,7 @@
 import type { RuleContext, RuleMatch } from './types'
 import type { SuggestionCandidate } from '../shared-types'
 import { extractSignals, normalizeRule, isMeaningfulRule, type Signal } from './signals'
+import { parseTimeExpression } from './time-parse'
 
 /** SOP 候选数量阈值：达到后建议沉淀为 Skill */
 export const SOP_CANDIDATE_THRESHOLD = 3
@@ -65,18 +66,24 @@ function signalToCandidate(signal: Signal, ctx: RuleContext): RuleMatch | undefi
     }
 
     case 'followup': {
+      // 时间解析：从原始表达提取真实 cron/dueAt（v0：解析失败仍给建议，只少预填）
+      const time = parseTimeExpression(signal.raw)
       return {
         candidate: {
           duplicateKey: `followup:${signal.raw.slice(0, 24)}`,
           kind: 'followup',
-          title: '创建跟进提醒',
-          reason: '你提到了稍后继续，建议创建一个跟进提醒，到时间自动提示你继续这个任务。',
+          title: time ? `创建跟进提醒（${time.label}）` : '创建跟进提醒',
+          reason: time
+            ? `你提到了稍后继续，已识别时间 ${time.label}，建议创建跟进提醒，到点自动提示你继续这个任务。`
+            : '你提到了稍后继续，建议创建一个跟进提醒，到时间自动提示你继续这个任务。',
           evidence: signal.raw,
           rawConfidence: signal.confidence,
           action: {
             type: 'open_automation_create',
             automationTitle: '跟进提醒',
             suggestedPrompt: `提醒我：${signal.raw}`,
+            ...(time?.cron ? { cron: time.cron } : {}),
+            ...(time?.dueAt ? { dueAt: time.dueAt } : {}),
           },
         },
       }
@@ -90,18 +97,23 @@ function signalToCandidate(signal: Signal, ctx: RuleContext): RuleMatch | undefi
       )
       if (existing) return undefined
 
+      // 时间解析：从原始表达提取周期 cron（如"每天下午5点" → 0 17 * * *）
+      const time = parseTimeExpression(signal.raw)
       return {
         candidate: {
           duplicateKey: `automation:${title}`,
           kind: 'automation',
-          title: '开启定时任务',
-          reason: '你表达的是周期性/长期关注的需求，建议创建一个定时任务，让助手无人值守地自动处理。',
+          title: time ? `开启定时任务（${time.label}）` : '开启定时任务',
+          reason: time
+            ? `你表达的是周期性需求，已识别周期 ${time.label}，建议创建定时任务，让助手无人值守地自动处理。`
+            : '你表达的是周期性/长期关注的需求，建议创建一个定时任务，让助手无人值守地自动处理。',
           evidence: signal.raw,
           rawConfidence: signal.confidence,
           action: {
             type: 'open_automation_create',
             automationTitle: title,
             suggestedPrompt: `${title}（定期自动执行）`,
+            ...(time?.cron ? { cron: time.cron } : {}),
           },
         },
       }

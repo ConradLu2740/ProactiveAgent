@@ -192,6 +192,31 @@ export function startTodayServer(port = 8737): Server {
         res.end(JSON.stringify(buildTodayPayload(), null, 2))
         return
       }
+      // POST /api/evaluate — 宿主 push（R1）：把最近消息推过来触发会话中评估（timer 同款抑制）
+      if (req.url === '/api/evaluate' && req.method === 'POST') {
+        let body = ''
+        req.on('data', (chunk: Buffer) => (body += chunk.toString()))
+        req.on('end', () => {
+          try {
+            const parsed = JSON.parse(body || '{}') as { messages?: Array<{ role: string; content: string }>; sessionId?: string }
+            const messages = (parsed.messages ?? []).filter((m) => m && typeof m.content === 'string')
+            void suggestService
+              .evaluateNow({ trigger: 'timer', messages, sessionId: parsed.sessionId })
+              .then((records) => {
+                res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' })
+                res.end(JSON.stringify({ ok: true, generated: records.length }, null, 2))
+              })
+              .catch((error) => {
+                res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' })
+                res.end(JSON.stringify({ ok: false, error: error instanceof Error ? error.message : String(error) }))
+              })
+          } catch (error) {
+            res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' })
+            res.end(JSON.stringify({ ok: false, error: '请求体不是合法 JSON' }))
+          }
+        })
+        return
+      }
       // /today 或 / → HTML
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
       res.end(buildTodayHtml())

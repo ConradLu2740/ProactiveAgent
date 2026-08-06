@@ -9,39 +9,53 @@
 
 // ===== 信号模式表 =====
 
-/** 纠正信号：用户指出 Agent 的错误/改进（明确信号） */
+/** 纠正信号：用户指出 Agent 的错误/改进（明确信号，中英文） */
 export const CORRECTION_PATTERNS = [
   /(?:以后|下次|记住|请记住|别再|不要|别再这样|希望你不要)[^。！？\n]{2,60}/,
   /(?:不要|别)[^。！？\n]{0,20}(?:这样|这么做|用这种方式)[^。！？\n]{0,40}/,
   /(?:我更喜欢|我更希望|我希望你(?:以后|下次))[^。！？\n]{2,60}/,
+  // 英文纠正（保守：明确祈使/偏好，避免把普通讨论当纠正）
+  /(?:please\s+(?:always|never|remember\s+to|don'?t|do\s+not))[^.!?\n]{2,80}/i,
+  /(?:from\s+now\s+on\s*,\s*(?:please\s+)?(?:use|always|never|do))[^.!?\n]{2,80}/i,
+  /(?:i\s+(?:prefer|would\s+like\s+you\s+to|want\s+you\s+to))[^.!?\n]{2,80}/i,
 ] as const
 
-/** 跟进/时间表达信号：用户表达"稍后/明天/过一会"等延后意图 */
+/** 跟进/时间表达信号：用户表达"稍后/明天/过一会"等延后意图（中英文） */
 export const FOLLOWUP_PATTERNS = [
   /(?:明天|稍后|过一会|过会儿|晚点|等会|待会|之后|回头|下次再)[^。！？\n]{0,30}(?:继续|做|弄|处理|看|说|再|提醒|提交|完成|弄完|整理|写|弄好)/,
   /(?:继续|做|弄|处理|看|说|提醒)(?:明天|稍后|过一会|过会儿|晚点|等会|待会|之后|回头)/,
+  // 英文跟进（保守：明确 remind/continue/tomorrow/later）
+  /(?:remind\s+me|remember\s+to|continue|finish|follow\s+up)\b[^.!?\n]{0,50}\b(?:tomorrow|later|next\s+(?:week|time|monday|tuesday|wednesday|thursday|friday|saturday|sunday))/i,
+  /\b(?:tomorrow|later|next\s+(?:week|time|monday|tuesday|wednesday|thursday|friday|saturday|sunday))\b[^.!?\n]{0,40}(?:continue|do|handle|finish|send|submit|work\s+on)/i,
 ] as const
 
-/** 自动化信号：用户表达重复性/周期性需求 */
+/** 自动化信号：用户表达重复性/周期性需求（中英文） */
 export const AUTOMATION_PATTERNS = [
   /(?:每天|每周|每月|定期|每天都要|每天自动)[^。！？\n]{2,50}/,
   /(?:帮我盯|关注|跟进|监控|检查)[^。！？\n]{2,50}(?:每天|每周|状态|进展|更新)/,
+  // 英文自动化（保守：every day/week/month 明确周期；结尾允许无后续内容）
+  /(?:every\s+(?:day|week|month|monday|tuesday|wednesday|thursday|friday|saturday|sunday|morning|evening))[^.!?\n]{0,80}/i,
+  /(?:daily|weekly|monthly|regularly|automatically)\b[^.!?\n]{0,80}/i,
 ] as const
 
-/** 未完成信号：用户明确提及未完成任务/待办 */
+/** 未完成信号：用户明确提及未完成任务/待办（中英文） */
 export const TODO_PATTERNS = [
   /(?:还差|还没|没做完|未完|剩下|待办|还没完成|待会再|回头再|之后再)[^。！？\n]{0,40}/,
   /(?:这个任务|这件事|这个功能)(?:还没|未完|没做完|差一点|还差)/,
+  // 英文未完成（保守）
+  /(?:not\s+(?:done|finished|complete|yet)|still\s+(?:need|needs|missing|pending)|todo|unfinished)\b[^.!?\n]{0,40}/i,
 ] as const
 
-/** 明确拒绝词：当用户表现出不耐烦/不需要时，当轮不触发建议 */
+/** 明确拒绝词：当用户表现出不耐烦/不需要时，当轮不触发建议（中英文） */
 export const NEGATIVE_PATTERNS = [
   /(?:不用|不需要|别管|算了|不用了|没事|就这样|到此为止)/,
+  /(?:no\s+need|never\s+mind|forget\s+it|skip\s+it|don'?t\s+bother|that'?s\s+fine|enough)\b/i,
 ] as const
 
-/** 延后结束语：用户只是推迟/结束话题，不是纠正或跟进任务 */
+/** 延后结束语：用户只是推迟/结束话题，不是纠正或跟进任务（中英文） */
 export const POSTPONE_PHRASES = [
   /(?:再说|再聊|再看|再讨论|改天|回头再说|以后再说|以后聊|以后看|晚点再说|等会再说)/,
+  /(?:talk\s+(?:later|about\s+it\s+later)|discuss\s+later|later\s+then|another\s+time)\b/i,
 ] as const
 
 /** 弱意图词（repeat 检测跳过）："帮我看看 X"+"帮我看看 Y" 不应视为重复操作 */
