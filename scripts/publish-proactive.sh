@@ -15,7 +15,7 @@ set -euo pipefail
 export PATH="$HOME/.bun/bin:$PATH"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PUBLISH_DIR="$ROOT/dist-publish"
-VERSION="0.2.1"
+VERSION="0.2.2"
 LICENSE="${LICENSE:-MIT}"
 
 echo "==> 构建 bundle"
