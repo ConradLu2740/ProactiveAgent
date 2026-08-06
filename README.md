@@ -241,7 +241,8 @@ A：当前 `memory_recall` 对记忆原子（atoms）做全量扫描检索，个
 - [x] 按项目记忆（0.3.0：项目隔离 + 显式全局共享 + 迁移 + 逃生开关）
 - [x] 主动推送闭环（0.5.0：evaluateNow 统一入口 + 会话中 UserPromptSubmit hooks + Today push 端点）
 - [x] Kimi 主动转述（0.5.0：`<notification>` XML 通知范式，模型主动向用户开口）
-- [x] Action Executor（0.5.0：接受即执行——宿主注入则真实创建 automation/todo，无宿主降级指令）
+- [x] Action Executor（0.5.2：接受即执行——内置本地任务队列默认执行器，`suggest_accept` 真实创建定时任务/待办；宿主注入真实执行器时自动覆盖）
+- [x] SessionStart 记忆注入（0.5.2：today-push 自动注入画像摘要 + 高优先级记忆）
 - [x] 建议 ROI 指标（0.5.0：漏斗 + 类型接受率 + 自动降预算）
 - [x] 时间/周期解析（0.5.0：中英文时间表达 → cron/dueAt 预填）
 - [x] 英文信号（0.5.0：correction/automation/followup/todo 英文模式）

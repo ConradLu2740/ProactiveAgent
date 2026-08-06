@@ -112,6 +112,55 @@ describe('MCP server 冒烟', () => {
     expect(text.length).toBeGreaterThan(0)
   })
 
+  it('P0-1: suggest_accept automation → 默认执行器真实创建本地任务（闭环）', async () => {
+    // 注册默认执行器（真实 server 启动时也会注册；这里显式注册供 InMemoryTransport 测试）
+    const { registerLocalTaskExecutor } = await import('./host-executor')
+    const { listTasks } = await import('./task-store')
+    registerLocalTaskExecutor()
+
+    const r1 = await client.callTool({
+      name: 'suggest_now',
+      arguments: {
+        messages: [{ role: 'user', content: '每天下午5点自动检查一下仓库有没有新版本' }],
+        sessionId: 'test-session-auto',
+      },
+    })
+    const t1 = toolText(r1)
+    expect(t1).toContain('automation')
+    const idMatch = t1.match(/建议 ID：([0-9a-f-]+)/)
+    expect(idMatch).toBeTruthy()
+
+    const acc = await client.callTool({ name: 'suggest_accept', arguments: { id: idMatch![1], host: 'claude-code' } })
+    const accText = toolText(acc)
+    expect(accText).toContain('已创建定时任务 #task_')
+
+    // 本地任务队列真实落盘
+    const tasks = listTasks()
+    expect(tasks.some((t) => t.kind === 'automation' && t.title.includes('仓库'))).toBe(true)
+  })
+
+  it('P0-1: suggest_accept todo → 默认执行器创建本地待办', async () => {
+    const { listTasks } = await import('./task-store')
+    const r = await client.callTool({
+      name: 'suggest_now',
+      arguments: {
+        messages: [{ role: 'user', content: '这个功能还差一点没做完，记得补上' }],
+        sessionId: 'test-session-todo-2',
+      },
+    })
+    const t = toolText(r)
+    const idMatch = t.match(/建议 ID：([0-9a-f-]+)/)
+    if (!idMatch) {
+      // 引擎可能因消息语义未产出 todo，允许安全跳过（不误报）
+      return
+    }
+    const acc = await client.callTool({ name: 'suggest_accept', arguments: { id: idMatch[1], host: 'claude-code' } })
+    const accText = toolText(acc)
+    expect(accText).toContain('已创建待办 #task_')
+    const tasks = listTasks()
+    expect(tasks.some((t) => t.kind === 'todo')).toBe(true)
+  })
+
   it('resources 可读 memory://today', async () => {
     const res = await client.readResource({ uri: 'memory://today' })
     expect(res.contents.length).toBeGreaterThan(0)

@@ -17,6 +17,7 @@ import { registerResources } from './resources'
 import { registerPrompts } from './prompts'
 import { startTodayServer } from './today'
 import { runInit } from './cli-init'
+import { registerLocalTaskExecutor } from './host-executor'
 import { runDoctor } from './cli/doctor'
 import { runStats } from './cli/stats'
 import { runDemo } from './cli/demo'
@@ -119,6 +120,9 @@ async function main(): Promise<void> {
     process.exit(1)
   }
   const server = createServer()
+  // P0-1：注册默认 Action Executor（接受建议 → 本地任务队列真实落地）
+  // 宿主（Proma Electron / Kimi 等）注入真实执行器时自动覆盖本默认实现。
+  registerLocalTaskExecutor()
   const transport = new StdioServerTransport()
   await server.connect(transport)
   // 启动成功提示（stderr，避免污染 stdio 协议）

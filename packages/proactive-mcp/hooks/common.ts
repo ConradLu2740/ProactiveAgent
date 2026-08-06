@@ -17,6 +17,46 @@
 import { readFileSync } from 'node:fs'
 import { suggestService } from '@proactive-agent/core'
 
+interface TranscriptMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+/** 从 Claude Code transcript JSONL 提取最近 N 条消息（SDKMessage 风格容错） */
+function extractMessages(transcriptPath: string, maxMessages = 20): TranscriptMessage[] {
+  try {
+    const raw = readFileSync(transcriptPath, 'utf-8')
+    const lines = raw.split('\n').filter(Boolean).slice(-100)
+    const out: TranscriptMessage[] = []
+    for (const line of lines) {
+      try {
+        const entry = JSON.parse(line) as {
+          type?: string
+          message?: { role?: string; content?: unknown }
+        }
+        const role = entry.message?.role ?? entry.type
+        if (role !== 'user' && role !== 'assistant') continue
+        const content = entry.message?.content
+        if (typeof content === 'string' && content.trim()) {
+          out.push({ role, content })
+        } else if (Array.isArray(content)) {
+          const texts = content
+            .filter((b) => b && typeof b === 'object' && (b as { type?: string }).type === 'text')
+            .map((b) => ((b as { text?: string }).text ?? '').trim())
+            .filter(Boolean)
+          if (texts.length > 0) out.push({ role, content: texts.join('\n') })
+        }
+      } catch {
+        // 跳过无法解析的行
+      }
+      if (out.length >= maxMessages) break
+    }
+    return out
+  } catch {
+    return []
+  }
+}
+
 export interface UserPromptInput {
   prompt?: string
   session_id?: string
@@ -84,10 +124,21 @@ export async function evaluateAndEmit(projectHint?: string): Promise<void> {
   }
 
   try {
+    // P2-2：优先从 transcript 取最近 N 条消息（repeat 信号需要跨消息），
+    // 取不到再退化为只有当前 prompt（单消息）。
+    let messages: Array<{ role: string; content: string }> = [{ role: 'user', content: prompt }]
+    if (input.transcript_path) {
+      const history = extractMessages(input.transcript_path)
+      if (history.length > 0) {
+        // 追加当前 prompt（transcript 可能不含最新一条），并保留最近的用户消息
+        messages = [...history, { role: 'user', content: prompt }].filter((m) => m.role === 'user').slice(-8)
+      }
+    }
+
     const records = await suggestService.evaluateNow({
       trigger: 'session_mid',
       sessionId: input.session_id,
-      messages: [{ role: 'user', content: prompt }],
+      messages,
       projectHint: projectHint ?? input.cwd,
     })
 

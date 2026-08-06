@@ -142,6 +142,12 @@ export function extractSignals(userMessages: string[]): Signal[] {
         if (raw.length < 6) continue // 至少要有"以后不要X"级别的信息量（防"以后不要"断片）
         // 延后结束语不是纠正（"以后再说吧"→ 不是"记住不要再说"）
         if (POSTPONE_PHRASES.some((p) => p.test(raw))) continue
+        // P2-1：含周期执行词的是自动化需求（"以后每天下午5点自动检查"→ 建任务），不是纠正助手行为。
+        // 注意："定时"可能是名词（如 setTimeout 写定时器），只匹配明确的周期执行语义
+        if (/每天|每周|每月|每日|定期|每\d+[天周月日小时分钟]|按时|自动执行|定时任务|周期(?:性)?(?:地)?(?:检查|监控|汇总|备份|生成|报告|整理|更新)/.test(raw)) {
+          // 仍可能命中 automation（下方循环会补上），这里跳过 correction 避免抢占
+          continue
+        }
         signals.push({
           kind: 'correction',
           raw,

@@ -191,7 +191,8 @@ export function writeClaudeHooks(
     const isProactiveHook = (h: Record<string, unknown>) =>
       JSON.stringify(h).includes(SERVER_NAME) ||
       JSON.stringify(h).includes('today-push') ||
-      JSON.stringify(h).includes('user-prompt')
+      JSON.stringify(h).includes('user-prompt') ||
+      JSON.stringify(h).includes('session-end')
     const exists = mergedList.some(isProactiveHook)
     if (exists && !force) {
       continue

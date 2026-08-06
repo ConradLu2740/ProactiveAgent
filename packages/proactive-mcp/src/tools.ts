@@ -359,11 +359,17 @@ export function registerTools(server: McpServer): void {
     'suggest_accept',
     {
       title: '接受建议',
-      description: '接受一条建议。对 memory_correction 类型会直接写入行为纠正并回流用户画像（用户点接受 = 明确认可）。',
-      inputSchema: { id: z.string().describe('建议 ID（来自 suggest_now / suggest_list）') },
+      description:
+        '接受一条建议。对 memory_correction 类型会直接写入行为纠正并回流用户画像（用户点接受 = 明确认可）。' +
+        '对 automation/todo 类型会尝试真实创建（需宿主注入执行器），否则返回可执行指令。' +
+        '可传 host 标注当前宿主名（如 claude-code / kimi），用于降级指令文案。',
+      inputSchema: {
+        id: z.string().describe('建议 ID（来自 suggest_now / suggest_list）'),
+        host: z.string().optional().describe('当前宿主名（claude-code / kimi / cline / cursor / proma），用于动作降级文案'),
+      },
     },
-    async ({ id }) => {
-      const result = await suggestService.handleSuggestionFeedback(id, 'accepted', { host: 'mcp' })
+    async ({ id, host }) => {
+      const result = await suggestService.handleSuggestionFeedback(id, 'accepted', { host: host ?? 'mcp' })
       if (!result.ok) return text(`接受失败：${result.error ?? '未知错误'}`)
       // M6：返回动作执行结果（"已创建定时任务 #xxx" / 降级指令），不再只是"已记录"
       const execMsg = result.result?.message ? `\n${result.result.message}` : ''

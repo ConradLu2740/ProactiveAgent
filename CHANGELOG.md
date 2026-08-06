@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.5.2 (2026-08-06)
+
+「真实场景断点修复」批次：依据子代理独立审查（真实 Claude Code dogfooding）发现的问题。
+
+### P0
+
+- **Action Executor 默认宿主落地**：新增 `host-executor.ts` + `task-store.ts`——MCP server 启动时注册默认本地执行器，`suggest_accept` 接受 automation/todo 建议 → 写入本地任务队列（`PROACTIVE_DATA_DIR/tasks.json`），返回「✅ 已创建定时任务 #task_xxx」，不再只是降级指令文本；宿主（Proma/Kimi）注入真实执行器时自动覆盖
+- **suggest_accept 支持 host 参数**：降级文案准确显示当前宿主名
+
+### P1
+
+- **SessionStart 注入记忆内容**：today-push 追加用户画像摘要 + 高优先级记忆 recall，让记忆真正进入工作流（不再只推建议标题）
+- **Stop hook transcript 兜底修复**：移除把 `CLAUDE_PROJECT_DIR`（目录）当 transcript 文件读的错误兜底
+
+### P2
+
+- **周期需求不被 correction 抢占**：「以后每天下午5点检查」→ automation（不再误判为纠正）；「setTimeout 定时器」名词不受影响
+- **UserPromptSubmit hook 传最近 N 条消息**：repeat 信号在会话中可命中
+- **today-push 去重降频**：同一建议只注入一次（`.today-push-injected.json` 记录）
+
+### 测试
+
+- 229 全绿（新增 4），core + mcp typecheck 干净
+
 ## 0.5.1 (2026-08-06)
 
 「评审修复」批次：0.5.0 重评估发现问题的修补。

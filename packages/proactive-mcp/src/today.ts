@@ -13,6 +13,7 @@
 
 import { createServer, type Server } from 'node:http'
 import { memoryService, suggestService, getConfigDir } from '@proactive-agent/core'
+import { listTasks, taskStats } from './task-store'
 
 /** 构建 /api/today 数据负载 */
 export function buildTodayPayload(): {
@@ -22,6 +23,7 @@ export function buildTodayPayload(): {
   hotScenes: Array<{ title: string; heat: number; atomCount: number }>
   persona: { exists: boolean; summary: string }
   stats: { atomCount: number; byType: Record<string, number>; pendingAtoms: number; pendingCorrections: number }
+  tasks: { pending: number; done: number; items: Array<{ id: string; kind: string; title: string; status: string }> }
   roi: {
     funnel: { suggested: number; accepted: number; ignored: number; never: number }
     byType: Array<{ kind: string; suggested: number; accepted: number; rate: number }>
@@ -44,6 +46,8 @@ export function buildTodayPayload(): {
   const personaRaw = memoryService.personaRaw()
   const persona = memoryService.persona()
   const stats = memoryService.stats()
+  const tasks = listTasks()
+  const ts = taskStats()
   const roi = suggestService.getSuggestionRoiStats()
   return {
     generatedAt: new Date().toISOString(),
@@ -56,6 +60,11 @@ export function buildTodayPayload(): {
       byType: stats.byType ?? {},
       pendingAtoms: stats.pendingAtoms ?? 0,
       pendingCorrections: stats.pendingCorrections ?? 0,
+    },
+    tasks: {
+      pending: ts.pending,
+      done: ts.done,
+      items: tasks.slice(0, 10).map((t) => ({ id: t.id, kind: t.kind, title: t.title, status: t.status })),
     },
     roi,
   }
@@ -104,6 +113,19 @@ export function buildTodayHtml(): string {
         .join('')
     : '<div class="empty">暂无热点场景。</div>'
 
+  const taskItems = p.tasks.items.length
+    ? p.tasks.items
+        .map(
+          (t) => `
+        <div class="card task">
+          <div class="sug-kind">${esc(t.kind === 'automation' ? '定时任务' : '待办')}</div>
+          <div class="sug-title">${esc(t.title)}</div>
+          <div class="sug-id">#${esc(t.id)} · ${t.status === 'done' ? '已完成' : '待处理'}</div>
+        </div>`,
+        )
+        .join('')
+    : '<div class="empty">暂无已落地任务（接受 automation/todo 建议后自动创建）。</div>'
+
   const byType = Object.entries(p.stats.byType)
     .filter(([, n]) => (n as number) > 0)
     .map(([k, n]) => `${k} ${n}`)
@@ -151,6 +173,11 @@ export function buildTodayHtml(): string {
     ${sceneItems}
   </div>
 
+  <h2>已落地任务（<span id="task-count">${p.tasks.pending}</span> 待处理）</h2>
+  <div id="tasks">
+    ${taskItems}
+  </div>
+
   <h2>记忆统计</h2>
   <div class="grid">
     <div class="stat"><div class="stat-n" id="stats-count">${p.stats.atomCount}</div><div class="stat-l">原子记忆</div></div>
@@ -196,6 +223,11 @@ function render(p){
   document.getElementById('scenes').innerHTML = p.hotScenes.length
     ? p.hotScenes.map(s=>'<div class="card scene"><div class="scene-title">'+esc(s.title)+'</div><div class="scene-meta">热度 '+s.heat+' · '+s.atomCount+' 条记忆</div></div>').join('')
     : '<div class="empty">暂无热点场景。</div>';
+  const tasks = p.tasks||{items:[],pending:0};
+  document.getElementById('task-count').textContent = tasks.pending;
+  document.getElementById('tasks').innerHTML = (tasks.items||[]).length
+    ? tasks.items.map(t=>'<div class="card task"><div class="sug-kind">'+(t.kind==='automation'?'定时任务':'待办')+'</div><div class="sug-title">'+esc(t.title)+'</div><div class="sug-id">#'+esc(t.id)+' · '+(t.status==='done'?'已完成':'待处理')+'</div></div>').join('')
+    : '<div class="empty">暂无已落地任务（接受 automation/todo 建议后自动创建）。</div>';
   const bt = Object.entries(p.stats.byType||{}).filter(([,n])=>n>0).map(([k,n])=>k+' '+n).join(' · ');
   document.getElementById('stats-bytype').textContent = bt;
   document.getElementById('stats-count').textContent = p.stats.atomCount;

@@ -139,4 +139,15 @@ describe('suggest/signals: 子代理审查边界回归', () => {
     const signals = extractSignals(['还没'])
     expect(signals.some((s) => s.kind === 'todo')).toBe(false)
   })
+
+  test('P2-1: 周期需求不被 correction 抢占（"以后每天下午5点检查"→ automation）', () => {
+    const signals = extractSignals(['以后每天下午5点自动检查仓库状态'])
+    expect(signals.some((s) => s.kind === 'correction')).toBe(false)
+    expect(signals.some((s) => s.kind === 'automation')).toBe(true)
+  })
+
+  test('P2-1: 纯纠正含"定时"名词（setTimeout 定时器）仍识别为 correction', () => {
+    const signals = extractSignals(['以后不要用 setTimeout 写定时器'])
+    expect(signals.some((s) => s.kind === 'correction')).toBe(true)
+  })
 })

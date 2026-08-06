@@ -62,12 +62,10 @@ async function main(): Promise<void> {
       const input = JSON.parse(readFileSync(0, 'utf-8')) as { transcript_path?: string }
       transcriptPath = input.transcript_path ?? ''
     } catch {
-      // stdin 不是 JSON 或为空，尝试用 env/参数
-    }
-    if (!transcriptPath && process.env.CLAUDE_PROJECT_DIR) {
-      transcriptPath = process.env.CLAUDE_PROJECT_DIR
+      // stdin 不是 JSON 或为空：Claude Code Stop hook 会传入 transcript_path，取不到就跳过
     }
     if (!transcriptPath) {
+      // 注意：CLAUDE_PROJECT_DIR 是项目目录不是 transcript 文件路径，不能作为兜底
       console.error('[session-end] 未找到 transcript_path，跳过')
       return
     }
