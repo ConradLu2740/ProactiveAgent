@@ -64,6 +64,41 @@ function checkHooks(): CheckResult {
   return { status: 'ok', label: 'hooks 产物', detail: hooksDir }
 }
 
+/** 检查项目 .claude/settings.json 里配置的 hooks 路径是否真实存在 */
+function checkProjectHooks(): CheckResult {
+  const target = join(process.cwd(), '.claude', 'settings.json')
+  if (!existsSync(target)) {
+    return { status: 'ok', label: '项目 hooks 配置', detail: '未配置（用 proactive-mcp init 一键生成）' }
+  }
+  try {
+    const cfg = JSON.parse(readFileSync(target, 'utf-8')) as { hooks?: Record<string, unknown> }
+    const hooks = cfg.hooks ?? {}
+    const commands: string[] = []
+    for (const event of Object.values(hooks)) {
+      for (const entry of event as Array<{ hooks?: Array<{ command?: string }> }>) {
+        for (const h of entry.hooks ?? []) {
+          if (h.command?.includes('proactive') || h.command?.includes('today-push') || h.command?.includes('session-end')) commands.push(h.command)
+        }
+      }
+    }
+    if (commands.length === 0) {
+      return { status: 'ok', label: '项目 hooks 配置', detail: `${target}（未发现 proactive-agent hooks）` }
+    }
+    const missing = commands.filter((c) => {
+      const match = c.match(/node\s+(.+)/)
+      if (!match) return false
+      const p = match[1].trim().replace(/^"|^'/, '').replace(/"$|'$/, '')
+      return !existsSync(p)
+    })
+    if (missing.length > 0) {
+      return { status: 'warn', label: '项目 hooks 配置', detail: `${missing.length} 条 hooks 路径不存在：${missing[0]?.slice(0, 80)}…（请重新 proactive-mcp init）` }
+    }
+    return { status: 'ok', label: '项目 hooks 配置', detail: `${target}（${commands.length} 条 proactive hooks，路径均存在）` }
+  } catch {
+    return { status: 'warn', label: '项目 hooks 配置', detail: `${target} 不是合法 JSON，请检查` }
+  }
+}
+
 /** 检查记忆索引可读与统计 */
 function checkMemory(): CheckResult {
   try {
@@ -108,7 +143,7 @@ function checkTodayPort(): Promise<CheckResult> {
 export async function runDoctor(): Promise<number> {
   const dataDir = expandHome(getConfigDir())
   const memRoot = expandHome(getMemoryRootDir())
-  const checks = [checkDataDir(), checkLlm(), checkHooks(), checkMemory(), checkSuggest(), await checkTodayPort()]
+  const checks = [checkDataDir(), checkLlm(), checkHooks(), checkProjectHooks(), checkMemory(), checkSuggest(), await checkTodayPort()]
 
   console.log('ProactiveAgent 健康检查')
   console.log(`  数据根目录: ${dataDir}`)
@@ -128,7 +163,7 @@ export async function runDoctor(): Promise<number> {
     return 1
   }
   if (warns > 0) {
-    console.log(`结果: 全部通过（${warns} 个警告，通常可忽略）`)
+    console.log(`结果: 基本正常（${warns} 个警告，见上方说明）`)
     return 0
   }
   console.log('结果: 全部正常 ✅')

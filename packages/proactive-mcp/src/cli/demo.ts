@@ -12,7 +12,6 @@ import os from 'node:os'
 import { memoryService, suggestService, getConfigDir } from '@proactive-agent/core'
 
 const DEMO_DIR = join(os.tmpdir(), 'pa-demo-data')
-
 function demoDirLabel(): string {
   return DEMO_DIR
 }
@@ -38,7 +37,7 @@ export async function runDemo(cleanOnly = false): Promise<number> {
   if (!existsSync(DEMO_DIR)) mkdirSync(DEMO_DIR, { recursive: true })
   process.env.PROACTIVE_DATA_DIR = DEMO_DIR
 
-  console.log('🎓 ProactiveAgent 快速教学（数据隔离于 /tmp/pa-demo-data，不影响真实记忆）')
+  console.log('🎓 ProactiveAgent 快速教学（数据隔离于 ' + demoDirLabel() + '，不影响真实记忆）')
   console.log('')
 
   // ① capture：显式沉淀记忆
@@ -89,9 +88,9 @@ export async function runDemo(cleanOnly = false): Promise<number> {
   console.log('')
 
   console.log('✅ 演示完成！打开 http://127.0.0.1:8737/today 可查看演示数据')
-  console.log('   （注意：demo 数据在 /tmp/pa-demo-data，不影响真实记忆）')
+  console.log('   （注意：demo 数据在 ' + demoDirLabel() + '，不影响真实记忆）')
   console.log('   清理: proactive-mcp demo --clean')
   console.log('')
-  console.log('   💡 下一步：对真实项目做一次提取引导（extract 命令即将推出）')
+  console.log('   💡 下一步：对真实项目做一次记忆提取（proactive-mcp demo 已演示；extract 命令路线图规划中）')
   return 0
 }

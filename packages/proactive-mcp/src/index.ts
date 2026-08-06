@@ -87,8 +87,21 @@ async function main(): Promise<void> {
   // --today：启动本地主动中心 Web 面板（不进入 stdio MCP）
   if (argv.includes('--today')) {
     const port = Number(process.env.PROACTIVE_TODAY_PORT ?? 8737)
+    if (!Number.isInteger(port) || port < 1 || port > 65535) {
+      console.error(`[proactive-mcp] 无效端口: ${process.env.PROACTIVE_TODAY_PORT}（需 1-65535 的整数）`)
+      process.exit(1)
+    }
     await startTodayServer(port)
     return
+  }
+
+  // 未知首参数：友好提示而非静默进入 stdio（避免用户手滑后进程永久挂起）
+  const KNOWN = new Set(['init', 'doctor', 'stats', 'demo', '--today', '--help', '-h', '--version', '-v'])
+  const first = argv[0]
+  if (first && !first.startsWith('-') && !KNOWN.has(first)) {
+    console.error(`未知子命令: ${first}`)
+    console.error('可用命令: init · doctor · stats · demo · --today · --help · --version')
+    process.exit(1)
   }
   const server = createServer()
   const transport = new StdioServerTransport()

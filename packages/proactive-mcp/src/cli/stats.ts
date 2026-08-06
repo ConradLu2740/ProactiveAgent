@@ -27,6 +27,8 @@ export function runStats(): number {
   const sug = suggestService.getSuggestionStats()
   const mode = memoryService.extractionMode()
   const llmConfigured = memoryService.isLlmConfigured()
+  // 展示实际生效模式：llm 但未配置 → 实际跑规则；规则/off → 直接显示
+  const effectiveMode = mode === 'llm' && !llmConfigured ? 'rule（降级）' : mode
 
   console.log('📊 ProactiveAgent 统计')
   console.log('')
@@ -55,6 +57,6 @@ export function runStats(): number {
   console.log('  数据')
   console.log(`    根目录:     ${expandHome(getConfigDir())}`)
   console.log(`    记忆目录:   ${expandHome(getMemoryRootDir())}`)
-  console.log(`    提取模式:   ${mode}${llmConfigured ? '（LLM 已配置）' : '（规则模式，零外发）'}`)
+  console.log(`    提取模式:   ${effectiveMode}${llmConfigured ? '（LLM 已配置）' : '（规则模式，零外发）'}`)
   return 0
 }
