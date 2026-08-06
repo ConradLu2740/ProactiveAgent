@@ -44,9 +44,76 @@ export interface RepoExtractResult {
   /** TODO 数量（单独统计供输出摘要） */
   todoCount: number
   /** 扫描源统计 */
-  sources: { readme: boolean; docs: number; packageJson: boolean; gitLog: number; todos: number }
+  sources: { readme: boolean; docs: number; manifest: string | null; gitLog: number; todos: number; structure: number }
+  /** 探测到的语言（缺失诊断用） */
+  language: string | null
   errors: string[]
 }
+
+/** 语言 → 清单文件候选（覆盖非 JS 生态，0.4.1） */
+const MANIFESTS: Array<{ lang: string; file: string; parse: (d: Record<string, unknown>) => { name?: string; description?: string; deps: string[] } }> = [
+  {
+    lang: 'JavaScript/TypeScript',
+    file: 'package.json',
+    parse: (d) => ({
+      name: typeof d.name === 'string' ? d.name : undefined,
+      description: typeof d.description === 'string' ? d.description : undefined,
+      deps: Object.keys((d.dependencies as Record<string, string>) ?? {}).concat(Object.keys((d.devDependencies as Record<string, string>) ?? {})),
+    }),
+  },
+  {
+    lang: 'Python',
+    file: 'pyproject.toml',
+    parse: (d) => {
+      // 简化解析：项目名/描述/依赖从 toml 文本提取
+      const raw = d as unknown as { _raw?: string }
+      const nameMatch = raw._raw?.match(/^name\s*=\s*["']([^"']+)["']/m)
+      const descMatch = raw._raw?.match(/^description\s*=\s*["']([^"']+)["']/m)
+      // 只取 [dependencies] 段内的行（避免匹配到 [project] 下的 key）
+      const depSection = raw._raw?.match(/\[dependencies\][\s\S]*?(?=\[[a-zA-Z]|$)/)?.[0] ?? ''
+      const deps = Array.from(depSection.matchAll(/^\s*([a-zA-Z0-9_.-]+)\s*[=~<>]/gm) ?? []).map((m) => m[1]).slice(0, 8)
+      return {
+        name: nameMatch?.[1],
+        description: descMatch?.[1],
+        deps,
+      }
+    },
+  },
+  {
+    lang: 'Python',
+    file: 'requirements.txt',
+    parse: (d) => {
+      const raw = d as unknown as { _raw?: string }
+      return { deps: (raw._raw?.split('\n') ?? []).map((l) => l.trim()).filter((l) => l && !l.startsWith('#')).map((l) => l.split(/[=~<>]/)[0]?.trim() ?? '').filter(Boolean).slice(0, 8) }
+    },
+  },
+  {
+    lang: 'Rust',
+    file: 'Cargo.toml',
+    parse: (d) => {
+      const raw = d as unknown as { _raw?: string }
+      const nameMatch = raw._raw?.match(/^name\s*=\s*["']([^"']+)["']/m)
+      return { name: nameMatch?.[1], deps: Array.from(raw._raw?.matchAll(/^([a-zA-Z0-9_-]+)\s*=\s*[\{0-9"]/gm) ?? []).map((m) => m[1]).filter((x) => x !== 'name' && x !== 'version').slice(0, 8) }
+    },
+  },
+  {
+    lang: 'Go',
+    file: 'go.mod',
+    parse: (d) => {
+      const raw = d as unknown as { _raw?: string }
+      const nameMatch = raw._raw?.match(/^module\s+(\S+)/m)
+      return { name: nameMatch?.[1]?.split('/').pop(), deps: Array.from(raw._raw?.matchAll(/^\s*([a-zA-Z0-9_.\/-]+)\s+v[0-9]/gm) ?? []).map((m) => m[1]).slice(0, 8) }
+    },
+  },
+  {
+    lang: 'Ruby',
+    file: 'Gemfile',
+    parse: (d) => {
+      const raw = d as unknown as { _raw?: string }
+      return { deps: Array.from(raw._raw?.matchAll(/^\s*gem\s+["']([^"']+)["']/gm) ?? []).map((m) => m[1]).slice(0, 8) }
+    },
+  },
+]
 
 // ===== collector：采集源 =====
 
@@ -107,26 +174,102 @@ function collectDocs(root: string, maxFiles: number): { files: number; texts: st
   return { files: count, texts }
 }
 
-function collectPackageJson(root: string): { found: boolean; name?: string; description?: string; deps: string[]; scripts: string[] } {
-  const p = join(root, 'package.json')
-  if (!existsSync(p)) return { found: false, deps: [], scripts: [] }
-  try {
-    const data = JSON.parse(readFileSync(p, 'utf-8')) as {
-      name?: string
-      description?: string
-      dependencies?: Record<string, string>
-      devDependencies?: Record<string, string>
-      scripts?: Record<string, string>
+function collectManifest(root: string): { found: boolean; file: string | null; lang: string | null; name?: string; description?: string; deps: string[]; scripts: string[] } {
+  // 按顺序探测各生态清单文件（0.4.1 语言感知）
+  for (const m of MANIFESTS) {
+    const p = join(root, m.file)
+    if (!existsSync(p)) continue
+    try {
+      if (m.file.endsWith('.json')) {
+        const data = JSON.parse(readFileSync(p, 'utf-8')) as Record<string, unknown>
+        const parsed = m.parse(data)
+        return {
+          found: true,
+          file: m.file,
+          lang: m.lang,
+          name: parsed.name,
+          description: parsed.description,
+          deps: parsed.deps,
+          scripts: typeof data.scripts === 'object' && data.scripts !== null ? Object.values(data.scripts as Record<string, string>) : [],
+        }
+      }
+      // toml / txt / mod：把原始文本塞进 _raw 再走 parse
+      const raw = readFileSync(p, 'utf-8')
+      const parsed = m.parse({ _raw: raw } as Record<string, unknown>)
+      return { found: true, file: m.file, lang: m.lang, name: parsed.name, description: parsed.description, deps: parsed.deps, scripts: [] }
+    } catch {
+      return { found: false, file: m.file, lang: m.lang, deps: [], scripts: [] }
     }
-    return {
-      found: true,
-      name: data.name,
-      description: data.description,
-      deps: Object.keys(data.dependencies ?? {}).concat(Object.keys(data.devDependencies ?? {})),
-      scripts: Object.values(data.scripts ?? {}),
+  }
+  return { found: false, file: null, lang: null, deps: [], scripts: [] }
+}
+
+/** 探测项目主语言（按源码文件扩展名统计；排除清单/配置） */
+function detectLanguage(root: string): string | null {
+  const counts = new Map<string, number>()
+  const SOURCE_EXT = new Set(['.ts', '.tsx', '.js', '.jsx', '.py', '.rs', '.go', '.rb', '.java', '.kt', '.swift', '.php', '.c', '.cpp', '.h', '.hpp', '.cs', '.vue', '.svelte'])
+  let scanned = 0
+  const walk = (dir: string, depth: number): void => {
+    if (depth > 2 || scanned >= 50) return
+    let entries: string[] = []
+    try {
+      entries = readdirSync(dir)
+    } catch {
+      return
+    }
+    for (const name of entries) {
+      if (scanned >= 50) return
+      if (name === 'node_modules' || name === '.git' || name === 'dist' || name === 'build' || name.startsWith('.')) continue
+      const p = join(dir, name)
+      try {
+        const st = statSync(p)
+        if (st.isDirectory()) walk(p, depth + 1)
+        else {
+          const ext = extname(name).toLowerCase()
+          if (SOURCE_EXT.has(ext)) counts.set(ext, (counts.get(ext) ?? 0) + 1)
+          scanned += 1
+        }
+      } catch {
+        // 跳过
+      }
+    }
+  }
+  walk(root, 0)
+  const EXT_LANG: Record<string, string> = {
+    '.ts': 'TypeScript', '.tsx': 'TypeScript', '.js': 'JavaScript', '.jsx': 'JavaScript',
+    '.py': 'Python', '.rs': 'Rust', '.go': 'Go', '.rb': 'Ruby', '.java': 'Java',
+    '.kt': 'Kotlin', '.swift': 'Swift', '.php': 'PHP', '.c': 'C', '.cpp': 'C++', '.cs': 'C#',
+  }
+  let best: { lang: string; count: number } | null = null
+  for (const [ext, lang] of Object.entries(EXT_LANG)) {
+    const count = counts.get(ext) ?? 0
+    if (count > 0 && (!best || count > best.count)) best = { lang, count }
+  }
+  return best?.lang ?? null
+}
+
+/** 轻量结构信号：顶层目录 + 源码文件扩展名（0.4.1 ③；只统计源码扩展名，排除清单/配置） */
+function collectStructure(root: string): { dirs: string[]; extensions: string[] } {
+  const dirs: string[] = []
+  const exts = new Map<string, number>()
+  const SOURCE_EXT = new Set(['.ts', '.tsx', '.js', '.jsx', '.py', '.rs', '.go', '.rb', '.java', '.kt', '.swift', '.php', '.c', '.cpp', '.h', '.hpp', '.cs', '.vue', '.svelte'])
+  try {
+    for (const name of readdirSync(root)) {
+      const p = join(root, name)
+      const st = statSync(p)
+      if (st.isDirectory() && !name.startsWith('.') && !['node_modules', 'dist', 'build', 'coverage'].includes(name)) {
+        dirs.push(name)
+      } else if (st.isFile()) {
+        const ext = extname(name).toLowerCase()
+        if (SOURCE_EXT.has(ext)) exts.set(ext, (exts.get(ext) ?? 0) + 1)
+      }
     }
   } catch {
-    return { found: false, deps: [], scripts: [] }
+    // 跳过
+  }
+  return {
+    dirs: dirs.slice(0, 10),
+    extensions: [...exts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([e]) => e),
   }
 }
 
@@ -273,9 +416,9 @@ export function extractRepoMemory(opts: RepoExtractOptions = {}): RepoExtractRes
   // 2. docs/
   const docs = collectDocs(root, maxFiles)
 
-  // 3. package.json
-  const pkg = collectPackageJson(root)
-  candidates.push(...normalizePackage(pkg))
+  // 3. 语言感知清单文件（0.4.1：package.json / pyproject.toml / Cargo.toml / go.mod / Gemfile 等）
+  const manifest = collectManifest(root)
+  candidates.push(...normalizePackage(manifest))
 
   // 4. git log
   const git = collectGitLog(root)
@@ -289,6 +432,19 @@ export function extractRepoMemory(opts: RepoExtractOptions = {}): RepoExtractRes
     for (const item of todos.items.slice(0, maxTodos)) {
       candidates.push({ content: `待办：${item.slice(0, 120)}`, type: 'todo_context', priority: 65 })
     }
+  }
+
+  // 6. 轻量结构信号（0.4.1：零文档项目也有项目指纹）
+  const structure = collectStructure(root)
+  const language = detectLanguage(root)
+  if (structure.extensions.length > 0) {
+    candidates.push({ content: `项目源码以 ${structure.extensions.join(', ')} 文件为主`, type: 'fact', priority: 40 })
+  }
+  if (structure.dirs.includes('src') && structure.dirs.includes('tests')) {
+    candidates.push({ content: '项目有 src/ + tests/ 目录组织', type: 'fact', priority: 45 })
+  }
+  if (structure.dirs.includes('docs')) {
+    candidates.push({ content: '项目有 docs/ 文档目录', type: 'fact', priority: 40 })
   }
 
   // 去重（同 content）
@@ -314,10 +470,12 @@ export function extractRepoMemory(opts: RepoExtractOptions = {}): RepoExtractRes
     sources: {
       readme: readme.found,
       docs: docs.files,
-      packageJson: pkg.found,
+      manifest: manifest.file,
       gitLog: git.count,
       todos: todoCount,
+      structure: structure.dirs.length + structure.extensions.length,
     },
+    language,
     errors,
   }
 }

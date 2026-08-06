@@ -18,15 +18,23 @@ export function runExtract(args: string[]): number {
   console.log('🔍 ProactiveAgent 项目记忆提取')
   console.log('')
   console.log('  扫描源:')
-  console.log(`    README:        ${result.sources.readme ? '✅ 已读取' : '—'}`)
-  console.log(`    docs/ 文档:    ${result.sources.docs > 0 ? `${result.sources.docs} 个文件` : '—'}`)
-  console.log(`    package.json:  ${result.sources.packageJson ? '✅ 已读取' : '—'}`)
-  console.log(`    git log:       ${result.sources.gitLog > 0 ? `${result.sources.gitLog} 条提交` : '—（非 git 仓库）'}`)
-  console.log(`    TODO/FIXME:    ${result.sources.todos > 0 ? `${result.sources.todos} 条` : '—'}`)
+  console.log(`    README:        ${result.sources.readme ? '✅ 已读取' : '—（未找到 README.md / index.md）'}`)
+  console.log(`    docs/ 文档:    ${result.sources.docs > 0 ? `${result.sources.docs} 个文件` : '—（无 docs/ 目录）'}`)
+  console.log(`    清单文件:      ${result.sources.manifest ? `✅ ${result.sources.manifest}` : '—（未找到 package.json / pyproject.toml / Cargo.toml / go.mod / Gemfile）'}`)
+  console.log(`    git log:       ${result.sources.gitLog > 0 ? `${result.sources.gitLog} 条提交` : '—（非 git 仓库或无提交）'}`)
+  console.log(`    TODO/FIXME:    ${result.sources.todos > 0 ? `${result.sources.todos} 条` : '—（无 TODO/FIXME）'}`)
+  if (result.language) console.log(`    语言探测:      ${result.language}`)
   console.log('')
 
   if (result.candidates.length === 0) {
-    console.log('未提取到记忆候选（项目信息较少；用 memory_capture 手动沉淀偏好）。')
+    console.log('⚠️  未提取到记忆候选。')
+    console.log('')
+    console.log('  可能原因：这个项目没有 README / 清单文件 / git 历史 / 代码文件。')
+    console.log('')
+    console.log('  建议下一步：')
+    console.log('  1. 在 agent 里用 memory_capture 手动沉淀（更可靠，你亲口说的直接生效）：')
+    console.log('     "记住：这个项目是……" / "记住：本项目技术栈是……"')
+    console.log('  2. 确认项目目录正确后重试（在项目根运行）')
     return 0
   }
 
