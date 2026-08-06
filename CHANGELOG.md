@@ -21,11 +21,15 @@
   - "每天下午5点" → `0 17 * * *`；"remind me tomorrow at 10am" → dueAt
   - automation/followup 建议标题与 action 预填真实时间
 - **英文信号**：correction/automation/followup/todo 英文模式（please always / every day / remind me tomorrow / not done yet）
+- **建议 ROI 指标面板（M8）**：
+  - core：`suggestionRoiStats(days)` 漏斗统计（suggested/accepted/ignored/never）+ 类型接受率 + 打扰率
+  - 自动降预算：接受率 <30% 且样本 ≥5 → `shouldReduceBudget()` 返回 true，evaluateNow 门槛自动提高到 0.9（少打扰）
+  - Today 面板新增「建议 ROI」区：漏斗 + 类型接受率 + 降预算提示
 - `init` 生成的 Claude Code hooks 配置新增 UserPromptSubmit 事件
 
 ### 测试
 
-- 新增 44 个测试（evaluateNow 10 + 英文信号 11 + 时间解析 17 + Action Executor 6），总计 220 全绿
+- 新增 49 个测试（evaluateNow 10 + 英文信号 11 + 时间解析 17 + Action Executor 6 + ROI 5），总计 225 全绿
 
 ## 0.4.0 (2026-08-06)
 

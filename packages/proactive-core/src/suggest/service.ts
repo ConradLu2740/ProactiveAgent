@@ -19,6 +19,8 @@ import {
   suggestionsEnabled,
   setSuggestionsEnabled,
   suggestionStats,
+  suggestionRoiStats,
+  shouldReduceBudget,
   isTypeSilenced,
   typeWeights,
   readSuggestionsIndex,
@@ -38,6 +40,7 @@ import { corrections as memoryCorrections, recentAtoms, proposeCorrection, confi
 import type {
   SuggestionRecord,
   SuggestionStats,
+  SuggestionRoiStats,
   SuggestionFeedback,
 } from '../shared-types'
 
@@ -126,6 +129,11 @@ export async function evaluateNow(ctx: EvaluateNowContext): Promise<SuggestionRe
     const opts: typeof DEFAULT_SUGGEST_OPTIONS = isMid
       ? { ...DEFAULT_SUGGEST_OPTIONS, maxPerEvaluation: 1, threshold: 0.8 }
       : DEFAULT_SUGGEST_OPTIONS
+
+    // M8：接受率过低（<30% 且样本足够）→ 全局降预算（门槛提高，避免打扰）
+    if (shouldReduceBudget()) {
+      opts.threshold = Math.max(opts.threshold, 0.9)
+    }
 
     const result = evaluateSuggestions(input, readSuggestionsIndex(), opts)
     if (result.candidates.length === 0) return []
@@ -247,6 +255,16 @@ export function groupSuggestionsByKind(records: SuggestionRecord[]): Array<{
 /** 查询统计（UI） */
 export function getSuggestionStats(): SuggestionStats {
   return suggestionStats()
+}
+
+/** 建议 ROI 漏斗统计（M8） */
+export function getSuggestionRoiStats(days = 7): SuggestionRoiStats {
+  return suggestionRoiStats(days)
+}
+
+/** 是否应降低建议预算（接受率 < 30% 且样本足够） */
+export function shouldReduceSuggestionBudget(): boolean {
+  return shouldReduceBudget()
 }
 
 /** 删除一条建议（用户控制） */

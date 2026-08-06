@@ -181,6 +181,34 @@ export interface SuggestionStats {
   typeWeights: Record<SuggestionKind, number>
 }
 
+/** 建议 ROI 漏斗统计（M8：证明价值） */
+export interface SuggestionRoiStats {
+  /** 漏斗各环节计数（最近 N 天） */
+  funnel: {
+    suggested: number
+    accepted: number
+    ignored: number
+    never: number
+  }
+  /** 各类型建议数与接受数（最近 N 天） */
+  byType: Array<{
+    kind: SuggestionKind
+    suggested: number
+    accepted: number
+    rate: number
+  }>
+  /** 整体接受率（accepted / 有反馈的） */
+  acceptRate: number
+  /** 打扰率（1 - acceptRate；有反馈时才有意义） */
+  disturbRate: number
+  /** 样本是否足够（≥5 条有反馈才下结论） */
+  sufficient: boolean
+  /** 是否触发降预算（接受率 < 30% 且样本足够） */
+  shouldReduceBudget: boolean
+  /** 最近 N 天窗口（默认 7） */
+  days: number
+}
+
 /** 建议引擎评估输入 */
 export interface SuggestionEvaluationInput {
   messages: Array<{ role: 'user' | 'assistant'; content: string }>

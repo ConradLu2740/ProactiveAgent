@@ -22,6 +22,15 @@ export function buildTodayPayload(): {
   hotScenes: Array<{ title: string; heat: number; atomCount: number }>
   persona: { exists: boolean; summary: string }
   stats: { atomCount: number; byType: Record<string, number>; pendingAtoms: number; pendingCorrections: number }
+  roi: {
+    funnel: { suggested: number; accepted: number; ignored: number; never: number }
+    byType: Array<{ kind: string; suggested: number; accepted: number; rate: number }>
+    acceptRate: number
+    disturbRate: number
+    sufficient: boolean
+    shouldReduceBudget: boolean
+    days: number
+  }
 } {
   const suggestions = suggestService
     .listSuggestionsForUI('suggested')
@@ -35,6 +44,7 @@ export function buildTodayPayload(): {
   const personaRaw = memoryService.personaRaw()
   const persona = memoryService.persona()
   const stats = memoryService.stats()
+  const roi = suggestService.getSuggestionRoiStats()
   return {
     generatedAt: new Date().toISOString(),
     dataDir: getConfigDir(),
@@ -47,6 +57,7 @@ export function buildTodayPayload(): {
       pendingAtoms: stats.pendingAtoms ?? 0,
       pendingCorrections: stats.pendingCorrections ?? 0,
     },
+    roi,
   }
 }
 
@@ -147,6 +158,25 @@ export function buildTodayHtml(): string {
   </div>
   <div class="sub" id="stats-bytype" style="margin-top:8px;">${esc(byType)}</div>
 
+  <h2>建议 ROI（近 ${p.roi.days} 天）</h2>
+  <div class="grid">
+    <div class="stat"><div class="stat-n" style="color:#8b93a1">${p.roi.funnel.suggested}</div><div class="stat-l">建议数</div></div>
+    <div class="stat"><div class="stat-n" style="color:#51cf66">${Math.round(p.roi.acceptRate * 100)}%</div><div class="stat-l">接受率（${p.roi.funnel.accepted} 接受 / ${p.roi.funnel.accepted + p.roi.funnel.ignored + p.roi.funnel.never} 反馈）</div></div>
+  </div>
+  <div class="grid" style="margin-top:10px;">
+    <div class="stat"><div class="stat-n" style="color:#ffa94d">${p.roi.funnel.ignored}</div><div class="stat-l">忽略</div></div>
+    <div class="stat"><div class="stat-n" style="color:#ff6b6b">${p.roi.funnel.never}</div><div class="stat-l">永不建议</div></div>
+  </div>
+  <div id="roi-types" style="margin-top:10px;">
+    ${p.roi.byType
+      .map(
+        (t) =>
+          `<div class="card" style="padding:10px 14px;display:flex;justify-content:space-between;align-items:center;"><span>${esc(KIND_LABEL[t.kind] ?? t.kind)}</span><span style="font-size:12px;color:#8b93a1">${t.accepted}/${t.suggested} 接受 · ${Math.round(t.rate * 100)}%</span></div>`,
+      )
+      .join('')}
+  </div>
+  <div id="roi-alert" style="margin-top:10px;">${p.roi.sufficient && p.roi.shouldReduceBudget ? '<div class="card" style="border-color:#ff6b6b55;color:#ffa94d;font-size:13px;">⚠️ 接受率低于 30%，已自动提高建议门槛（减少打扰）。</div>' : p.roi.sufficient ? '<div class="card" style="color:#8b93a1;font-size:13px;">接受率正常，保持当前节奏。</div>' : '<div class="card" style="color:#5c6470;font-size:13px;">反馈样本不足（&lt;5），暂不评估打扰水平。</div>'}</div>
+
   <h2>用户画像</h2>
   <div class="card">
     <div class="persona" id="persona">${p.persona.exists ? esc(p.persona.summary || '（已生成，无摘要）') : '尚未生成用户画像。'}</div>
@@ -171,6 +201,28 @@ function render(p){
   document.getElementById('stats-count').textContent = p.stats.atomCount;
   document.getElementById('stats-pending').textContent = (p.stats.pendingAtoms||0) + (p.stats.pendingCorrections||0);
   document.getElementById('persona').textContent = p.persona.exists ? (p.persona.summary || '（已生成，无摘要）') : '尚未生成用户画像。';
+  // ROI 区（M8）
+  const roi = p.roi||{};
+  const fu = roi.funnel||{suggested:0,accepted:0,ignored:0,never:0};
+  const accepted = fu.accepted, feedback = fu.accepted+fu.ignored+fu.never;
+  const rate = feedback>0 ? Math.round((fu.accepted/feedback)*100) : 0;
+  const sugEls = document.querySelectorAll('.stat-n');
+  if (sugEls.length>=4) {
+    sugEls[2].textContent = fu.suggested;
+    sugEls[3].textContent = rate+'%';
+  }
+  const bt2 = document.querySelectorAll('.stat-n');
+  if (bt2.length>=6) { bt2[4].textContent = fu.ignored; bt2[5].textContent = fu.never; }
+  const rt = document.getElementById('roi-types');
+  if (rt && roi.byType) {
+    rt.innerHTML = roi.byType.map(t=>'<div class="card" style="padding:10px 14px;display:flex;justify-content:space-between;align-items:center;"><span>'+esc(KIND[t.kind]||t.kind)+'</span><span style="font-size:12px;color:#8b93a1">'+t.accepted+'/'+t.suggested+' 接受 · '+Math.round(t.rate*100)+'%</span></div>').join('');
+  }
+  const ra = document.getElementById('roi-alert');
+  if (ra) {
+    if (roi.sufficient && roi.shouldReduceBudget) ra.innerHTML = '<div class="card" style="border-color:#ff6b6b55;color:#ffa94d;font-size:13px;">⚠️ 接受率低于 30%，已自动提高建议门槛（减少打扰）。</div>';
+    else if (roi.sufficient) ra.innerHTML = '<div class="card" style="color:#8b93a1;font-size:13px;">接受率正常，保持当前节奏。</div>';
+    else ra.innerHTML = '<div class="card" style="color:#5c6470;font-size:13px;">反馈样本不足（&lt;5），暂不评估打扰水平。</div>';
+  }
 }
 async function refresh(){
   try { const r = await fetch('/api/today'); render(await r.json()); }

@@ -231,9 +231,11 @@ A：只有 `memory_extract` 的 LLM 模式会把**当前对话片段**发给你�
 - [x] 主动推送闭环（0.5.0：evaluateNow 统一入口 + 会话中 UserPromptSubmit hooks + Today push 端点）
 - [x] Kimi 主动转述（0.5.0：`<notification>` XML 通知范式，模型主动向用户开口）
 - [x] Action Executor（0.5.0：接受即执行——宿主注入则真实创建 automation/todo，无宿主降级指令）
+- [x] 建议 ROI 指标（0.5.0：漏斗 + 类型接受率 + 自动降预算）
 - [x] 时间/周期解析（0.5.0：中英文时间表达 → cron/dueAt 预填）
 - [x] 英文信号（0.5.0：correction/automation/followup/todo 英文模式）
 - [ ] Kimi turn.steer 空闲自启新 turn（需 Kimi agent 内部 API，待上游开放）
+- [ ] 记忆索引化（倒排索引，支撑上万条）
 - [ ] 指标面板：建议接受率 / 打扰率（suggested → pushed → accepted → executed 漏斗）
 - [ ] 记忆索引化（倒排索引，支撑上万条）
 - [ ] embedding 本地化（默认可选）

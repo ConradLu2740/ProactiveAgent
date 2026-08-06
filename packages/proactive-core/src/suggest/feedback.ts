@@ -21,6 +21,7 @@ import type {
   SuggestionFeedback,
   SuggestionKind,
   SuggestionRecord,
+  SuggestionRoiStats,
 } from '../shared-types'
 import { defaultTypeWeights } from './engine'
 
@@ -437,6 +438,68 @@ export function suggestionStats(): {
     todayNever: today.filter((r) => r.status === 'never').length,
     typeWeights: { ...index.typeWeights },
   }
+}
+
+/**
+ * 建议 ROI 漏斗统计（M8）。
+ * 窗口：最近 N 天（默认 7）。
+ * 指标：
+ * - funnel：suggested / accepted / ignored / never（有反馈的 = accepted+ignored+never）
+ * - acceptRate：接受 / 有反馈；disturbRate = 1 - acceptRate
+ * - shouldReduceBudget：有反馈样本 ≥5 且 acceptRate < 30% → 自动降预算信号
+ */
+export function suggestionRoiStats(days = 7): SuggestionRoiStats {
+  const index = readIndex()
+  const since = Date.now() - days * 24 * 3600_000
+  const recent = index.records.filter((r) => (r.feedbackAt ?? r.createdAt) >= since)
+
+  const funnel = {
+    suggested: recent.filter((r) => r.status === 'suggested').length,
+    accepted: recent.filter((r) => r.status === 'accepted').length,
+    ignored: recent.filter((r) => r.status === 'ignored').length,
+    never: recent.filter((r) => r.status === 'never').length,
+  }
+  const feedbackTotal = funnel.accepted + funnel.ignored + funnel.never
+  const acceptRate = feedbackTotal > 0 ? funnel.accepted / feedbackTotal : 0
+  const sufficient = feedbackTotal >= 5
+  const shouldReduceBudget = sufficient && acceptRate < 0.3
+
+  // 类型维度
+  const byTypeMap = new Map<SuggestionKind, { suggested: number; accepted: number }>()
+  for (const r of recent) {
+    const entry = byTypeMap.get(r.kind) ?? { suggested: 0, accepted: 0 }
+    entry.suggested += 1
+    if (r.status === 'accepted') entry.accepted += 1
+    byTypeMap.set(r.kind, entry)
+  }
+  const kindOrder: SuggestionKind[] = ['correction', 'followup', 'automation', 'skill', 'todo']
+  const byType = kindOrder
+    .filter((k) => byTypeMap.has(k))
+    .map((k) => {
+      const e = byTypeMap.get(k)!
+      const total = e.suggested
+      return {
+        kind: k,
+        suggested: e.suggested,
+        accepted: e.accepted,
+        rate: total > 0 ? e.accepted / total : 0,
+      }
+    })
+
+  return {
+    funnel,
+    byType,
+    acceptRate,
+    disturbRate: 1 - acceptRate,
+    sufficient,
+    shouldReduceBudget,
+    days,
+  }
+}
+
+/** 是否应降低建议预算（接受率 < 30% 且样本足够）——引擎评估入口直接调用 */
+export function shouldReduceBudget(): boolean {
+  return suggestionRoiStats().shouldReduceBudget
 }
 
 /** 取类型权重（容错旧索引） */
