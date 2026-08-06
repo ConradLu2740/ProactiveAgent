@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.2.0 (2026-08-06)
+
+「开箱即用」批次：开发者体验改进（纯增量，不改变数据模型）。
+
+### 新增
+
+- **CLI 子命令收敛**：`init` / `doctor` / `stats` / `demo` / `--today` / `--version` 统一解析，`--help` 完整列举
+- **`proactive-mcp doctor`**：健康检查——数据目录可写性 / LLM 配置同源链 / hooks 产物存在性 / 记忆索引可读 / 建议索引健康 / today 端口占用，✅⚠️❌ 输出
+- **`proactive-mcp stats`**：记忆与建议统计快照（atom/类型/场景/待确认/画像/建议反馈/数据目录）
+- **`proactive-mcp demo`**：教程式示例（隔离 /tmp/pa-demo-data 演示 capture→recall→suggest→persona，`--clean` 清理）
+- **init 全家桶**：`proactive-mcp init` 除 .mcp.json 外，自动生成 Claude Code hooks 配置（.claude/settings.json，today-push/session-end 绝对路径自推断）+ `--dry-run` 预览
+
+### 变更
+
+- 发布脚本构建后自动自检 `--version` 与发布版本一致（防版本号漂移）
+
 ## 0.1.3 (2026-08-06)
 
 首个 npm 公开发布版本（@proactive-agent/core + @proactive-agent/mcp 同步发布）。

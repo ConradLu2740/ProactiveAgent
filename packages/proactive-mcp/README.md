@@ -53,7 +53,7 @@ npx proactive-mcp init
 ## 快速上手
 
 ```bash
-npx proactive-mcp init   # 生成 .mcp.json
+npx proactive-mcp init   # 生成 .mcp.json + Claude Code hooks（--dry-run 预览 / --force 覆盖）
 ```
 
 然后在 agent 里试试：
@@ -65,6 +65,16 @@ agent: 以后提交代码前必须先写单元测试再提交
 agent: 我偏好用 TypeScript
 → memory_capture 记住（下次任何工具都记得）
 ```
+
+## CLI 命令
+
+| 命令 | 用途 |
+|---|---|
+| `proactive-mcp init` | 一键生成挂载配置（.mcp.json + Claude Code hooks；可选 --local / --kimi / --force / --dry-run） |
+| `proactive-mcp doctor` | 健康检查：数据目录 / LLM 配置 / hooks 产物 / 记忆索引 / 端口占用 |
+| `proactive-mcp stats` | 记忆与建议统计快照（atom/类型/场景/画像/建议反馈） |
+| `proactive-mcp demo` | 教程式示例：隔离数据演示 capture→recall→suggest→persona（--clean 清理） |
+| `proactive-mcp --today` | 启动本地主动中心 Web 面板（端口 PROACTIVE_TODAY_PORT，默认 8737） |
 
 ## /today Web 面板
 

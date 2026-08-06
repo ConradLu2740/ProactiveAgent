@@ -17,6 +17,9 @@ import { registerResources } from './resources'
 import { registerPrompts } from './prompts'
 import { startTodayServer } from './today'
 import { runInit } from './cli-init'
+import { runDoctor } from './cli/doctor'
+import { runStats } from './cli/stats'
+import { runDemo } from './cli/demo'
 
 /**
  * 包版本。发布时由 scripts/publish-proactive.sh 通过 bun build
@@ -46,7 +49,10 @@ async function main(): Promise<void> {
 
 用法:
   proactive-mcp                # 以 stdio 方式启动 MCP server（供 agent 挂载）
-  proactive-mcp init           # 一键生成 .mcp.json 挂载配置（可选 --local / --kimi / --force）
+  proactive-mcp init           # 一键生成挂载配置 + hooks（可选 --local / --kimi / --force / --dry-run）
+  proactive-mcp doctor         # 健康检查（配置/数据/hooks/端口）
+  proactive-mcp stats          # 记忆与建议统计
+  proactive-mcp demo           # 教程式示例（隔离数据，--clean 清理）
   proactive-mcp --today        # 启动本地主动中心 Web 面板（端口 PROACTIVE_TODAY_PORT，默认 8737）
 
 数据目录: 默认 ~/.proma-proactive/，可用 PROACTIVE_DATA_DIR（或 PROMA_MEMORY_DIR）覆盖
@@ -60,6 +66,22 @@ async function main(): Promise<void> {
   // init：一键生成挂载配置
   if (argv.includes('init')) {
     runInit(argv)
+    return
+  }
+  // doctor：健康检查
+  if (argv.includes('doctor')) {
+    const code = await runDoctor()
+    process.exitCode = code
+    return
+  }
+  // stats：记忆与建议统计
+  if (argv.includes('stats')) {
+    runStats()
+    return
+  }
+  // demo：教程式示例（--clean 清理演示数据）
+  if (argv.includes('demo')) {
+    await runDemo(argv.includes('--clean'))
     return
   }
   // --today：启动本地主动中心 Web 面板（不进入 stdio MCP）
