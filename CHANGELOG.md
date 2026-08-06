@@ -11,8 +11,12 @@
   - `session_start`：返回存量待处理建议（today-push 逻辑内聚 core）
   - `session_end`：兼容旧 evaluateSessionSuggestions（内部转发）
 - **Claude Code UserPromptSubmit hook**（`hooks/user-prompt.ts`）：会话中输入"以后都用 pnpm"立即收到建议；弱信号自动沉默
-- **Kimi Code 实验性 hook**（`hooks/kimi-user-prompt.ts`）：同构 UserPromptSubmit 推送
+- **Kimi Code 主动转述**（`hooks/kimi-user-prompt.ts` + common）：输出对齐 Kimi task 通知范式的 `<notification>` XML（模型可见 → 主动向用户转述建议），复用 Kimi externalHooks UserPromptSubmit 通道
 - **Today 面板 `POST /api/evaluate`**：宿主 push 端点，把最近消息推过来触发会话中评估
+- **Action Executor（M6）**（`suggest/actions.ts`）：`suggest_accept` 统一走 Executor——
+  - correction：写入纠正 + 确认（保持闭环）
+  - automation/todo：宿主注入 `setActionExecutorProvider` 则真实创建（返回 "已创建 #xxx"），无宿主则降级为可执行指令文本
+  - MCP `suggest_accept` 现在返回动作执行结果，不再只是"已记录"
 - **时间/周期解析器**（`suggest/time-parse.ts`）：中英文时间表达 → `{cron?, dueAt?, label}`
   - "每天下午5点" → `0 17 * * *`；"remind me tomorrow at 10am" → dueAt
   - automation/followup 建议标题与 action 预填真实时间
@@ -21,7 +25,7 @@
 
 ### 测试
 
-- 新增 38 个测试（evaluateNow 10 + 英文信号 11 + 时间解析 17），总计 214 全绿
+- 新增 44 个测试（evaluateNow 10 + 英文信号 11 + 时间解析 17 + Action Executor 6），总计 220 全绿
 
 ## 0.4.0 (2026-08-06)
 

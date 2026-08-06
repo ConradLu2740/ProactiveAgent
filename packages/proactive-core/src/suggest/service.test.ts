@@ -50,7 +50,7 @@ describe('suggest/service: P0 两步确认修复', () => {
     )
     expect(records.length).toBe(1)
 
-    const result = handleSuggestionFeedback(records[0]!.id, 'accepted')
+    const result = await handleSuggestionFeedback(records[0]!.id, 'accepted')
     expect(result.ok).toBe(true)
 
     // 关键断言：本次写入的规则应为 active（P0 修复前是 pending，需二次确认）
@@ -120,7 +120,7 @@ describe('suggest/service: P0 两步确认修复', () => {
     expect(records.length).toBe(1)
     expect(records[0]!.kind).toBe('correction')
 
-    const result = handleSuggestionFeedback(records[0]!.id, 'accepted')
+    const result = await handleSuggestionFeedback(records[0]!.id, 'accepted')
     expect(result.ok).toBe(true)
 
     // 闭环：confirmCorrection 内部已写 correction 类型 atom（confirmed=true），可被召回读到
@@ -142,8 +142,8 @@ describe('suggest/service: P0 两步确认修复', () => {
       [{ role: 'user', content: '以后不要用 var 声明变量' }],
       { sessionId: 'svc-test-6b' },
     )
-    if (r1[0]) handleSuggestionFeedback(r1[0].id, 'ignored')
-    if (r2[0]) handleSuggestionFeedback(r2[0].id, 'ignored')
+    if (r1[0]) await handleSuggestionFeedback(r1[0].id, 'ignored')
+    if (r2[0]) await handleSuggestionFeedback(r2[0].id, 'ignored')
 
     // 同一 correction 建议被忽略 2 次 → duplicateKey 进入抑制列表
     const suppressed = getSuppressedSuggestionKeys()

@@ -356,8 +356,11 @@ export function registerTools(server: McpServer): void {
       inputSchema: { id: z.string().describe('建议 ID（来自 suggest_now / suggest_list）') },
     },
     async ({ id }) => {
-      const result = suggestService.handleSuggestionFeedback(id, 'accepted')
-      return result.ok ? text(`已接受建议 ${id}。`) : text(`接受失败：${result.error ?? '未知错误'}`)
+      const result = await suggestService.handleSuggestionFeedback(id, 'accepted', { host: 'mcp' })
+      if (!result.ok) return text(`接受失败：${result.error ?? '未知错误'}`)
+      // M6：返回动作执行结果（"已创建定时任务 #xxx" / 降级指令），不再只是"已记录"
+      const execMsg = result.result?.message ? `\n${result.result.message}` : ''
+      return text(`已接受建议 ${id}。${execMsg}`)
     },
   )
 
@@ -369,7 +372,7 @@ export function registerTools(server: McpServer): void {
       inputSchema: { id: z.string().describe('建议 ID（来自 suggest_now / suggest_list）') },
     },
     async ({ id }) => {
-      const result = suggestService.handleSuggestionFeedback(id, 'ignored')
+      const result = await suggestService.handleSuggestionFeedback(id, 'ignored')
       return result.ok ? text(`已忽略建议 ${id}。`) : text(`忽略失败：${result.error ?? '未知错误'}`)
     },
   )

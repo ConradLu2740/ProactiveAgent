@@ -126,7 +126,7 @@ agent: 我偏好用 TypeScript 和 Bun
   - `SessionStart`（today-push）：会话开始推送待处理建议 + 热点场景
   - `UserPromptSubmit`（user-prompt）：**会话中实时评估**——你说"以后都用 pnpm"，立即收到纠正建议；弱信号自动沉默
   - `Stop`（session-end）：会话结束沉淀记忆 + 评估建议
-- **Kimi Code hooks（实验性）**：`UserPromptSubmit` 同构推送（kimi-user-prompt）
+- **Kimi Code hooks（主动转述）**：`UserPromptSubmit` 输出对齐 Kimi task 通知范式的 `<notification>` XML——Kimi 模型看到通知后主动向用户转述建议（"上次你说 X，要记住吗？"），复用 Kimi externalHooks 通道
 
 ---
 
@@ -229,10 +229,11 @@ A：只有 `memory_extract` 的 LLM 模式会把**当前对话片段**发给你�
 - [x] npm 发布（@proactive-agent/core + @proactive-agent/mcp）
 - [x] 按项目记忆（0.3.0：项目隔离 + 显式全局共享 + 迁移 + 逃生开关）
 - [x] 主动推送闭环（0.5.0：evaluateNow 统一入口 + 会话中 UserPromptSubmit hooks + Today push 端点）
+- [x] Kimi 主动转述（0.5.0：`<notification>` XML 通知范式，模型主动向用户开口）
+- [x] Action Executor（0.5.0：接受即执行——宿主注入则真实创建 automation/todo，无宿主降级指令）
 - [x] 时间/周期解析（0.5.0：中英文时间表达 → cron/dueAt 预填）
 - [x] 英文信号（0.5.0：correction/automation/followup/todo 英文模式）
-- [ ] Kimi notification + turn.steer 主动转述（M3）
-- [ ] Action Executor：建议接受即真实创建（automation/todo 接宿主 API）
+- [ ] Kimi turn.steer 空闲自启新 turn（需 Kimi agent 内部 API，待上游开放）
 - [ ] 指标面板：建议接受率 / 打扰率（suggested → pushed → accepted → executed 漏斗）
 - [ ] 记忆索引化（倒排索引，支撑上万条）
 - [ ] embedding 本地化（默认可选）

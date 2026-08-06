@@ -33,6 +33,7 @@ import {
 } from './feedback'
 import { evaluateSuggestions, DEFAULT_SUGGEST_OPTIONS } from './engine'
 import { getAutomationTitles, notifySuggestionsChangedProvider } from '../provider'
+import { executeSuggestionAction, type ActionResult } from './actions'
 import { corrections as memoryCorrections, recentAtoms, proposeCorrection, confirmCorrection } from '../memory/service'
 import type {
   SuggestionRecord,
@@ -173,14 +174,23 @@ export function getSuggestionById(id: string): SuggestionRecord | undefined {
 
 /**
  * 用户反馈处理。
- * accepted 时：对 memory_correction 动作实际执行（写入纠正候选）；其余动作由 UI 引导。
+ * accepted 时：对建议动作统一走 Action Executor（M6：接受即执行）——
+ * - memory_correction：写入纠正候选 + 确认（保持现有闭环）
+ * - open_automation_create / open_todo_create：宿主注入执行器则真实创建，否则降级指令
+ * 返回 { ok, result? }，result 为动作执行结果（供 MCP suggest_accept 返回给用户）。
  */
-export function handleSuggestionFeedback(id: string, feedback: SuggestionFeedback): { ok: boolean; error?: string } {
+export async function handleSuggestionFeedback(
+  id: string,
+  feedback: SuggestionFeedback,
+  ctx: { host?: string } = {},
+): Promise<{ ok: boolean; error?: string; result?: ActionResult }> {
   if (!suggestionsEnabled()) return { ok: false, error: '主动建议已关闭' }
   // 🔴#3：跨层查找（当前层优先，global 兜底），反馈写回所在层
   const across = getSuggestionAcrossLayers(id)
   if (!across) return { ok: false, error: '建议不存在' }
   const { record, layer } = across
+
+  let result: ActionResult | undefined
 
   // 接受 correction 动作：直接创建并立即生效（P0 修复：不再两步确认）。
   // 用户点"接受"= 明确认可这条规则，直接写入并回流 persona。
@@ -192,15 +202,20 @@ export function handleSuggestionFeedback(id: string, feedback: SuggestionFeedbac
         // 闭环确认：correction atom 已写入，persona 异步刷新已触发（confirmCorrection 内部 ensurePersona）
         console.log('[Suggestion] 反馈回流闭环: correction 建议已接受 → atom 写入 + persona 刷新')
       }
+      result = { ok: true, executed: true, message: '纠正规则已写入长期记忆（包含用户画像回流）。' }
     } catch (error) {
       console.warn('[Suggestion] 写入纠正候选失败:', error instanceof Error ? error.message : error)
+      result = { ok: false, executed: false, message: `写入纠正规则失败：${error instanceof Error ? error.message : String(error)}` }
     }
+  } else if (feedback === 'accepted') {
+    // M6：automation/todo 等动作 → Action Executor（宿主注入则真实创建，否则降级指令）
+    result = await executeSuggestionAction(record.action, ctx)
   }
 
   // 反馈回流补充：高频 ignore/never 的 duplicateKey 将抑制对应记忆场景热度（供 P0-2 scene 计算读取）
   // 此处只需记录反馈（recordFeedback 已更新状态与类型权重），不需要额外写入。
   recordFeedback(id, feedback, layer)
-  return { ok: true }
+  return { ok: true, result }
 }
 
 /**

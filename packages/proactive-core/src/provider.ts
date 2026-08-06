@@ -43,3 +43,45 @@ export function notifySuggestionsChangedProvider(): void {
     // 广播失败不影响引擎主流程
   }
 }
+
+// ===== 建议动作执行器（M6：接受即执行） =====
+// 宿主注入真实创建能力后，suggest_accept 不再只是"记录反馈"，而是真正创建
+// automation/todo。外部宿主不注入 → 降级返回可执行指令文本（保持现状）。
+
+/** 宿主动作执行结果 */
+export interface HostActionResult {
+  ok: boolean
+  /** 创建后的引用 ID（如 automation id / todo id） */
+  refId?: string
+  /** 面向用户的反馈文本（"已创建任务 #12"） */
+  message: string
+}
+
+/** 宿主执行器接口：M6 定义的最小契约 */
+export interface HostActionExecutor {
+  /** 创建定时任务（Kimi CronCreate / Proma automation / 其他宿主 API） */
+  createAutomation?(input: {
+    title: string
+    prompt: string
+    cron?: string
+    dueAt?: number
+  }): Promise<HostActionResult>
+  /** 创建待办（宿主 todo 系统） */
+  createTodo?(input: { title: string; notes?: string; dueAt?: number }): Promise<HostActionResult>
+}
+
+let actionExecutorProvider: (() => HostActionExecutor | null) | null = null
+
+/** 注册宿主动作执行器提供者（宿主接入点；不注入则接受建议时降级为指令文本） */
+export function setActionExecutorProvider(provider: (() => HostActionExecutor | null) | null): void {
+  actionExecutorProvider = provider
+}
+
+/** 读取宿主执行器（无 provider 或异常 → null，调用方降级） */
+export function getActionExecutor(): HostActionExecutor | null {
+  try {
+    return actionExecutorProvider?.() ?? null
+  } catch {
+    return null
+  }
+}
