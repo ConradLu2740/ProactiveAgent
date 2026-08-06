@@ -113,6 +113,107 @@ const MANIFESTS: Array<{ lang: string; file: string; parse: (d: Record<string, u
       return { deps: Array.from(raw._raw?.matchAll(/^\s*gem\s+["']([^"']+)["']/gm) ?? []).map((m) => m[1]).slice(0, 8) }
     },
   },
+  {
+    lang: 'Python',
+    file: 'setup.py',
+    parse: (d) => {
+      const raw = d as unknown as { _raw?: string }
+      const nameMatch = raw._raw?.match(/name\s*=\s*["']([^"']+)["']/)
+      const descMatch = raw._raw?.match(/description\s*=\s*["']([^"']+)["']/)
+      const installSection = raw._raw?.match(/install_requires\s*=\s*\[[\s\S]*?\]/)?.[0] ?? ''
+      const installDeps = Array.from(installSection.matchAll(/["']([a-zA-Z0-9_.-]+)["']/g) ?? []).map((m) => m[1]).slice(0, 8)
+      return { name: nameMatch?.[1], description: descMatch?.[1], deps: installDeps }
+    },
+  },
+  {
+    lang: 'Python',
+    file: 'Pipfile',
+    parse: (d) => {
+      const raw = d as unknown as { _raw?: string }
+      const pkgSection = raw._raw?.match(/\[packages\][\s\S]*?(?=\[[a-zA-Z]|$)/)?.[0] ?? ''
+      const deps = Array.from(pkgSection.matchAll(/^\s*([a-zA-Z0-9_.-]+)\s*=/gm) ?? []).map((m) => m[1]).slice(0, 8)
+      return { deps }
+    },
+  },
+  {
+    lang: 'Dart/Flutter',
+    file: 'pubspec.yaml',
+    parse: (d) => {
+      const raw = d as unknown as { _raw?: string }
+      const nameMatch = raw._raw?.match(/^name:\s*(\S+)/m)
+      const descMatch = raw._raw?.match(/^description:\s*(.+)$/m)
+      // 匹配 dependencies: 后的缩进行直到下一个顶层 key 或文件尾
+      // 逐行解析 dependencies 段：遇到 2 空格缩进的 `<name>:` 即依赖（避免 lookahead 边界问题）
+      const lines = (raw._raw ?? '').split('\n')
+      const deps: string[] = []
+      let inDeps = false
+      for (const line of lines) {
+        const trimmed = line.trim()
+        if (!inDeps) {
+          if (/^dependencies:\s*$/.test(trimmed)) inDeps = true
+          continue
+        }
+        // 下一个顶层 key（行首无缩进且非空）→ 结束
+        if (line && !/^\s/.test(line) && /^\S/.test(line)) break
+        const m2 = line.match(/^\s{2}([a-zA-Z0-9_]+):/)
+        if (m2) deps.push(m2[1])
+      }
+      return { name: nameMatch?.[1], description: descMatch?.[1]?.trim(), deps: deps.filter((x) => !['flutter', 'cupertino_icons'].includes(x)).slice(0, 8) }
+    },
+  },
+  {
+    lang: 'PHP',
+    file: 'composer.json',
+    parse: (d) => ({
+      name: typeof d.name === 'string' ? d.name : undefined,
+      description: typeof d.description === 'string' ? d.description : undefined,
+      deps: Object.keys((d.require as Record<string, string>) ?? {}),
+    }),
+  },
+  {
+    lang: 'Java',
+    file: 'pom.xml',
+    parse: (d) => {
+      const raw = d as unknown as { _raw?: string }
+      const artifactMatch = raw._raw?.match(/<artifactId>([^<]+)<\/artifactId>/)
+      const nameMatch = raw._raw?.match(/<name>([^<]+)<\/name>/)
+      const deps = Array.from(raw._raw?.matchAll(/<artifactId>([a-zA-Z0-9_.-]+)<\/artifactId>/g) ?? []).map((m) => m[1]).slice(0, 8)
+      return { name: nameMatch?.[1] ?? artifactMatch?.[1], deps: deps.filter((x) => x !== artifactMatch?.[1]) }
+    },
+  },
+  {
+    lang: 'Kotlin/Groovy',
+    file: 'build.gradle',
+    parse: (d) => {
+      const raw = d as unknown as { _raw?: string }
+      const rootProject = raw._raw?.match(/rootProject\.name\s*=\s*["']([^"']+)["']/)
+      const deps = Array.from(raw._raw?.matchAll(/(?:implementation|api|compile)\s+["']([a-zA-Z0-9_.:-]+)["']/gm) ?? []).map((m) => m[1]).slice(0, 8)
+      return { name: rootProject?.[1], deps }
+    },
+  },
+  {
+    lang: 'Elixir',
+    file: 'mix.exs',
+    parse: (d) => {
+      const raw = d as unknown as { _raw?: string }
+      const nameMatch = raw._raw?.match(/app:\s*[:\s"']([a-zA-Z0-9_]+)["']?/)
+      const depsSection = raw._raw?.match(/defp deps do[\s\S]*?end/)?.[0] ?? ''
+      // 匹配 {:name, "version"} 或 {:name, path: ...} 模式
+      const deps = Array.from(depsSection.matchAll(/\{\s*:([a-zA-Z0-9_]+)\s*,/g) ?? []).map((m) => m[1]).slice(0, 8)
+      return { name: nameMatch?.[1], deps }
+    },
+  },
+  {
+    lang: 'Swift',
+    file: 'Package.swift',
+    parse: (d) => {
+      const raw = d as unknown as { _raw?: string }
+      const nameMatch = raw._raw?.match(/name:\s*"([^"]+)"/)
+      const depsSection = raw._raw?.match(/dependencies:\s*\[[\s\S]*?\]/)?.[0] ?? ''
+      const deps = Array.from(depsSection.matchAll(/\.package\(url:[^"]*"([^"]+)"/g) ?? []).map((m) => m[1]?.split('/').pop()?.replace(/\.git$/, '')).filter((x): x is string => !!x).slice(0, 8)
+      return { name: nameMatch?.[1], deps }
+    },
+  },
 ]
 
 // ===== collector：采集源 =====
