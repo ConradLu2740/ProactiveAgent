@@ -92,6 +92,6 @@ export async function runDemo(cleanOnly = false): Promise<number> {
   console.log('  提示：/today 面板展示的是真实数据目录，不会显示本次演示数据')
   console.log('   清理: proactive-mcp demo --clean')
   console.log('')
-  console.log('   💡 下一步：对真实项目做一次记忆提取（proactive-mcp demo 已演示；extract 命令路线图规划中）')
+  console.log('   💡 下一步：对真实项目提取记忆——运行 proactive-mcp extract（在项目目录里）')
   return 0
 }

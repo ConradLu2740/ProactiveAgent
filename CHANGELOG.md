@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.4.0 (2026-08-06)
+
+「引导闭环」批次：让第一次使用的开发者对真实项目获得记忆，感受到"它懂我的项目"。
+
+### 新增
+
+- **`proactive-mcp extract`**：对已有项目做一次记忆提取（冷启动引导）——扫描 README / docs/ / package.json / 近期 git log / TODO/FIXME，纯规则零外发，默认 pending（防投毒，确认后进入召回）；`--dry-run` 预览 / `--global` 写共享层
+- 提取源决策（方案 D）：零风险底座（README/docs/package/git log）+ TODO/FIXME 增强（todo_context，对 suggest 引擎价值最高）+ 可选 LLM 提炼留 V2
+- 限额硬约束：文件 ≤200 / TODO ≤20 / README 截断，防大仓库失控
+
+## 0.3.0 (2026-08-06)
+
+「按项目记忆」正式版：数据模型从全局一份改为按项目隔离 + 显式全局共享。
+
+### 新增
+
+- 项目身份解析：PROACTIVE_PROJECT env → git remote → package.json name → 路径 hash
+- 数据布局：projects/<key>/（项目隔离）+ global/（显式共享）；PROMA_MEMORY_DIR 单层兼容
+- MCP 工具 scope 参数：memory_capture/recall/persona_get 支持 project/global/auto；新增 persona_save
+- migrate CLI：旧数据自动迁移到 global 层（--apply 执行 / --preview 预览 / --status / --merge-to-global 反向收敛）
+- 逃生开关：PROACTIVE_SCOPE=global 全部读写回退 0.2 单层（与共享层物理分离）
+- 双层 recall：默认 auto = 项目 + 全局合并，全局命中降权（×0.8）并标注 [shared]
+
+### 修复（beta 实测）
+
+- 迁移幂等判断：先跑 doctor/stats 不再阻断迁移
+- merge-to-global：atoms 按 fingerprint 去重合并进 global
+- 建议跨层路由：迁移后 global 老建议可 accept/ignore
+- 逃生数据物理分离，不再泄漏进 global 共享层
+- 中文/特殊字符项目名 key 碰撞修复
+- hybrid 检索 scope 穿透；persona 合并同语义去重；corrections 跨层
+
 ## 0.2.0 (2026-08-06)
 
 「开箱即用」批次：开发者体验改进（纯增量，不改变数据模型）。

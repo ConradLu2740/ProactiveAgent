@@ -74,6 +74,7 @@ agent: 我偏好用 TypeScript
 | `proactive-mcp doctor` | 健康检查：数据目录 / LLM 配置 / hooks 产物 / 记忆索引 / 端口占用 |
 | `proactive-mcp stats` | 记忆与建议统计快照（atom/类型/场景/画像/建议反馈） |
 | `proactive-mcp demo` | 教程式示例：隔离数据演示 capture→recall→suggest→persona（--clean 清理） |
+| `proactive-mcp extract` | 对已有项目提取记忆（冷启动引导：README/package/git log/TODO 扫描；--dry-run 预览 / --global 写共享层） |
 | `proactive-mcp migrate` | 0.3.0 数据迁移（--apply 执行 / --preview 预览 / --status 状态 / --merge-to-global 反向收敛） |
 | `proactive-mcp --today` | 启动本地主动中心 Web 面板（端口 PROACTIVE_TODAY_PORT，默认 8737） |
 

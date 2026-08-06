@@ -18,6 +18,7 @@ import * as suggestService from './suggest/service'
 import { setAutomationTitlesProvider } from './provider'
 export * from './paths'
 export * from './provider'
+export * from './memory/repo-extract'
 export type { ProactiveCoreOptions } from './types'
 
 export { memoryService, suggestService }
