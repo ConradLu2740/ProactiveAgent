@@ -295,13 +295,54 @@ export function rejectAtomById(id: string): boolean {
 
 // ===== L3 Persona =====
 
-export function personaRaw(): string | undefined {
-  return readPersonaRaw()
+/** 读取 persona 原文（0.3.0 默认合并视图：global base + project 覆盖） */
+export function personaRaw(scope: 'auto' | 'project' | 'global' = 'auto'): string | undefined {
+  if (scope === 'global') return readPersonaRaw('global')
+  if (scope === 'project') return readPersonaRaw('project')
+  return mergePersonaRaw(readPersonaRaw('global'), readPersonaRaw('project'))
+}
+
+/** 合并 persona（global base + project 覆盖；project 行优先、global 行补缺、逐条标注 scope） */
+export function mergePersonaRaw(globalRaw?: string, projectRaw?: string): string | undefined {
+  const g = globalRaw?.trim()
+  const p = projectRaw?.trim()
+  if (!g && !p) return undefined
+  if (g && !p) return g
+  if (!g && p) return p
+  const sections = new Map<string, string[]>()
+  const order: string[] = []
+  const addSection = (raw: string, scopeLabel: 'project' | 'global') => {
+    let current = 'general'
+    for (const line of raw.split('\n')) {
+      const t = line.trim()
+      if (/^#{1,3}\s+/.test(t)) {
+        current = t.replace(/^#{1,3}\s+/, '')
+        if (!sections.has(current)) {
+          sections.set(current, [])
+          order.push(current)
+        }
+        continue
+      }
+      if (!t || !t.startsWith('- ')) continue
+      const item = t
+      const seen = sections.get(current)?.some((x) => x === item)
+      if (seen) continue
+      sections.get(current)?.push(`${item}（scope: ${scopeLabel}）`)
+    }
+  }
+  addSection(p as string, 'project')
+  addSection(g as string, 'global')
+  const out: string[] = []
+  for (const sec of order) {
+    const lines = sections.get(sec) ?? []
+    for (const l of lines) out.push(l)
+  }
+  return out.join('\n') + '\n'
 }
 
 /** persona 证据溯源：返回每条画像条目的来源 atom id（供 UI 展示溯源入口） */
 export function personaSources(): Array<{ text: string; sources: string[] }> {
-  const raw = readPersonaRaw()
+  const raw = personaRaw()
   if (!raw) return []
   return extractPersonaSources(raw)
 }
@@ -317,19 +358,19 @@ export async function regeneratePersona(): Promise<boolean> {
 }
 
 export function persona(): PersonaProfile {
-  return parsePersonaProfile(readPersonaRaw())
+  return parsePersonaProfile(personaRaw())
 }
 
-/** 更新 persona（由 extractor 的 LLM 生成后调用；原文覆盖写） */
+/** 更新 persona（由 extractor 的 LLM 生成后调用；默认写 global base） */
 export function updatePersona(markdown: string): void {
-  writePersona(markdown)
-  appendMemoryLog('用户画像已更新')
+  writePersona(markdown, 'global')
+  appendMemoryLog('用户画像已更新（global）')
 }
 
-/** 用户手动编辑 persona（与 LLM 自动生成 updatePersona 区分） */
-export function savePersona(markdown: string): void {
-  writePersona(markdown)
-  appendMemoryLog('用户手动编辑 persona 画像')
+/** 用户手动编辑 persona（默认写项目层覆盖） */
+export function savePersona(markdown: string, scope: 'project' | 'global' = 'project'): void {
+  writePersona(markdown, scope)
+  appendMemoryLog(`用户手动编辑 persona 画像（${scope}）`)
 }
 
 /**

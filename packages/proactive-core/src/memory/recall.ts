@@ -148,6 +148,9 @@ function scoreAtom(atom: MemoryAtom, terms: string[], docFreq: Map<string, numbe
  */
 export const RECALL_MIN_SCORE = 0.12
 
+/** 0.3.0：全局共享层命中的降权系数（最终融合分数相乘后过阈值） */
+export const SHARED_PENALTY = 0.8
+
 /**
  * 回忆意图词：查询含这些词且关键词 0 命中时，降级返回最近记忆（保 Recall）。
  * 避免语义问句（如“你还记得我是谁吗”）因关键词不匹配而过度沉默。
@@ -222,7 +225,8 @@ export function searchMemoriesByKeyword(request: MemorySearchRequest): MemorySea
   const query = request.query.trim()
   const limit = Math.min(Math.max(request.limit ?? DEFAULT_RECALL_LIMIT, 1), MAX_RECALL_LIMIT)
 
-  const allAtoms = readAllAtoms({ includeUnconfirmed: request.includeUnconfirmed === true })
+  // 0.3.0：scope 默认为 auto（项目 + 全局合并，store 层已去重 project 优先）
+  const allAtoms = readAllAtoms({ includeUnconfirmed: request.includeUnconfirmed === true, scope: request.scope ?? 'auto' })
 
   if (!query) {
     // 空查询：返回最近 N 条（供冷启动）
@@ -271,11 +275,14 @@ export function searchMemoriesByKeyword(request: MemorySearchRequest): MemorySea
       // 只有单字弱命中（无任何强词）：归一化会把“唯一弱命中”放大成 1.0，
       // 此处对纯单字命中大幅降权，避免“帮我写排序算法”因单字“序”误伤天气/流程类记忆。
       if (!hasStrongTerm) score *= 0.1
+      // 0.3.0：global 共享层来源降权（对抗审查 #4.1 修正：对最终融合分数乘 0.8 再过阈值）
+      if (r.atom.scope === 'global') score *= SHARED_PENALTY
       return {
         atom: r.atom,
         score,
         rawScore: r.score, // 保留绝对分供 hybrid 真相关判断
         matchedTerms: r.matched,
+        scope: r.atom.scope,
       }
     })
     .filter((h) => h.score >= effectiveMinScore)
@@ -310,7 +317,7 @@ export function truncateAtom(atom: MemoryAtom): string {
   return `${atom.content.slice(0, MAX_RECALL_ATOM_CHARS)}…（已截断）`
 }
 
-/** 将检索结果渲染为注入上下文（带预算截断 + 命中强度标注） */
+/** 将检索结果渲染为注入上下文（带预算截断 + 命中强度标注 + 0.3.0 [shared] 来源标注） */
 export function formatRecallContext(result: MemorySearchResult): string {
   if (result.hits.length === 0) return ''
   const lines = result.hits.map((hit) => {
@@ -318,7 +325,8 @@ export function formatRecallContext(result: MemorySearchResult): string {
     const time = new Date(hit.atom.createdAt).toISOString().slice(0, 10)
     // 命中强度：≥0.6 视为强相关，标注以帮助 Agent 判断可信度
     const strength = hit.score >= 0.6 ? 'rel=high' : hit.score >= 0.3 ? 'rel=mid' : 'rel=low'
-    return `- [${tag}|${time}|${strength}] ${truncateAtom(hit.atom)}`
+    const shared = hit.scope === 'global' || hit.atom.scope === 'global' ? ' [shared]' : ''
+    return `- [${tag}|${time}|${strength}${shared}] ${truncateAtom(hit.atom)}`
   })
   let block = lines.join('\n')
   if (block.length > MAX_RECALL_BLOCK_CHARS) {

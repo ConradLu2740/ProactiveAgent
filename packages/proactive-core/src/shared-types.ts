@@ -25,6 +25,8 @@ export interface MemoryAtom {
   priority: number
   sessionId?: string
   workspaceSlug?: string
+  /** 0.3.0 新增：数据层来源（project/global），跨层合并后用于标注与过滤 */
+  scope?: 'project' | 'global'
   createdAt: number
   updatedAt: number
   fingerprint?: string
@@ -80,6 +82,8 @@ export interface MemorySearchRequest {
   limit?: number
   type?: MemoryAtomType
   includeUnconfirmed?: boolean
+  /** 0.3.0 新增：读取层（默认 auto=项目+全局合并） */
+  scope?: 'project' | 'global' | 'auto'
 }
 
 /** 记忆检索命中 */
@@ -88,6 +92,8 @@ export interface MemorySearchHit {
   score: number
   rawScore?: number
   matchedTerms: string[]
+  /** 0.3.0 新增：来源层 */
+  scope?: 'project' | 'global'
 }
 
 /** 记忆检索结果 */
@@ -149,6 +155,8 @@ export interface SuggestionRecord extends SuggestionCandidate {
   status: 'suggested' | 'accepted' | 'ignored' | 'never'
   createdAt: number
   feedbackAt?: number
+  /** 0.3.0 新增：记录所在数据层（project/global）；读取旧记录按文件层推断填充 */
+  scope?: 'project' | 'global'
 }
 
 /** 建议反馈 */

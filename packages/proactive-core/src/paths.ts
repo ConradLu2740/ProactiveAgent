@@ -1,19 +1,19 @@
 /**
  * ProactiveAgent Core 路径解析（宿主无关）
  *
- * 默认根目录：~/.proma-proactive/（用户级一份共享，跨工具复用）
- * 覆盖优先级：PROACTIVE_DATA_DIR > PROMA_MEMORY_DIR（兼容旧数据）
+ * 0.3.0「按项目记忆」：默认按项目隔离（~/.proma-proactive/projects/<key>/），
+ * 显式全局共享（global/），PROACTIVE_SCOPE=global 逃生回退单层。
  *
- * 目录布局与 Proma 既有约定一致：
+ * 覆盖优先级：PROACTIVE_DATA_DIR > PROMA_CONFIG_DIR > ~/.proma-proactive/
+ * PROMA_MEMORY_DIR 显式设置时：单层 global 实例（D7，忽略项目概念）
+ *
+ * 目录布局（0.3.0）：
  * ```text
  * ~/.proma-proactive/
- *   index.json            # 记忆索引（按需生成：写入开关/提取模式等配置时落盘）
- *   profile.md            # L3 用户画像
- *   atoms/{YYYY-MM-DD}.jsonl   # L1 原子记忆
- *   scenes/{sceneId}.md   # L2 场景块
- *   corrections.json      # 行为纠正候选
- *   suggestions.json      # 主动建议记录
- *   memory_log/{YYYY-MM-DD}.md # 每日记忆变更日志
+ *   index.json            # 顶层元数据（schemaVersion:2 / projects[] / migration）
+ *   projects/<key>/       # 项目隔离数据（meta.json + memory/ + suggestions.json）
+ *   global/               # 显式共享层（memory/ + suggestions.json）
+ *   .env                  # LLM 配置（全局）
  * ```
  */
 
@@ -41,16 +41,60 @@ export function getConfigDir(): string {
   return dir
 }
 
-// ===== memory 路径（对齐 Proma 布局） =====
+// ===== 项目路由（0.3.0） =====
 
-/**
- * 记忆根目录：PROMA_MEMORY_DIR 直接覆盖（对齐原 config-paths 语义），
- * 否则为 core 根/memory。
- */
+import {
+  isEscapeGlobal,
+  isSingleLayerMode,
+  resolveProjectKey,
+  getProjectsRootDir,
+  getGlobalDir,
+  getProjectMemoryRootDir,
+  getGlobalMemoryRootDir,
+  getProjectSuggestionsPath,
+  getGlobalSuggestionsPath,
+  getProjectMetaPath,
+} from './project'
+
+export {
+  isEscapeGlobal,
+  isSingleLayerMode,
+  resolveProjectKey,
+  getProjectsRootDir,
+  getGlobalDir,
+  getProjectMemoryRootDir,
+  getGlobalMemoryRootDir,
+  getProjectSuggestionsPath,
+  getGlobalSuggestionsPath,
+  getProjectMetaPath,
+}
+export {
+  getProjectKey,
+  getProjectIdentity,
+  getTopIndexPath,
+  readTopIndex,
+  writeTopIndex,
+  migrateLegacyData,
+  mergeProjectsToGlobal,
+  listProjectKeys,
+  currentLayerKey,
+  resetProjectIdentity,
+  pathHash,
+  normalizeGitRemote,
+  GLOBAL_KEY,
+  type ProjectIdentity,
+  type Scope,
+  type WriteScope,
+  type ReadScope,
+} from './project'
+
+/** 当前项目记忆根目录（按层路由；PROMA_MEMORY_DIR 显式时返回 override） */
 export function getMemoryRootDir(): string {
   const memOverride = process.env.PROMA_MEMORY_DIR?.trim()
   if (memOverride) return memOverride
-  return join(getConfigDir(), 'memory')
+  if (isEscapeGlobal()) return getGlobalMemoryRootDir()
+  if (isSingleLayerMode()) return join(getConfigDir(), 'memory')
+  return getProjectMemoryRootDir()
 }
 
 export function getMemoryIndexPath(): string {
@@ -81,8 +125,14 @@ export function getMemoryLogDir(): string {
   return join(getMemoryRootDir(), 'memory_log')
 }
 
-// ===== suggestions 路径 =====
+// ===== suggestions 路径（按层路由） =====
 
 export function getSuggestionsPath(): string {
-  return join(getConfigDir(), 'suggestions.json')
+  if (isEscapeGlobal() || isSingleLayerMode()) return join(getConfigDir(), 'suggestions.json')
+  return getProjectSuggestionsPath()
+}
+
+/** 依赖 project.ts 的引用（mcp/today/doctor 等展示用） */
+export function getProjectKeyPublic(opts?: { explicit?: string }): string {
+  return resolveProjectKey(opts).key
 }

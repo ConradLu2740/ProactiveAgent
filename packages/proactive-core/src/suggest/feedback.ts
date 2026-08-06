@@ -13,6 +13,7 @@ import { mkdirSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { readJsonFileSafe, writeJsonFileAtomic } from '../safe-file'
 import { getSuggestionsPath } from '../paths'
+import { currentLayerKey, GLOBAL_KEY } from '../project'
 import type { SuggestionsIndex, SuggestionTypeWeights, SuggestionDndConfig, SuggestionAnalysisState } from './types'
 import { DEFAULT_DND_CONFIG } from './types'
 import type {
@@ -31,17 +32,21 @@ const MAX_RECORDS = 500
 /** 连续忽略达到该次数后，类型自动静默（跳过评估） */
 export const SILENCE_AFTER_IGNORES = 3
 
-// ===== 内存缓存 =====
+// ===== 内存缓存（0.3.0 键化：按层隔离） =====
 
-let cachedIndex: SuggestionsIndex | null = null
+type LayerKey = string // projectKey 或 GLOBAL_KEY
+
+const suggestionsCache = new Map<LayerKey, SuggestionsIndex | null>()
 
 function readIndex(): SuggestionsIndex {
-  if (cachedIndex) return cachedIndex
+  const key = currentLayerKey()
+  if (suggestionsCache.has(key)) return suggestionsCache.get(key)!
 
   const data = readJsonFileSafe<SuggestionsIndex>(getSuggestionsPath())
   if (!data) {
-    cachedIndex = { version: INDEX_VERSION, records: [], typeWeights: defaultTypeWeights(), enabled: true }
-    return cachedIndex
+    const fresh: SuggestionsIndex = { version: INDEX_VERSION, records: [], typeWeights: defaultTypeWeights(), enabled: true }
+    suggestionsCache.set(key, fresh)
+    return fresh
   }
   // 兼容旧格式：补齐缺省字段
   if (!data.typeWeights || typeof data.typeWeights !== 'object') data.typeWeights = defaultTypeWeights()
@@ -53,8 +58,11 @@ function readIndex(): SuggestionsIndex {
   data.analysis = sanitizeAnalysisState(data.analysis)
   // schema 校验：过滤非法记录，截断超长字段，限制数量上限
   data.records = data.records.filter(isValidSuggestionRecord).map(sanitizeSuggestionRecord).slice(0, MAX_RECORDS)
-  cachedIndex = data
-  return cachedIndex
+  // 0.3.0：旧记录按文件层推断填充 scope
+  const inferredScope: 'project' | 'global' = key === GLOBAL_KEY ? 'global' : 'project'
+  data.records = data.records.map((r) => ({ ...r, scope: r.scope ?? inferredScope }))
+  suggestionsCache.set(key, data)
+  return data
 }
 
 /** 合法建议记录：必须有 id、createdAt、title，status 为已知枚举 */
@@ -97,16 +105,22 @@ function sanitizeAnalysisState(value: unknown): SuggestionAnalysisState {
 }
 
 function writeIndex(): void {
-  if (!cachedIndex) return
-  cachedIndex.version = INDEX_VERSION
+  const key = currentLayerKey()
+  const index = suggestionsCache.get(key)
+  if (!index) return
+  index.version = INDEX_VERSION
   // 确保父目录存在（配置目录可能尚未创建）
   mkdirSync(dirname(getSuggestionsPath()), { recursive: true })
-  writeJsonFileAtomic(getSuggestionsPath(), cachedIndex)
+  writeJsonFileAtomic(getSuggestionsPath(), index)
 }
 
-/** 测试/调试用：重置缓存（bun test 隔离） */
-export function resetSuggestionsCache(): void {
-  cachedIndex = null
+/** 测试/调试用：重置缓存（可按层；不传则清全部） */
+export function resetSuggestionsCache(key?: string): void {
+  if (key !== undefined) {
+    suggestionsCache.delete(key)
+  } else {
+    suggestionsCache.clear()
+  }
 }
 
 /** 读取当前索引（供 engine/service 使用） */
@@ -114,9 +128,9 @@ export function readSuggestionsIndex(): SuggestionsIndex {
   return readIndex()
 }
 
-/** 设置内存缓存（测试注入） */
-export function setSuggestionsIndexForTest(index: SuggestionsIndex): void {
-  cachedIndex = index
+/** 设置内存缓存（测试注入；需指定层） */
+export function setSuggestionsIndexForTest(index: SuggestionsIndex, key?: string): void {
+  suggestionsCache.set(key ?? currentLayerKey(), index)
 }
 
 // ===== 对外 API =====
