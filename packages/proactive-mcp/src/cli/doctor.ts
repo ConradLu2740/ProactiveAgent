@@ -51,9 +51,9 @@ function checkLlm(): CheckResult {
 
 /** 检查 hooks 产物是否存在（发布包内置） */
 function checkHooks(): CheckResult {
-  // 从当前模块位置推断 dist/hooks/
+  // 从当前模块位置推断 dist/hooks/（import.meta.url 指向 dist/index.js）
   const here = fileURLToPath(import.meta.url)
-  const distDir = join(dirname(here), '..')
+  const distDir = dirname(here)
   const hooksDir = join(distDir, 'hooks')
   const todayPush = join(hooksDir, 'today-push.js')
   const sessionEnd = join(hooksDir, 'session-end.js')
