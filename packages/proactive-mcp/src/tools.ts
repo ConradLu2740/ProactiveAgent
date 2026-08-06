@@ -307,18 +307,25 @@ export function registerTools(server: McpServer): void {
       title: '评估是否产生建议',
       description:
         '评估一段会话消息是否值得给出主动建议（correction 纠正 / followup 跟进 / automation 自动化 / skill 技能 / todo 待办）。' +
-        '核心原则：该沉默时沉默。单次最多 1 条，同会话有预算限制，免打扰时段不产生。返回本次新增建议（可能为空）。',
+        '核心原则：该沉默时沉默。单次最多 1 条，同会话有预算限制，免打扰时段不产生。返回本次新增建议（可能为空）。' +
+        '支持 trigger 参数：session_end（默认，会话结束评估）/ session_mid（会话中实时，只推强信号 correction/automation，限 1 条）/ manual（手动）。',
       inputSchema: {
         messages: z.array(messageSchema).min(1).max(200).describe('本会话的对话消息（按时间顺序）'),
         sessionId: z.string().optional().describe('会话 ID（用于预算去重）'),
+        trigger: z
+          .enum(['session_end', 'session_mid', 'manual'])
+          .optional()
+          .describe('评估触发点：session_end=会话结束（默认）/ session_mid=会话中实时（强信号才推）/ manual=手动'),
       },
     },
-    async ({ messages, sessionId }) => {
+    async ({ messages, sessionId, trigger }) => {
       try {
-        const records = await suggestService.evaluateSessionSuggestions(
-          messages as Array<{ role: string; content: string }>,
-          { sessionId },
-        )
+        // P1-1：暴露 evaluateNow trigger，让宿主动态控制评估时机（不只 session_end 语义）
+        const records = await suggestService.evaluateNow({
+          trigger: trigger ?? 'session_end',
+          sessionId,
+          messages: messages as Array<{ role: string; content: string }>,
+        })
         if (records.length === 0) return text('本次评估无新建议（该沉默时沉默）。')
         const r = records[0]
         return text(

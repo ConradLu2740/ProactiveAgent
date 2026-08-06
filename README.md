@@ -126,7 +126,15 @@ agent: 我偏好用 TypeScript 和 Bun
   - `SessionStart`（today-push）：会话开始推送待处理建议 + 热点场景
   - `UserPromptSubmit`（user-prompt）：**会话中实时评估**——你说"以后都用 pnpm"，立即收到纠正建议；弱信号自动沉默
   - `Stop`（session-end）：会话结束沉淀记忆 + 评估建议
-- **Kimi Code hooks（主动转述）**：`UserPromptSubmit` 输出对齐 Kimi task 通知范式的 `<notification>` XML——Kimi 模型看到通知后主动向用户转述建议（"上次你说 X，要记住吗？"），复用 Kimi externalHooks 通道
+- **Kimi Code hooks（主动转述）**：`UserPromptSubmit` 输出对齐 Kimi task 通知范式的 `<notification>` XML——Kimi 模型看到通知后主动向用户转述建议（"上次你说 X，要记住吗？"），复用 Kimi externalHooks 通道。
+  **Kimi hooks 配置是 TOML**（不是 JSON），写在 `~/.kimi-code/config.toml`：
+  ```toml
+  [[hooks]]
+  event = "UserPromptSubmit"
+  command = "node <mcp 安装路径>/dist/hooks/kimi-user-prompt.js"
+  timeout = 10
+  ```
+  > 字段只允许 `event` / `matcher` / `command` / `timeout`；`UserPromptSubmit` 用户发消息时触发，hook stdout 附加到上下文，模型看到 `<notification>` 后主动转述。
 
 ---
 
@@ -218,6 +226,9 @@ A：多数方案是"单工具的被动记忆"。ProactiveAgent 是**跨工具共
 
 **Q：会把我的对话发给外部吗？**
 A：只有 `memory_extract` 的 LLM 模式会把**当前对话片段**发给你自己配置的 LLM（默认 DeepSeek 兼容接口）；规则模式零外发。显式 capture/recall 纯本地。
+
+**Q：记忆量大后性能会变慢吗？**
+A：当前 `memory_recall` 对记忆原子（atoms）做全量扫描检索，个人/中小项目（数千条以内）无感知；当记忆量达到**上万条**后建议做索引化优化（倒排索引 + 时间窗口预过滤），已在 Roadmap（M9）。同时建议定期用 `proactive-mcp stats` 观察记忆规模。
 
 ---
 
