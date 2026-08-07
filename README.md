@@ -254,11 +254,10 @@ A：当前 `memory_recall` 对记忆原子（atoms）做全量扫描检索，个
 - [x] 时间/周期解析（0.5.0：中英文时间表达 → cron/dueAt 预填）
 - [x] 英文信号（0.5.0：correction/automation/followup/todo 英文模式）
 - [ ] Kimi turn.steer 空闲自启新 turn（需 Kimi agent 内部 API，待上游开放）
+- [x] 指标面板：建议接受率 / 打扰率（0.5.0：`suggestionRoiStats` 漏斗 + 类型接受率 + 自动降预算，Today 面板 ROI 区展示）
+- [x] embedding 本地化（0.1.x：local node-llama-cpp + embeddinggemma / api 双模式，默认 off fail-open）
+- [x] 多语言 README（0.5.3：README.en.md + 中英文切换）
 - [ ] 记忆索引化（倒排索引，支撑上万条）
-- [ ] 指标面板：建议接受率 / 打扰率（suggested → pushed → accepted → executed 漏斗）
-- [ ] 记忆索引化（倒排索引，支撑上万条）
-- [ ] embedding 本地化（默认可选）
-- [ ] 多语言 README
 - [ ] 自动归档 / TTL 记忆管理
 
 ## 贡献

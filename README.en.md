@@ -255,9 +255,10 @@ A: Current `memory_recall` does a full scan over atoms — imperceptible for per
 - [x] Time/period parsing (0.5.0: zh/en time expressions → cron/dueAt prefill)
 - [x] English signals (0.5.0: correction/automation/followup/todo in English)
 - [ ] Kimi turn.steer idle self-start (requires internal Kimi agent API, waiting on upstream)
+- [x] Metrics panel: accept rate / disturb rate (0.5.0: `suggestionRoiStats` funnel + type accept rate + auto budget reduction, shown in Today ROI section)
+- [x] Local embeddings (0.1.x: local node-llama-cpp + embeddinggemma / api dual mode, default off fail-open)
+- [x] Bilingual README (0.5.3: README.en.md + language switch)
 - [ ] Memory indexing (inverted index, supports 10k+ entries)
-- [ ] Metrics panel: accept rate / disturb rate (suggested → pushed → accepted → executed funnel)
-- [ ] Local embeddings (optional by default)
 - [ ] Auto-archive / TTL memory management
 
 ## Contributing
