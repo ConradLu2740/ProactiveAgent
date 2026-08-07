@@ -188,7 +188,7 @@
 
 <!-- ============ HERO ============ -->
 <header class="hero">
-  <div class="hero-badge"><span class="dot"></span> 实测验证 · 2026-08-06 · v0.5.0</div>
+  <div class="hero-badge"><span class="dot"></span> 实测验证 · 2026-08-07 · v0.5.3 · <span class="dim" style="opacity:0.8">页面加载后自动播放，可手动重播</span></div>
   <h1>教一次，<em>处处用</em></h1>
   <p class="sub">给 <strong>Claude Code / Kimi Code / Cline / Cursor / Proma</strong> 即插即用的主动能力外挂。<br>跨工具共享的主动记忆 + 该沉默时沉默的主动建议 —— <strong>会话中主动推送</strong> + 时间感知预填 + ROI 反馈闭环，一个 MCP 挂载，所有 agent 立即拥有。</p>
   <div class="hero-cta">
@@ -687,6 +687,53 @@ function playScene8() {
   });
 }
 document.getElementById('btn8').addEventListener('click', playScene8);
+
+/* ===== 自动播放：滚动到场景即自动播放一次，播放完停在最后一帧 ===== */
+const AUTO_PLAY_SCENES = [
+  { btn: 'btn1a', play: playScene1a },
+  { btn: 'btn1b', play: playScene1b },
+  { btn: 'btn2',  play: playScene2 },
+  { btn: 'btn3',  play: playScene3 },
+  { btn: 'btn4',  play: playScene4 },
+  { btn: 'btn5',  play: playScene5 },
+  { btn: 'btn6',  play: playScene6 },
+  { btn: 'btn7',  play: playScene7 },
+  { btn: 'btn8',  play: playScene8 },
+];
+const autoPlayed = {};
+
+if ('IntersectionObserver' in window) {
+  const io = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        const btnId = entry.target.dataset.btn;
+        if (!btnId || autoPlayed[btnId]) continue;
+        autoPlayed[btnId] = true;
+        const item = AUTO_PLAY_SCENES.find((s) => s.btn === btnId);
+        if (item) item.play();
+      }
+    },
+    { threshold: 0.15, rootMargin: '0px 0px -10% 0px' },
+  );
+  for (const s of AUTO_PLAY_SCENES) {
+    const btnEl = document.getElementById(s.btn);
+    if (!btnEl) continue;
+    const scene = btnEl.closest('.scene');
+    if (!scene) continue;
+    scene.dataset.btn = s.btn;
+    io.observe(scene);
+  }
+  // 页面加载后立即自动播放第一个场景（不依赖滚动，确保第一眼就能看到效果）
+  setTimeout(() => {
+    if (!autoPlayed['btn1a']) { autoPlayed['btn1a'] = true; playScene1a(); }
+  }, 600);
+} else {
+  // 不支持 IntersectionObserver（极老浏览器）：全部自动播放一次兜底
+  for (const s of AUTO_PLAY_SCENES) {
+    if (!autoPlayed[s.btn]) { autoPlayed[s.btn] = true; s.play(); }
+  }
+}
 </script>
 </body>
 </html>
