@@ -66,6 +66,14 @@
   .hero .sub { font-size:17px; color:var(--text2); max-width:640px; margin:0 auto 30px; }
   .hero .sub strong { color:var(--text); font-weight:600; }
   .hero-cta { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+  /* 语言切换开关（标题下方居中） */
+  .lang-switch { display:flex; align-items:center; gap:8px; justify-content:center; width:fit-content;
+    margin:0 auto 18px; background:rgba(22,27,34,0.92); border:1px solid var(--border2); border-radius:999px;
+    padding:5px 14px; font-family:var(--mono); font-size:12.5px; }
+  .lang-switch a { color:var(--text2); text-decoration:none; transition:color 0.15s; }
+  .lang-switch a:hover { color:var(--text); }
+  .lang-switch a.active { color:var(--blue); font-weight:700; }
+  .lang-switch .sep { color:var(--text3); }
   .btn { display:inline-flex; align-items:center; gap:8px; font-family:var(--mono); font-size:13.5px; padding:11px 20px; border-radius:8px; border:1px solid var(--border2); background:var(--bg2); color:var(--text); text-decoration:none; transition:all 0.15s; }
   .btn:hover { border-color:var(--blue); transform:translateY(-1px); }
   .btn.primary { background:linear-gradient(135deg, rgba(88,166,255,0.18), rgba(63,185,80,0.14)); border-color:rgba(88,166,255,0.4); color:var(--text); font-weight:600; }
@@ -186,13 +194,12 @@
 </head>
 <body>
 
-<!-- 中英文切换开关 -->
-<div class="lang-switch"><a class="active" href="story.html">中文</a><span class="sep">|</span><a href="story.en.html">EN</a></div>
-
 <!-- ============ HERO ============ -->
 <header class="hero">
   <div class="hero-badge"><span class="dot"></span> 实测验证 · 2026-08-07 · v0.5.3 · <span class="dim" style="opacity:0.8">页面加载后自动播放，可手动重播</span></div>
   <h1>教一次，<em>处处用</em></h1>
+  <!-- 中英文切换开关（标题下方） -->
+  <div class="lang-switch"><a class="active" href="story.html">中文</a><span class="sep">|</span><a href="story.en.html">EN</a></div>
   <p class="sub">给 <strong>Claude Code / Kimi Code / Cline / Cursor / Proma</strong> 即插即用的主动能力外挂。<br>跨工具共享的主动记忆 + 该沉默时沉默的主动建议 —— <strong>会话中主动推送</strong> + 时间感知预填 + ROI 反馈闭环，一个 MCP 挂载，所有 agent 立即拥有。</p>
   <div class="hero-cta">
     <a class="btn primary" href="https://github.com/ConradLu2740/ProactiveAgent" target="_blank" rel="noopener">GitHub 仓库 →</a>
