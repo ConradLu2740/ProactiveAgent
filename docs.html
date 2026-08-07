@@ -12,13 +12,23 @@
 <link rel="canonical" href="https://proactive-agent.top/docs.html">
 <style>
   :root {
-    --bg: #fbfaf9; --bg-card: #ffffff; --bg-hover: #f7f7f7;
-    --text: rgba(0,0,0,0.9); --text2: rgba(0,0,0,0.6); --text3: rgba(0,0,0,0.38);
-    --line: rgba(0,0,0,0.08); --line2: rgba(0,0,0,0.14);
-    --blue: #1783ff; --blue-hover: #167ff7; --blue10: rgba(23,131,255,0.1);
-    --green: #16c456; --purple: #985ffb;
+    --bg: #ffffff;
+    --bg-sidebar: #f9f9f9;
+    --bg-hover: #f2f3f5;
+    --text: #3c3c43;
+    --text2: #8e8e93;
+    --text3: #aeaeb2;
+    --line: #e5e5ea;
+    --line2: #d1d1d6;
+    --blue: #1783ff;
+    --blue-hover: #167ff7;
+    --blue10: rgba(23,131,255,0.1);
+    --green: #16c456;
+    --purple: #985ffb;
+    --orange: #ff9500;
+    --code-bg: #1e1e1e;
     --mono: "SF Mono", SFMono-Regular, ui-monospace, Menlo, Consolas, "Liberation Mono", monospace;
-    --sans: "Comic Sans MS", "Comic Sans", "Comic Neue", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", sans-serif;
+    --sans: "Comic Sans MS", "Comic Sans", "Comic Neue", Inter, -apple-system, "system-ui", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   }
   * { margin:0; padding:0; box-sizing:border-box; }
   html { scroll-behavior:smooth; }
@@ -26,181 +36,203 @@
   a { color:var(--blue); text-decoration:none; }
   a:hover { text-decoration:underline; }
 
-  .nav { position:sticky; top:0; z-index:100; display:flex; align-items:center; justify-content:space-between;
-    padding:14px 32px; background:rgba(251,250,249,0.88); backdrop-filter:blur(16px); border-bottom:1px solid var(--line); }
-  .nav-logo { font-weight:700; font-size:17px; color:var(--text); display:flex; align-items:center; gap:8px; }
+  /* ===== Top Nav (fixed, VitePress style) ===== */
+  .nav { position:fixed; top:0; left:0; right:0; z-index:100; height:64px; display:flex; align-items:center; justify-content:space-between;
+    padding:0 32px; background:rgba(255,255,255,0.9); backdrop-filter:blur(12px); border-bottom:1px solid var(--line); }
+  .nav-left { display:flex; align-items:center; gap:20px; }
+  .nav-logo { font-weight:700; font-size:16px; color:var(--text); display:flex; align-items:center; gap:8px; }
   .nav-logo .mark { width:22px; height:22px; border-radius:7px; background:linear-gradient(135deg,var(--blue),var(--green)); display:flex; align-items:center; justify-content:center; font-size:12px; color:#fff; font-weight:800; }
-  .nav-links { display:flex; gap:26px; font-size:16px; align-items:center; }
-  .nav-links a { color:var(--text2); }
-  .nav-links a:hover { color:var(--text); }
-  .nav-links a.active { color:var(--blue); font-weight:600; }
-  .lang-btn { font-family:var(--sans); font-size:15px; font-weight:600; padding:8px 16px; border:1px solid var(--line2); border-radius:999px; background:var(--bg-card); color:var(--text); cursor:pointer; transition:all 0.15s; }
+  .nav-breadcrumb { font-size:14px; color:var(--text3); }
+  .nav-breadcrumb b { color:var(--text); font-weight:600; }
+  .nav-right { display:flex; align-items:center; gap:16px; }
+  .nav-right a { font-size:14.5px; color:var(--text2); }
+  .nav-right a:hover { color:var(--blue); text-decoration:none; }
+  .lang-btn { font-family:var(--sans); font-size:14px; font-weight:600; padding:6px 14px; border:1px solid var(--line2); border-radius:999px; background:#fff; color:var(--text); cursor:pointer; transition:all 0.15s; }
   .lang-btn:hover { border-color:var(--blue); color:var(--blue); }
 
-  .wrap { max-width:920px; margin:0 auto; padding:48px 24px 96px; }
-  .wrap h1 { font-size:40px; font-weight:700; letter-spacing:-0.8px; margin-bottom:8px; }
-  .wrap .updated { color:var(--text3); font-size:14px; margin-bottom:36px; }
+  /* ===== Layout: sidebar + main ===== */
+  .layout { display:flex; padding-top:64px; min-height:100vh; }
+  .sidebar { position:fixed; top:64px; bottom:0; left:0; width:232px; background:var(--bg-sidebar); border-right:1px solid var(--line);
+    overflow-y:auto; padding:24px 12px 48px; }
+  .sidebar::-webkit-scrollbar { width:4px; }
+  .sidebar::-webkit-scrollbar-thumb { background:var(--line2); border-radius:2px; }
+  .side-group { margin-bottom:20px; }
+  .side-group .g-title { font-size:12px; font-weight:700; color:var(--text3); text-transform:uppercase; letter-spacing:0.6px; padding:0 12px; margin-bottom:8px; }
+  .side-group a { display:block; font-size:14px; color:var(--text2); padding:7px 12px; border-radius:8px; margin-bottom:2px; transition:all 0.12s; }
+  .side-group a:hover { color:var(--text); background:var(--bg-hover); text-decoration:none; }
+  .side-group a.active { color:var(--blue); background:var(--blue10); font-weight:600; }
+  .side-group a .num { float:right; font-size:11px; color:var(--text3); font-family:var(--mono); }
 
-  .toc { background:var(--bg-card); border:1px solid var(--line); border-radius:16px; padding:22px 26px; margin-bottom:44px; }
-  .toc h2 { font-size:15px; color:var(--text3); font-weight:600; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:12px; }
-  .toc ol { padding-left:22px; }
-  .toc li { margin:6px 0; font-size:15px; }
-  .toc a { color:var(--text2); }
-  .toc a:hover { color:var(--blue); text-decoration:none; }
+  .main { flex:1; margin-left:232px; padding:40px 48px 96px; }
+  .doc-wrap { max-width:720px; margin:0 auto; }
+  .doc-wrap h1 { font-size:32px; font-weight:600; line-height:40px; letter-spacing:-0.4px; margin-bottom:8px; }
+  .doc-updated { color:var(--text3); font-size:13px; margin-bottom:32px; }
 
-  h2.doc { font-size:28px; font-weight:700; letter-spacing:-0.5px; margin:56px 0 14px; padding-top:24px; border-top:1px solid var(--line); }
-  .wrap h2.doc:first-of-type { border-top:none; margin-top:0; padding-top:0; }
-  h3.doc { font-size:19px; font-weight:600; margin:28px 0 10px; }
-  p.doc { margin:10px 0; color:var(--text); font-size:16px; }
-  ul.doc, ol.doc { padding-left:24px; margin:10px 0; }
-  li { margin:4px 0; }
+  /* ===== Inline content ===== */
+  .doc-wrap h2 { font-size:22px; font-weight:600; letter-spacing:-0.3px; margin:44px 0 12px; padding-top:28px; border-top:1px solid var(--line); scroll-margin-top:84px; }
+  .doc-wrap h2:first-of-type { border-top:none; margin-top:0; padding-top:0; }
+  .doc-wrap h2 .sec-no { color:var(--blue); font-family:var(--mono); font-size:16px; margin-right:6px; }
+  .doc-wrap h3 { font-size:17px; font-weight:600; margin:26px 0 10px; scroll-margin-top:84px; }
+  .doc-wrap p { margin:12px 0; color:var(--text); font-size:15.5px; }
+  .doc-wrap ul, .doc-wrap ol { padding-left:24px; margin:12px 0; font-size:15.5px; }
+  .doc-wrap li { margin:5px 0; }
 
-  code { font-family:var(--mono); font-size:13.5px; background:var(--bg-hover); border:1px solid var(--line); padding:2px 7px; border-radius:6px; }
-  pre { background:#1e1e1e; border-radius:12px; padding:18px 20px; overflow-x:auto; margin:14px 0; }
-  pre code { background:none; border:none; padding:0; color:#e6edf3; font-size:13.5px; line-height:1.75; display:block; }
+  code { font-family:var(--mono); font-size:13px; background:var(--bg-hover); border:1px solid var(--line); padding:1.5px 7px; border-radius:6px; }
+  .doc-wrap pre { background:var(--code-bg); border-radius:10px; padding:18px 20px; overflow-x:auto; margin:16px 0; }
+  .doc-wrap pre code { background:none; border:none; padding:0; color:#e6edf3; font-size:13.5px; line-height:1.75; display:block; }
   pre .c { color:#6e7681; } pre .k { color:#ff7b72; } pre .s { color:#a5d6ff; } pre .v { color:#d2a8ff; }
 
-  table { width:100%; border-collapse:collapse; margin:16px 0; font-size:14.5px; background:var(--bg-card); border:1px solid var(--line); border-radius:12px; overflow:hidden; }
-  th, td { text-align:left; padding:12px 16px; border-bottom:1px solid var(--line); vertical-align:top; }
-  th { background:var(--bg-hover); font-weight:600; font-size:13.5px; color:var(--text2); white-space:nowrap; }
-  tr:last-child td { border-bottom:none; }
-  td code { white-space:nowrap; }
+  .doc-wrap table { width:100%; border-collapse:collapse; margin:18px 0; font-size:14px; }
+  .doc-wrap th, .doc-wrap td { text-align:left; padding:9px 16px; border-bottom:1px solid var(--line); vertical-align:top; }
+  .doc-wrap th { background:#f6f6f7; font-weight:600; font-size:13px; color:var(--text2); white-space:nowrap; border-top:1px solid var(--line); }
+  .doc-wrap tr:last-child td { border-bottom:none; }
+  .doc-wrap td code { white-space:nowrap; }
 
-  .note-box { background:var(--blue10); border:1px solid rgba(23,131,255,0.2); border-radius:12px; padding:16px 20px; margin:16px 0; font-size:14.5px; line-height:1.8; }
-  .warn-box { background:rgba(255,149,0,0.08); border:1px solid rgba(255,149,0,0.25); border-radius:12px; padding:16px 20px; margin:16px 0; font-size:14.5px; line-height:1.8; }
+  .note-box { background:var(--blue10); border:1px solid rgba(23,131,255,0.2); border-radius:10px; padding:15px 18px; margin:18px 0; font-size:14px; line-height:1.8; }
+  .warn-box { background:rgba(255,149,0,0.08); border:1px solid rgba(255,149,0,0.25); border-radius:10px; padding:15px 18px; margin:18px 0; font-size:14px; line-height:1.8; }
   .note-box b, .warn-box b { color:var(--blue); }
 
-  .footer { border-top:1px solid var(--line); padding:32px 24px; text-align:center; color:var(--text3); font-size:13.5px; }
-  .footer .links { display:flex; gap:20px; justify-content:center; margin-bottom:10px; flex-wrap:wrap; }
+  /* ===== Footer ===== */
+  .footer { margin-left:232px; border-top:1px solid var(--line); padding:28px 48px; text-align:center; color:var(--text3); font-size:13px; }
+  .footer .links { display:flex; gap:20px; justify-content:center; margin-bottom:8px; flex-wrap:wrap; }
   .footer .links a { color:var(--text2); }
 
-  @media (max-width:680px) {
-    .nav { padding:12px 16px; }
-    .nav-links { gap:14px; font-size:15px; }
-    .nav-links a.hide-sm { display:none; }
-    .wrap { padding:32px 16px 64px; }
-    .wrap h1 { font-size:30px; }
-    h2.doc { font-size:24px; }
-    table { font-size:13.5px; }
+  /* ===== Mobile ===== */
+  @media (max-width:860px) {
+    .sidebar { display:none; }
+    .main { margin-left:0; padding:24px 20px 64px; }
+    .footer { margin-left:0; padding:24px 20px; }
+    .nav { padding:0 16px; }
+    .nav-breadcrumb { display:none; }
+    .doc-wrap h1 { font-size:26px; line-height:34px; }
+    .doc-wrap h2 { font-size:19px; }
+    table { display:block; overflow-x:auto; }
   }
 </style>
 </head>
 <body>
 
 <nav class="nav">
-  <a class="nav-logo" href="/"><span class="mark">P</span> ProactiveAgent</a>
-  <div class="nav-links">
-    <a href="/#features" data-i18n="nav_features">功能</a>
-    <a href="/#install" data-i18n="nav_install">安装</a>
-    <a href="/#compat" data-i18n="nav_compat">兼容</a>
-    <a href="docs.html" class="active" data-i18n="nav_docs">文档</a>
-    <a class="hide-sm" href="https://github.com/ConradLu2740/ProactiveAgent" target="_blank" rel="noopener" data-i18n="nav_github">GitHub</a>
+  <div class="nav-left">
+    <a class="nav-logo" href="/"><span class="mark">P</span> ProactiveAgent</a>
+    <span class="nav-breadcrumb">/ <b data-i18n="nav_docs">文档</b></span>
+  </div>
+  <div class="nav-right">
+    <a href="/" data-i18n="nav_home">首页</a>
+    <a href="https://github.com/ConradLu2740/ProactiveAgent" target="_blank" rel="noopener" data-i18n="nav_github">GitHub</a>
     <button class="lang-btn" id="langBtn" onclick="toggleLang()">EN</button>
   </div>
 </nav>
 
-<div class="wrap">
-  <h1 data-i18n="h1">ProactiveAgent 技术指南</h1>
-  <p class="updated" data-i18n="updated">v0.5.4 · 更新于 2026-08-07</p>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="side-group">
+      <div class="g-title" data-i18n="sg_guide">指南</div>
+      <a href="#quickstart" class="active" data-i18n="toc1">快速开始</a>
+      <a href="#cli" data-i18n="toc2">CLI 命令</a>
+      <a href="#env" data-i18n="toc3">环境变量</a>
+      <a href="#tools" data-i18n="toc4">MCP Tools</a>
+      <a href="#hooks" data-i18n="toc5">Hooks 配置</a>
+      <a href="#data" data-i18n="toc6">数据目录</a>
+    </div>
+    <div class="side-group">
+      <div class="g-title" data-i18n="sg_ref">参考</div>
+      <a href="#faq" data-i18n="toc7">安全与 FAQ</a>
+      <a href="https://github.com/ConradLu2740/ProactiveAgent/blob/main/README.md" target="_blank" rel="noopener" data-i18n="toc8">README ↗</a>
+      <a href="https://smithery.ai/servers/1797650355/proactive-agent" target="_blank" rel="noopener" data-i18n="toc9">Smithery ↗</a>
+    </div>
+  </aside>
 
-  <div class="toc">
-    <h2 data-i18n="toc_t">目录</h2>
-    <ol>
-      <li><a href="#quickstart" data-i18n="toc1">快速开始</a></li>
-      <li><a href="#cli" data-i18n="toc2">CLI 命令</a></li>
-      <li><a href="#env" data-i18n="toc3">环境变量</a></li>
-      <li><a href="#tools" data-i18n="toc4">MCP Tools（18 个）</a></li>
-      <li><a href="#hooks" data-i18n="toc5">Hooks 配置</a></li>
-      <li><a href="#data" data-i18n="toc6">数据目录</a></li>
-      <li><a href="#faq" data-i18n="toc7">安全与 FAQ</a></li>
-    </ol>
-  </div>
+  <main class="main">
+    <div class="doc-wrap">
+      <h1 data-i18n="h1">ProactiveAgent 技术指南</h1>
+      <p class="doc-updated" data-i18n="updated">v0.5.4 · 更新于 2026-08-07</p>
 
-  <h2 class="doc" id="quickstart" data-i18n="s1">1 · 快速开始</h2>
-  <h3 class="doc" data-i18n="s1a">npm 安装（推荐）</h3>
+      <h2 id="quickstart" data-i18n="s1"><span class="sec-no">1</span><span data-i18n="s1_t">快速开始</span></h2>
+      <h3 data-i18n="s1a">npm 安装（推荐）</h3>
 <pre><code><span class="c" data-i18n="c1"># 任意目录，仅需 Node ≥ 18</span>
 <span class="k">npm install</span> <span class="s">@proactive-agent/mcp</span>
 <span class="k">npx</span> proactive-mcp init
 <span class="c" data-i18n="c2"># 自动生成 .mcp.json 挂载配置 + hooks</span></code></pre>
-  <p class="doc" data-i18n="p1">Windows / Linux / macOS 命令完全一致，无需 curl。三个平台仅需 Node ≥ 18。</p>
+      <p data-i18n="p1">Windows / Linux / macOS 命令完全一致，无需 curl。三个平台仅需 Node ≥ 18。</p>
 
-  <h3 class="doc" data-i18n="s1b">手动挂载（任意 MCP 宿主）</h3>
+      <h3 data-i18n="s1b">手动挂载（任意 MCP 宿主）</h3>
 <pre><code>{ <span class="s">"command"</span>: <span class="s">"npx"</span>,
   <span class="s">"args"</span>: [<span class="s">"-y"</span>, <span class="s">"@proactive-agent/mcp@latest"</span>] }</code></pre>
-  <p class="doc" data-i18n="p2">任何支持 MCP 的客户端（Claude Code / Kimi Code / Cline / Cursor / Windsurf / VS Code / Proma）添加 stdio server 即可。</p>
+      <p data-i18n="p2">任何支持 MCP 的客户端（Claude Code / Kimi Code / Cline / Cursor / Windsurf / VS Code / Proma）添加 stdio server 即可。</p>
 
-  <h3 class="doc" data-i18n="s1c">开发 / 自定义（clone 仓库）</h3>
+      <h3 data-i18n="s1c">开发 / 自定义（clone 仓库）</h3>
 <pre><code><span class="k">git clone</span> <span class="s">https://github.com/ConradLu2740/ProactiveAgent.git</span> <span class="k">&amp;&amp;</span> <span class="k">cd</span> ProactiveAgent
 <span class="k">bun install</span>
 <span class="k">bun run</span> packages/proactive-mcp/src/index.ts init</code></pre>
 
-  <div class="note-box">💡 <span data-i18n="nb1">挂载后立刻试：</span><code>以后提交代码前必须先写单元测试再提交</code><span data-i18n="nb2"> → agent 会自动建议把这条规则写入长期记忆。</span></div>
+      <div class="note-box">💡 <span data-i18n="nb1">挂载后立刻试：</span><code>以后提交代码前必须先写单元测试再提交</code><span data-i18n="nb2"> → agent 会自动建议把这条规则写入长期记忆。</span></div>
 
-  <h2 class="doc" id="cli" data-i18n="s2">2 · CLI 命令</h2>
-  <table>
-    <thead><tr><th data-i18n="th_cmd">命令</th><th data-i18n="th_what">作用</th></tr></thead>
-    <tbody>
-      <tr><td><code>proactive-mcp init</code></td><td data-i18n="cli1">一键生成挂载配置 + hooks（可选 --local / --kimi / --force / --dry-run）</td></tr>
-      <tr><td><code>proactive-mcp doctor</code></td><td data-i18n="cli2">健康检查：配置 / 数据 / hooks / 端口 / 项目身份</td></tr>
-      <tr><td><code>proactive-mcp stats</code></td><td data-i18n="cli3">记忆与建议统计（观察记忆规模、建议接受率）</td></tr>
-      <tr><td><code>proactive-mcp demo</code></td><td data-i18n="cli4">教程式示例（隔离数据，--clean 清理）</td></tr>
-      <tr><td><code>proactive-mcp migrate</code></td><td data-i18n="cli5">0.3.0 数据迁移 / 反向收敛（--merge-to-global / --status / --preview）</td></tr>
-      <tr><td><code>proactive-mcp --today</code></td><td data-i18n="cli6">启动本地主动中心 Web 面板（端口 PROACTIVE_TODAY_PORT，默认 8737，15s 自动刷新）</td></tr>
-    </tbody>
-  </table>
+      <h2 id="cli" data-i18n="s2"><span class="sec-no">2</span><span data-i18n="s2_t">CLI 命令</span></h2>
+      <table>
+        <thead><tr><th data-i18n="th_cmd">命令</th><th data-i18n="th_what">作用</th></tr></thead>
+        <tbody>
+          <tr><td><code>proactive-mcp init</code></td><td data-i18n="cli1">一键生成挂载配置 + hooks（可选 --local / --kimi / --force / --dry-run）</td></tr>
+          <tr><td><code>proactive-mcp doctor</code></td><td data-i18n="cli2">健康检查：配置 / 数据 / hooks / 端口 / 项目身份</td></tr>
+          <tr><td><code>proactive-mcp stats</code></td><td data-i18n="cli3">记忆与建议统计（观察记忆规模、建议接受率）</td></tr>
+          <tr><td><code>proactive-mcp demo</code></td><td data-i18n="cli4">教程式示例（隔离数据，--clean 清理）</td></tr>
+          <tr><td><code>proactive-mcp migrate</code></td><td data-i18n="cli5">0.3.0 数据迁移 / 反向收敛（--merge-to-global / --status / --preview）</td></tr>
+          <tr><td><code>proactive-mcp --today</code></td><td data-i18n="cli6">启动本地主动中心 Web 面板（端口 PROACTIVE_TODAY_PORT，默认 8737，15s 自动刷新）</td></tr>
+        </tbody>
+      </table>
 
-  <h2 class="doc" id="env" data-i18n="s3">3 · 环境变量</h2>
-  <table>
-    <thead><tr><th>Env</th><th data-i18n="th_what">作用</th></tr></thead>
-    <tbody>
-      <tr><td><code>PROACTIVE_DATA_DIR</code></td><td data-i18n="env1">数据目录（默认 ~/.proma-proactive/，支持绝对路径；以 ~ 开头自动展开用户主目录）</td></tr>
-      <tr><td><code>PROMA_MEMORY_DIR</code></td><td data-i18n="env2">兼容旧版数据目录的环境变量（优先读 PROACTIVE_DATA_DIR）</td></tr>
-      <tr><td><code>PROACTIVE_PROJECT</code></td><td data-i18n="env3">显式指定项目标识（不设则自动探测 cwd / git remote）</td></tr>
-      <tr><td><code>PROACTIVE_TODAY_PORT</code></td><td data-i18n="env4">--today 面板端口（默认 8737，需 1-65535 整数）</td></tr>
-      <tr><td><code>PROMA_MEMORY_LLM_DISABLED</code></td><td data-i18n="env5">设为 1 强制关闭 LLM 提取（memory_extract 降级规则模式，零外发）</td></tr>
-      <tr><td><code>MEMORY_LLM_*</code></td><td data-i18n="env6">可选：memory_extract 的 LLM 配置（apiKey/baseUrl/model），未配置自动降级规则模式</td></tr>
-    </tbody>
-  </table>
+      <h2 id="env" data-i18n="s3"><span class="sec-no">3</span><span data-i18n="s3_t">环境变量</span></h2>
+      <table>
+        <thead><tr><th>Env</th><th data-i18n="th_what">作用</th></tr></thead>
+        <tbody>
+          <tr><td><code>PROACTIVE_DATA_DIR</code></td><td data-i18n="env1">数据目录（默认 ~/.proma-proactive/，支持绝对路径；以 ~ 开头自动展开用户主目录）</td></tr>
+          <tr><td><code>PROMA_MEMORY_DIR</code></td><td data-i18n="env2">兼容旧版数据目录的环境变量（优先读 PROACTIVE_DATA_DIR）</td></tr>
+          <tr><td><code>PROACTIVE_PROJECT</code></td><td data-i18n="env3">显式指定项目标识（不设则自动探测 cwd / git remote）</td></tr>
+          <tr><td><code>PROACTIVE_TODAY_PORT</code></td><td data-i18n="env4">--today 面板端口（默认 8737，需 1-65535 整数）</td></tr>
+          <tr><td><code>PROMA_MEMORY_LLM_DISABLED</code></td><td data-i18n="env5">设为 1 强制关闭 LLM 提取（memory_extract 降级规则模式，零外发）</td></tr>
+          <tr><td><code>MEMORY_LLM_*</code></td><td data-i18n="env6">可选：memory_extract 的 LLM 配置（apiKey/baseUrl/model），未配置自动降级规则模式</td></tr>
+        </tbody>
+      </table>
 
-  <h2 class="doc" id="tools" data-i18n="s4">4 · MCP Tools（18 个）</h2>
-  <table>
-    <thead><tr><th data-i18n="th_cat">类别</th><th data-i18n="th_tool">工具</th><th data-i18n="th_what">作用</th></tr></thead>
-    <tbody>
-      <tr><td rowspan="2" data-i18n="cat_write">🧠 记忆写入</td><td><code>memory_capture</code></td><td data-i18n="t1">显式记住一条（偏好/事实/纠正/流程，立即生效；支持 scope: project/global）</td></tr>
-      <tr><td><code>memory_extract</code></td><td data-i18n="t2">把对话交给引擎自动提取（默认待确认，防投毒）</td></tr>
-      <tr><td data-i18n="cat_search">🔍 记忆检索</td><td><code>memory_recall</code></td><td data-i18n="t3">关键词/混合检索，任务开始前注入上下文（默认 auto：项目+全局合并；0.5.4 倒排索引）</td></tr>
-      <tr><td data-i18n="cat_confirm">✅ 记忆闭环</td><td><code>memory_pending / confirm / reject</code></td><td data-i18n="t4">待确认记忆 + 行为纠正的确认/拒绝</td></tr>
-      <tr><td data-i18n="cat_persona">👤 画像</td><td><code>persona_get / persona_save</code></td><td data-i18n="t5">读取合并画像（global base + 项目覆盖）/ 手动保存画像</td></tr>
-      <tr><td data-i18n="cat_scene">🔥 场景</td><td><code>scene_summary</code></td><td data-i18n="t6">近期热点场景（"你最近在忙什么"）</td></tr>
-      <tr><td data-i18n="cat_stats">📊 统计</td><td><code>memory_stats</code></td><td data-i18n="t7">记忆系统统计</td></tr>
-      <tr><td data-i18n="cat_suggest">💡 建议</td><td><code>suggest_now / list / accept / ignore</code></td><td data-i18n="t8">主动建议评估 + 反馈闭环（频率学习）</td></tr>
-      <tr><td data-i18n="cat_tpl">📋 模板</td><td><code>daily_review / onboarding_guide</code></td><td data-i18n="t9">每日复盘 / 使用说明</td></tr>
-    </tbody>
-  </table>
-  <p class="doc" data-i18n="t10">另有 Resources（memory://today、memory://stats、memory://persona）与 Prompts（daily_review、onboarding）。</p>
+      <h2 id="tools" data-i18n="s4"><span class="sec-no">4</span><span data-i18n="s4_t">MCP Tools（18 个）</span></h2>
+      <table>
+        <thead><tr><th data-i18n="th_cat">类别</th><th data-i18n="th_tool">工具</th><th data-i18n="th_what">作用</th></tr></thead>
+        <tbody>
+          <tr><td rowspan="2" data-i18n="cat_write">🧠 记忆写入</td><td><code>memory_capture</code></td><td data-i18n="t1">显式记住一条（偏好/事实/纠正/流程，立即生效；支持 scope: project/global）</td></tr>
+          <tr><td><code>memory_extract</code></td><td data-i18n="t2">把对话交给引擎自动提取（默认待确认，防投毒）</td></tr>
+          <tr><td data-i18n="cat_search">🔍 记忆检索</td><td><code>memory_recall</code></td><td data-i18n="t3">关键词/混合检索，任务开始前注入上下文（默认 auto：项目+全局合并；0.5.4 倒排索引）</td></tr>
+          <tr><td data-i18n="cat_confirm">✅ 记忆闭环</td><td><code>memory_pending / confirm / reject</code></td><td data-i18n="t4">待确认记忆 + 行为纠正的确认/拒绝</td></tr>
+          <tr><td data-i18n="cat_persona">👤 画像</td><td><code>persona_get / persona_save</code></td><td data-i18n="t5">读取合并画像（global base + 项目覆盖）/ 手动保存画像</td></tr>
+          <tr><td data-i18n="cat_scene">🔥 场景</td><td><code>scene_summary</code></td><td data-i18n="t6">近期热点场景（"你最近在忙什么"）</td></tr>
+          <tr><td data-i18n="cat_stats">📊 统计</td><td><code>memory_stats</code></td><td data-i18n="t7">记忆系统统计</td></tr>
+          <tr><td data-i18n="cat_suggest">💡 建议</td><td><code>suggest_now / list / accept / ignore</code></td><td data-i18n="t8">主动建议评估 + 反馈闭环（频率学习）</td></tr>
+          <tr><td data-i18n="cat_tpl">📋 模板</td><td><code>daily_review / onboarding_guide</code></td><td data-i18n="t9">每日复盘 / 使用说明</td></tr>
+        </tbody>
+      </table>
+      <p data-i18n="t10">另有 Resources（memory://today、memory://stats、memory://persona）与 Prompts（daily_review、onboarding）。</p>
 
-  <h2 class="doc" id="hooks" data-i18n="s5">5 · Hooks 配置</h2>
-  <h3 class="doc" data-i18n="s5a">Claude Code 三层 hooks</h3>
-  <table>
-    <thead><tr><th data-i18n="th_hook">Hook</th><th data-i18n="th_when">触发时机</th><th data-i18n="th_what">作用</th></tr></thead>
-    <tbody>
-      <tr><td><code>SessionStart</code></td><td data-i18n="h1w">会话开始</td><td data-i18n="h1_desc">today-push：推送待处理建议 + 热点场景 + 画像摘要</td></tr>
-      <tr><td><code>UserPromptSubmit</code></td><td data-i18n="h2w">用户发消息时</td><td data-i18n="h2">会话中实时评估：你说"以后都用 pnpm"立即收到纠正建议；弱信号自动沉默</td></tr>
-      <tr><td><code>Stop</code></td><td data-i18n="h3w">会话结束</td><td data-i18n="h3">session-end：沉淀记忆 + 评估建议</td></tr>
-    </tbody>
-  </table>
-  <div class="warn-box">⚠️ <span data-i18n="w1">hooks 仅在 Claude Code 交互式 TUI 会话中触发；</span><code>claude -p</code> <span data-i18n="w2">脚本/CI 模式不触发。脚本场景请显式授权：</span><code>claude -p --allowedTools "mcp__proactive-agent__*"</code></div>
+      <h2 id="hooks" data-i18n="s5"><span class="sec-no">5</span><span data-i18n="s5_t">Hooks 配置</span></h2>
+      <h3 data-i18n="s5a">Claude Code 三层 hooks</h3>
+      <table>
+        <thead><tr><th data-i18n="th_hook">Hook</th><th data-i18n="th_when">触发时机</th><th data-i18n="th_what">作用</th></tr></thead>
+        <tbody>
+          <tr><td><code>SessionStart</code></td><td data-i18n="h1w">会话开始</td><td data-i18n="h1_desc">today-push：推送待处理建议 + 热点场景 + 画像摘要</td></tr>
+          <tr><td><code>UserPromptSubmit</code></td><td data-i18n="h2w">用户发消息时</td><td data-i18n="h2">会话中实时评估：你说"以后都用 pnpm"立即收到纠正建议；弱信号自动沉默</td></tr>
+          <tr><td><code>Stop</code></td><td data-i18n="h3w">会话结束</td><td data-i18n="h3">session-end：沉淀记忆 + 评估建议</td></tr>
+        </tbody>
+      </table>
+      <div class="warn-box">⚠️ <span data-i18n="w1">hooks 仅在 Claude Code 交互式 TUI 会话中触发；</span><code>claude -p</code> <span data-i18n="w2">脚本/CI 模式不触发。脚本场景请显式授权：</span><code>claude -p --allowedTools "mcp__proactive-agent__*"</code></div>
 
-  <h3 class="doc" data-i18n="s5b">Kimi Code hooks（主动转述）</h3>
-  <p class="doc" data-i18n="k1">Kimi 配置是 TOML（不是 JSON），写在 <code>~/.kimi-code/config.toml</code>：</p>
+      <h3 data-i18n="s5b">Kimi Code hooks（主动转述）</h3>
+      <p data-i18n="k1">Kimi 配置是 TOML（不是 JSON），写在 <code>~/.kimi-code/config.toml</code>：</p>
 <pre><code>[[hooks]]
 <span class="v">event</span> = <span class="s">"UserPromptSubmit"</span>
 <span class="v">command</span> = <span class="s">"node &lt;mcp 安装路径&gt;/dist/hooks/kimi-user-prompt.js"</span>
 <span class="v">timeout</span> = 10</code></pre>
-  <p class="doc" data-i18n="k2">字段只允许 event / matcher / command / timeout。hook 输出 <code>&lt;notification&gt;</code> XML，Kimi 模型看到通知后主动向用户转述建议。</p>
-  <div class="warn-box">⚠️ <span data-i18n="k3">Kimi Code 需要先登录或配置 API key（kimi 首次运行 /login，或按 config.toml 配置 [providers.&lt;name&gt;] + api_key）。诊断：kimi doctor / kimi provider list。</span></div>
+      <p data-i18n="k2">字段只允许 event / matcher / command / timeout。hook 输出 <code>&lt;notification&gt;</code> XML，Kimi 模型看到通知后主动向用户转述建议。</p>
+      <div class="warn-box">⚠️ <span data-i18n="k3">Kimi Code 需要先登录或配置 API key（kimi 首次运行 /login，或按 config.toml 配置 [providers.&lt;name&gt;] + api_key）。诊断：kimi doctor / kimi provider list。</span></div>
 
-  <h2 class="doc" id="data" data-i18n="s6">6 · 数据目录</h2>
+      <h2 id="data" data-i18n="s6"><span class="sec-no">6</span><span data-i18n="s6_t">数据目录</span></h2>
 <pre><code>~/.proma-proactive/
 ├── atoms.jsonl        <span class="c"># L1 结构化记忆条目</span>
 ├── scenes.json        <span class="c"># L2 场景块</span>
@@ -209,18 +241,22 @@
 ├── projects/&lt;key&gt;/    <span class="c"># 按项目隔离的记忆</span>
 ├── global/            <span class="c"># 显式共享的全局记忆</span>
 └── tasks.json         <span class="c"># 本地任务队列（suggest_accept 落盘）</span></code></pre>
-  <p class="doc" data-i18n="d1">纯本地文件（JSONL / markdown），可随时备份 / 迁移。推荐用 <code>proactive-mcp stats</code> 观察规模，<code>proactive-mcp archive</code> 做 TTL 归档治理。</p>
+      <p data-i18n="d1">纯本地文件（JSONL / markdown），可随时备份 / 迁移。推荐用 <code>proactive-mcp stats</code> 观察规模，<code>proactive-mcp archive</code> 做 TTL 归档治理。</p>
 
-  <h2 class="doc" id="faq" data-i18n="s7">7 · 安全与 FAQ</h2>
-  <ul class="doc">
-    <li data-i18n="q1"><b>默认 pending：</b>自动提取的记忆需确认才进入召回，阻断投毒链。</li>
-    <li data-i18n="q2"><b>LLM 同源原则：</b>apiKey 决定主信任源，baseUrl/model 只从同源取；baseUrl 仅 https。</li>
-    <li data-i18n="q3"><b>数据本地优先：</b>记忆存在本机，无云同步。</li>
-    <li data-i18n="q4"><b>免打扰时段：</b>DND 默认 22:30–08:00 不产生新建议。</li>
-    <li data-i18n="q5"><b>克制原则：</b>单次最多 1 条建议、同会话预算限制、"该沉默时沉默"。</li>
-    <li data-i18n="q6"><b>性能：</b>0.5.4 起 memory_recall 使用倒排索引，上万条记忆保持低延迟。</li>
-    <li data-i18n="q7"><b>API key：</b>memory_capture / memory_recall 不需要；memory_extract 可选（未配置自动降级规则模式，零外发）。</li>
-  </ul>
+      <h2 id="faq" data-i18n="s7"><span class="sec-no">7</span><span data-i18n="s7_t">安全与 FAQ</span></h2>
+      <ul>
+        <li data-i18n="q1"><b>默认 pending：</b>自动提取的记忆需确认才进入召回，阻断投毒链。</li>
+        <li data-i18n="q2"><b>LLM 同源原则：</b>apiKey 决定主信任源，baseUrl/model 只从同源取；baseUrl 仅 https。</li>
+        <li data-i18n="q3"><b>数据本地优先：</b>记忆存在本机，无云同步。</li>
+        <li data-i18n="q4"><b>免打扰时段：</b>DND 默认 22:30–08:00 不产生新建议。</li>
+        <li data-i18n="q5"><b>克制原则：</b>单次最多 1 条建议、同会话预算限制、"该沉默时沉默"。</li>
+        <li data-i18n="q6"><b>性能：</b>0.5.4 起 memory_recall 使用倒排索引，上万条记忆保持低延迟。</li>
+        <li data-i18n="q7"><b>API key：</b>memory_capture / memory_recall 不需要；memory_extract 可选（未配置自动降级规则模式，零外发）。</li>
+      </ul>
+
+      <div class="note-box">📚 <span data-i18n="more_docs">更多信息：</span><a href="https://github.com/ConradLu2740/ProactiveAgent/blob/main/README.md" target="_blank" rel="noopener" data-i18n="more_readme">README 完整文档</a> · <a href="https://smithery.ai/servers/1797650355/proactive-agent" target="_blank" rel="noopener">Smithery</a></div>
+    </div>
+  </main>
 </div>
 
 <footer class="footer">
@@ -228,7 +264,6 @@
     <a href="/" data-i18n="back_home">返回首页</a>
     <a href="https://github.com/ConradLu2740/ProactiveAgent" target="_blank" rel="noopener">GitHub</a>
     <a href="https://smithery.ai/servers/1797650355/proactive-agent" target="_blank" rel="noopener">Smithery</a>
-    <a href="https://github.com/ConradLu2740/ProactiveAgent/blob/main/README.md" target="_blank" rel="noopener">README</a>
   </div>
   <div>ProactiveAgent · MIT License</div>
 </footer>
@@ -236,29 +271,30 @@
 <script>
 const I18N = {
   zh: {
-    nav_features: "功能", nav_install: "安装", nav_compat: "兼容", nav_docs: "文档", nav_github: "GitHub",
+    nav_docs: "文档", nav_home: "首页", nav_github: "GitHub",
+    sg_guide: "指南", sg_ref: "参考",
     h1: "ProactiveAgent 技术指南", updated: "v0.5.4 · 更新于 2026-08-07",
-    toc_t: "目录", toc1: "快速开始", toc2: "CLI 命令", toc3: "环境变量", toc4: "MCP Tools（18 个）", toc5: "Hooks 配置", toc6: "数据目录", toc7: "安全与 FAQ",
-    s1: "1 · 快速开始", s1a: "npm 安装（推荐）", s1b: "手动挂载（任意 MCP 宿主）", s1c: "开发 / 自定义（clone 仓库）",
+    toc1: "快速开始", toc2: "CLI 命令", toc3: "环境变量", toc4: "MCP Tools", toc5: "Hooks 配置", toc6: "数据目录", toc7: "安全与 FAQ", toc8: "README ↗", toc9: "Smithery ↗",
+    s1: "快速开始", s1_t: "快速开始", s1a: "npm 安装（推荐）", s1b: "手动挂载（任意 MCP 宿主）", s1c: "开发 / 自定义（clone 仓库）",
     c1: "# 任意目录，仅需 Node ≥ 18", c2: "# 自动生成 .mcp.json 挂载配置 + hooks",
     p1: "Windows / Linux / macOS 命令完全一致，无需 curl。三个平台仅需 Node ≥ 18。",
     p2: "任何支持 MCP 的客户端（Claude Code / Kimi Code / Cline / Cursor / Windsurf / VS Code / Proma）添加 stdio server 即可。",
     nb1: "挂载后立刻试：", nb2: " → agent 会自动建议把这条规则写入长期记忆。",
-    s2: "2 · CLI 命令", th_cmd: "命令", th_what: "作用",
+    s2: "CLI 命令", s2_t: "CLI 命令", th_cmd: "命令", th_what: "作用",
     cli1: "一键生成挂载配置 + hooks（可选 --local / --kimi / --force / --dry-run）",
     cli2: "健康检查：配置 / 数据 / hooks / 端口 / 项目身份",
     cli3: "记忆与建议统计（观察记忆规模、建议接受率）",
     cli4: "教程式示例（隔离数据，--clean 清理）",
     cli5: "0.3.0 数据迁移 / 反向收敛（--merge-to-global / --status / --preview）",
     cli6: "启动本地主动中心 Web 面板（端口 PROACTIVE_TODAY_PORT，默认 8737，15s 自动刷新）",
-    s3: "3 · 环境变量",
+    s3: "环境变量", s3_t: "环境变量",
     env1: "数据目录（默认 ~/.proma-proactive/，支持绝对路径；以 ~ 开头自动展开用户主目录）",
     env2: "兼容旧版数据目录的环境变量（优先读 PROACTIVE_DATA_DIR）",
     env3: "显式指定项目标识（不设则自动探测 cwd / git remote）",
     env4: "--today 面板端口（默认 8737，需 1-65535 整数）",
     env5: "设为 1 强制关闭 LLM 提取（memory_extract 降级规则模式，零外发）",
     env6: "可选：memory_extract 的 LLM 配置（apiKey/baseUrl/model），未配置自动降级规则模式",
-    s4: "4 · MCP Tools（18 个）", th_cat: "类别", th_tool: "工具",
+    s4: "MCP Tools（18 个）", s4_t: "MCP Tools（18 个）", th_cat: "类别", th_tool: "工具",
     cat_write: "🧠 记忆写入", cat_search: "🔍 记忆检索", cat_confirm: "✅ 记忆闭环", cat_persona: "👤 画像", cat_scene: "🔥 场景", cat_stats: "📊 统计", cat_suggest: "💡 建议", cat_tpl: "📋 模板",
     t1: "显式记住一条（偏好/事实/纠正/流程，立即生效；支持 scope: project/global）",
     t2: "把对话交给引擎自动提取（默认待确认，防投毒）",
@@ -270,7 +306,7 @@ const I18N = {
     t8: "主动建议评估 + 反馈闭环（频率学习）",
     t9: "每日复盘 / 使用说明",
     t10: "另有 Resources（memory://today、memory://stats、memory://persona）与 Prompts（daily_review、onboarding）。",
-    s5: "5 · Hooks 配置", s5a: "Claude Code 三层 hooks", th_hook: "Hook", th_when: "触发时机",
+    s5: "Hooks 配置", s5_t: "Hooks 配置", s5a: "Claude Code 三层 hooks", th_hook: "Hook", th_when: "触发时机",
     h1w: "会话开始", h2w: "用户发消息时", h3w: "会话结束",
     h1_desc: "today-push：推送待处理建议 + 热点场景 + 画像摘要",
     h2: "会话中实时评估：你说\"以后都用 pnpm\"立即收到纠正建议；弱信号自动沉默",
@@ -280,9 +316,9 @@ const I18N = {
     k1: "Kimi 配置是 TOML（不是 JSON），写在 ~/.kimi-code/config.toml：",
     k2: "字段只允许 event / matcher / command / timeout。hook 输出 <notification> XML，Kimi 模型看到通知后主动向用户转述建议。",
     k3: "Kimi Code 需要先登录或配置 API key（kimi 首次运行 /login，或按 config.toml 配置 [providers.<name>] + api_key）。诊断：kimi doctor / kimi provider list。",
-    s6: "6 · 数据目录",
+    s6: "数据目录", s6_t: "数据目录",
     d1: "纯本地文件（JSONL / markdown），可随时备份 / 迁移。推荐用 proactive-mcp stats 观察规模，proactive-mcp archive 做 TTL 归档治理。",
-    s7: "7 · 安全与 FAQ",
+    s7: "安全与 FAQ", s7_t: "安全与 FAQ",
     q1: "默认 pending：自动提取的记忆需确认才进入召回，阻断投毒链。",
     q2: "LLM 同源原则：apiKey 决定主信任源，baseUrl/model 只从同源取；baseUrl 仅 https。",
     q3: "数据本地优先：记忆存在本机，无云同步。",
@@ -290,32 +326,34 @@ const I18N = {
     q5: "克制原则：单次最多 1 条建议、同会话预算限制、\"该沉默时沉默\"。",
     q6: "性能：0.5.4 起 memory_recall 使用倒排索引，上万条记忆保持低延迟。",
     q7: "API key：memory_capture / memory_recall 不需要；memory_extract 可选（未配置自动降级规则模式，零外发）。",
+    more_docs: "更多信息：", more_readme: "README 完整文档",
     back_home: "返回首页",
   },
   en: {
-    nav_features: "Features", nav_install: "Install", nav_compat: "Compatibility", nav_docs: "Docs", nav_github: "GitHub",
+    nav_docs: "Docs", nav_home: "Home", nav_github: "GitHub",
+    sg_guide: "Guide", sg_ref: "Reference",
     h1: "ProactiveAgent Technical Guide", updated: "v0.5.4 · Updated 2026-08-07",
-    toc_t: "Contents", toc1: "Quick Start", toc2: "CLI Commands", toc3: "Environment Variables", toc4: "MCP Tools (18)", toc5: "Hooks Setup", toc6: "Data Directory", toc7: "Security & FAQ",
-    s1: "1 · Quick Start", s1a: "Install via npm (recommended)", s1b: "Manual setup (any MCP host)", s1c: "Development / custom (clone repo)",
+    toc1: "Quick Start", toc2: "CLI Commands", toc3: "Environment Variables", toc4: "MCP Tools", toc5: "Hooks Setup", toc6: "Data Directory", toc7: "Security & FAQ", toc8: "README ↗", toc9: "Smithery ↗",
+    s1: "Quick Start", s1_t: "Quick Start", s1a: "Install via npm (recommended)", s1b: "Manual setup (any MCP host)", s1c: "Development / custom (clone repo)",
     c1: "# Any directory, Node ≥ 18 only", c2: "# Auto-generates .mcp.json + hooks",
     p1: "Identical commands on Windows / Linux / macOS. No curl needed. Only Node ≥ 18.",
     p2: "Any MCP-capable client (Claude Code / Kimi Code / Cline / Cursor / Windsurf / VS Code / Proma) can add it as a stdio server.",
     nb1: "Try right after setup: ", nb2: " → the agent will suggest saving this rule to long-term memory.",
-    s2: "2 · CLI Commands", th_cmd: "Command", th_what: "Purpose",
+    s2: "CLI Commands", s2_t: "CLI Commands", th_cmd: "Command", th_what: "Purpose",
     cli1: "Generate config + hooks (options: --local / --kimi / --force / --dry-run)",
     cli2: "Health check: config / data / hooks / port / project identity",
     cli3: "Memory & suggestion stats (size, acceptance rate)",
     cli4: "Tutorial demo (isolated data, --clean to reset)",
     cli5: "0.3.0 data migration / rollback (--merge-to-global / --status / --preview)",
     cli6: "Start local proactive center panel (port PROACTIVE_TODAY_PORT, default 8737, auto-refresh 15s)",
-    s3: "3 · Environment Variables",
+    s3: "Environment Variables", s3_t: "Environment Variables",
     env1: "Data directory (default ~/.proma-proactive/; absolute path supported; ~ expands to home)",
     env2: "Legacy data dir env var (PROACTIVE_DATA_DIR takes priority)",
     env3: "Explicit project key (auto-detects cwd / git remote when unset)",
     env4: "--today panel port (default 8737, integer 1-65535)",
     env5: "Set to 1 to force-disable LLM extraction (memory_extract falls back to rule mode, zero outbound)",
     env6: "Optional: LLM config for memory_extract (apiKey/baseUrl/model); falls back to rule mode when unset",
-    s4: "4 · MCP Tools (18)", th_cat: "Category", th_tool: "Tool",
+    s4: "MCP Tools (18)", s4_t: "MCP Tools (18)", th_cat: "Category", th_tool: "Tool",
     cat_write: "🧠 Memory write", cat_search: "🔍 Memory search", cat_confirm: "✅ Confirm loop", cat_persona: "👤 Persona", cat_scene: "🔥 Scenes", cat_stats: "📊 Stats", cat_suggest: "💡 Suggestions", cat_tpl: "📋 Templates",
     t1: "Explicitly remember (prefs/facts/corrections/process, immediate; scope: project/global)",
     t2: "Auto-extract memories from conversation (pending by default, anti-poisoning)",
@@ -327,7 +365,7 @@ const I18N = {
     t8: "Evaluate suggestions + feedback loop (frequency learning)",
     t9: "Daily review / onboarding guide",
     t10: "Also Resources (memory://today, memory://stats, memory://persona) and Prompts (daily_review, onboarding).",
-    s5: "5 · Hooks Setup", s5a: "Claude Code three-layer hooks", th_hook: "Hook", th_when: "When",
+    s5: "Hooks Setup", s5_t: "Hooks Setup", s5a: "Claude Code three-layer hooks", th_hook: "Hook", th_when: "When",
     h1w: "Session start", h2w: "On user prompt", h3w: "Session end",
     h1_desc: "today-push: pending suggestions + hot scenes + persona summary",
     h2: "Real-time eval: say \"always use pnpm\" → immediate correction nudge; weak signals stay silent",
@@ -337,9 +375,9 @@ const I18N = {
     k1: "Kimi config is TOML (not JSON), in ~/.kimi-code/config.toml:",
     k2: "Allowed fields: event / matcher / command / timeout. Hook outputs <notification> XML; Kimi relays it to the user.",
     k3: "Kimi Code requires login or API key first (run /login on first launch, or set [providers.<name>] + api_key in config.toml). Diagnose: kimi doctor / kimi provider list.",
-    s6: "6 · Data Directory",
+    s6: "Data Directory", s6_t: "Data Directory",
     d1: "Plain local files (JSONL / markdown) — easy to back up / migrate. Use proactive-mcp stats to monitor size and proactive-mcp archive for TTL cleanup.",
-    s7: "7 · Security & FAQ",
+    s7: "Security & FAQ", s7_t: "Security & FAQ",
     q1: "Pending by default: auto-extracted memories need confirmation before recall — blocks poisoning.",
     q2: "LLM same-source principle: apiKey decides trust source; baseUrl/model only from same source; https only.",
     q3: "Local-first: memory stays on your machine, no cloud sync.",
@@ -347,6 +385,7 @@ const I18N = {
     q5: "Restraint: max 1 suggestion at a time, per-session budget, \"silence when it should\".",
     q6: "Performance: inverted index since 0.5.4 keeps recall fast even with 10k+ memories.",
     q7: "API key: memory_capture / memory_recall need none; memory_extract optional (falls back to rule mode, zero outbound).",
+    more_docs: "More: ", more_readme: "Full README",
     back_home: "Back to home",
   }
 };
@@ -367,10 +406,26 @@ function toggleLang() {
   setLang(cur === 'zh' ? 'en' : 'zh');
 }
 
+// 滚动高亮当前章节（侧边栏 active 跟随）
+function highlightSidebar() {
+  const ids = ['quickstart', 'cli', 'env', 'tools', 'hooks', 'data', 'faq'];
+  const links = document.querySelectorAll('.side-group a[href^="#"]');
+  let current = ids[0];
+  for (const id of ids) {
+    const el = document.getElementById(id);
+    if (el && el.getBoundingClientRect().top <= 120) current = id;
+  }
+  links.forEach(a => {
+    a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+  });
+}
+window.addEventListener('scroll', highlightSidebar, { passive: true });
+
 (function init() {
   let lang = 'zh';
   try { lang = localStorage.getItem('pa_lang') || 'zh'; } catch (e) {}
   setLang(lang);
+  highlightSidebar();
 })();
 </script>
 </body>
