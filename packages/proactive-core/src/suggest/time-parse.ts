@@ -80,8 +80,8 @@ function dayAt(from: Date, offsetDays: number): number {
  */
 export function parseChineseTime(text: string, now: Date = new Date()): ParsedTimeExpression | undefined {
   // ---- 周期（cron）----
-  // 每天X点 / 每天下午X点
-  let m = text.match(/(每天|每日)(上午|早上|凌晨|下午|晚上)?([0-9一二两三四五六七八九十]+)\s*(?:点|时)/)
+  // 每天X点 / 每天下午X点（数字前允许空格："每天下午 5 点" → 17:00）
+  let m = text.match(/(每天|每日)(上午|早上|凌晨|下午|晚上)?\s*([0-9一二两三四五六七八九十]+)\s*(?:点|时)/)
   if (m) {
     const hour = cnToNum(m[3]!)
     if (hour !== undefined) {
@@ -93,8 +93,8 @@ export function parseChineseTime(text: string, now: Date = new Date()): ParsedTi
   if (/(每天|每日)/.test(text)) {
     return { cron: '9 0 * * *', label: '每天 09:00' }
   }
-  // 每周X（X点）
-  m = text.match(/每周([一二三四五六日天])(上午|早上|凌晨|下午|晚上)?([0-9一二两三四五六七八九十]+)?\s*(?:点|时)?/)
+  // 每周X（X点；数字前允许空格）
+  m = text.match(/每周([一二三四五六日天])(上午|早上|凌晨|下午|晚上)?\s*([0-9一二两三四五六七八九十]+)?\s*(?:点|时)?/)
   if (m) {
     const wd = CN_WEEKDAY[m[1]!]
     if (wd !== undefined) {
@@ -105,8 +105,8 @@ export function parseChineseTime(text: string, now: Date = new Date()): ParsedTi
       }
     }
   }
-  // 每月X日
-  m = text.match(/每月([0-9一二两三四五六七八九十]+)(?:日|号)?(上午|早上|凌晨|下午|晚上)?([0-9一二两三四五六七八九十]+)?\s*(?:点|时)?/)
+  // 每月X日（数字前允许空格）
+  m = text.match(/每月([0-9一二两三四五六七八九十]+)(?:日|号)?(上午|早上|凌晨|下午|晚上)?\s*([0-9一二两三四五六七八九十]+)?\s*(?:点|时)?/)
   if (m) {
     const day = cnToNum(m[1]!)
     if (day !== undefined && day >= 1 && day <= 31) {
@@ -119,8 +119,8 @@ export function parseChineseTime(text: string, now: Date = new Date()): ParsedTi
   }
 
   // ---- 相对时间（dueAt）----
-  // 今晚X点 / 明天X点 / 后天X点
-  m = text.match(/(今晚|明天|后天)(上午|早上|凌晨|下午|晚上)?([0-9一二两三四五六七八九十]+)\s*(?:点|时)/)
+  // 今晚X点 / 明天X点 / 后天X点（数字前允许空格）
+  m = text.match(/(今晚|明天|后天)(上午|早上|凌晨|下午|晚上)?\s*([0-9一二两三四五六七八九十]+)\s*(?:点|时)/)
   if (m) {
     const hour = cnToNum(m[3]!)
     if (hour !== undefined) {

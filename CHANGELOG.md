@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.5.3 (2026-08-07)
+
+「真实场景 dogfooding 修复」批次：依据全栈开发者真实使用 Claude Code + Kimi Code 的模拟验证报告（`.context/pa-dogfood-simulation-report.md`）修复的断点。
+
+### P0
+
+- **时间解析器支持带空格的中文时间**：`每天下午 5 点`（数字前带空格）此前解析失败落到默认 09:00，导致 `suggest_accept` 创建的定时任务在错误时间调度；现正确解析为 cron `17 0 * * *`（每周/每月/明天等同修）
+
+### P1
+
+- **"待办"产品名词不再误报 todo 建议**：「笔记+待办全栈应用」这类项目/功能名含"待办"的上下文被排除；"待办清单/事项/任务"真实语义保留
+- **README 补充非交互模式说明**：hooks 仅在 Claude Code 交互式 TUI 会话触发；`claude -p` 脚本场景需 `--allowedTools "mcp__proactive-agent__*"` 显式授权（`acceptEdits` 不授予 MCP 工具权限）
+- **README 补充 Kimi 前置条件**：需 `kimi` 登录或配置 `config.toml` provider/api_key，否则报 `No model configured`；诊断 `kimi doctor` / `kimi provider list`
+
+### P2
+
+- **memory_extract 指令文本过滤**：LLM 提取时误把 prompt 开发指令（"用 Bun.serve 起 HTTP 服务（默认端口 8787）…"）当偏好记忆的噪声项被过滤（pending 防投毒之外的源头治理）
+- **repeat 建议标题用意图核心词**：多次"帮我总结 X" → 标题"定期总结"（此前用首条完整文本）
+- **Today 面板展示项目标识**：顶部显示 `项目 <displayName>（key=<projectKey> · <identitySource>）`，多项目隔离时明确数据范围
+
+### 测试
+
+- 239 全绿（新增 10：time-parse 带空格 4 + signals 待办名词 2 + extractor 指令过滤 4），core + mcp typecheck 干净
+
 ## 0.5.2 (2026-08-06)
 
 「真实场景断点修复」批次：依据子代理独立审查（真实 Claude Code dogfooding）发现的问题。

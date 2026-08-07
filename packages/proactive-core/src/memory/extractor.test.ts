@@ -6,7 +6,36 @@ import { describe, expect, it } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import * as os from 'node:os'
 import { join } from 'node:path'
-import { parseExtractionResponse, formatExtractionMessages, findDotEnvUpwards, getMemoryLlmConfig, resolveMemoryLlmConfig, isSafeBaseUrl } from '../memory/extractor'
+import { parseExtractionResponse, formatExtractionMessages, findDotEnvUpwards, getMemoryLlmConfig, resolveMemoryLlmConfig, isSafeBaseUrl, isInstructionText } from '../memory/extractor'
+
+describe('memory/extractor 指令文本过滤（P2-1）', () => {
+  it('长指令句（>40 字）被过滤', () => {
+    expect(
+      isInstructionText('用 Bun.serve 起 HTTP 服务（默认端口 8787），路由：请帮我创建一个完整的待办应用后端接口包括创建列表删除更新等功能，谢谢'),
+    ).toBe(true)
+  })
+
+  it('含强代码特征的指令文本被过滤', () => {
+    expect(isInstructionText('用 memory_recall 检索项目偏好（比如 UI 语言），按已记录偏好执行')).toBe(true)
+    expect(isInstructionText('请实现一个 POST /api/todos 路由并接入 server')).toBe(true)
+  })
+
+  it('短偏好不受影响', () => {
+    expect(isInstructionText('用 Bun 管理项目依赖，不用 npm')).toBe(false)
+    expect(isInstructionText('请以后都用 pnpm 安装依赖')).toBe(false)
+    expect(isInstructionText('我更喜欢用 TypeScript 写代码，类型安全让我更有信心')).toBe(false)
+  })
+
+  it('parseExtractionResponse 过滤误提取指令文本', () => {
+    const raw = JSON.stringify([
+      { content: '用 Bun.serve 起 HTTP 服务（默认端口 8787），路由：', type: 'preference', priority: 60 },
+      { content: '项目使用 TypeScript 严格模式', type: 'preference', priority: 70 },
+    ])
+    const out = parseExtractionResponse(raw)
+    expect(out.length).toBe(1)
+    expect(out[0]?.content).toBe('项目使用 TypeScript 严格模式')
+  })
+})
 
 describe('memory/extractor 解析', () => {
   it('解析标准 JSON 数组', () => {

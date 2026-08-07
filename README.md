@@ -2,6 +2,10 @@
 
 > **教一次，处处用。** 让 Claude Code / Kimi Code / Cline / Cursor / Proma 共享同一份「主动记忆」，并在合适的时机主动提醒你——一个 MCP 挂载，所有 agent 立即拥有主动能力。
 
+<p align="center">
+  <b><a href="README.md">中文</a></b> · <a href="README.en.md">English</a>
+</p>
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Made with Bun](https://img.shields.io/badge/Bun-🟡-black?logo=bun)](https://bun.sh)
 [![GitHub](https://img.shields.io/badge/GitHub-ProactiveAgent-181717?logo=github)](https://github.com/ConradLu2740/ProactiveAgent)
@@ -126,7 +130,9 @@ agent: 我偏好用 TypeScript 和 Bun
   - `SessionStart`（today-push）：会话开始推送待处理建议 + 热点场景
   - `UserPromptSubmit`（user-prompt）：**会话中实时评估**——你说"以后都用 pnpm"，立即收到纠正建议；弱信号自动沉默
   - `Stop`（session-end）：会话结束沉淀记忆 + 评估建议
+  > ⚠️ **非交互模式限制**：hooks 仅在 Claude Code **交互式 TUI 会话**中触发；`claude -p` 脚本/CI 模式不触发 hooks。脚本场景请用 `claude -p --allowedTools "mcp__proactive-agent__*"` 显式授权 MCP 工具后，让模型直接调用 `suggest_now` / `memory_capture`（注意：`--permission-mode acceptEdits` 不会授予 MCP 工具权限，必须显式 `--allowedTools`）。
 - **Kimi Code hooks（主动转述）**：`UserPromptSubmit` 输出对齐 Kimi task 通知范式的 `<notification>` XML——Kimi 模型看到通知后主动向用户转述建议（"上次你说 X，要记住吗？"），复用 Kimi externalHooks 通道。
+  > ⚠️ **前置条件**：Kimi Code 需要先完成登录或配置 API key（`kimi` 首次运行 `/login`，或按 [config.toml](https://moonshotai.github.io/kimi-code/) 配置 `[providers.<name>]` + `api_key`）。未配置时 `kimi -p` 会报 `No model configured`。诊断：`kimi doctor` / `kimi provider list`。
   **Kimi hooks 配置是 TOML**（不是 JSON），写在 `~/.kimi-code/config.toml`：
   ```toml
   [[hooks]]

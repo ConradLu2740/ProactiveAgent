@@ -172,6 +172,24 @@ export function formatExtractionMessages(messages: Array<{ role: 'user' | 'assis
 
 // ===== LLM 调用 =====
 
+/**
+ * 指令性文本过滤（P2-1）：LLM 提取时容易把用户 prompt 里的"开发指令"误当偏好记忆，
+ * 例如"用 Bun.serve 起 HTTP 服务（默认端口 8787），路由："。
+ * 保守规则：以指令动词开头，且（长句 > 40 字 或 含强代码特征）→ 视为指令文本，不入记忆。
+ * 短偏好（"用 Bun 管理依赖"、"请以后都用 pnpm"）不受影响。
+ */
+const INSTRUCTION_PREFIX = /^(?:请|帮我|帮|麻烦|运行|执行|继续|开发|创建|新建|修复|添加|实现|使用|调用|写|用|替换|修改|删除|重构|优化)/
+const CODE_HINT =
+  /[（(][^）)]*[0-9][^）)]*[）)]|\.(?:serve|listen|create|read|write|run)\(|memory_|端口|路由|server|API|目录|命令|路径|\/\w+\//
+
+export function isInstructionText(content: string): boolean {
+  const t = content.trim()
+  if (!t) return false
+  if (!INSTRUCTION_PREFIX.test(t)) return false
+  if (t.length > 40) return true
+  return CODE_HINT.test(t)
+}
+
 /** 从 LLM 响应中解析 JSON 数组（容错：剥离 markdown 围栏） */
 export function parseExtractionResponse(raw: string): MemoryCandidate[] {
   if (!raw) return []
@@ -198,6 +216,8 @@ export function parseExtractionResponse(raw: string): MemoryCandidate[] {
       const priority = typeof item.priority === 'number' && Number.isFinite(item.priority)
         ? Math.min(100, Math.max(0, Math.round(item.priority)))
         : 50
+      // P2-1：过滤 LLM 误提取的指令性文本
+      if (isInstructionText(content)) continue
       result.push({ content, type, priority })
     }
     return result

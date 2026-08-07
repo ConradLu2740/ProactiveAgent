@@ -60,6 +60,16 @@ describe('suggest/signals: 跟进与定时信号', () => {
     const signals = extractSignals(['这个功能还没做完，回头再弄'])
     expect(signals.some((s) => s.kind === 'todo')).toBe(true)
   })
+
+  test('“待办”作为产品名词不触发 todo（P1-3）', () => {
+    const signals = extractSignals(['笔记+待办全栈应用，帮我开发一个'])
+    expect(signals.some((s) => s.kind === 'todo')).toBe(false)
+  })
+
+  test('“待办清单”仍触发 todo（真实待办语义保留）', () => {
+    const signals = extractSignals(['这个待办清单还没做完'])
+    expect(signals.some((s) => s.kind === 'todo')).toBe(true)
+  })
 })
 
 describe('suggest/signals: 重复意图', () => {
@@ -69,6 +79,8 @@ describe('suggest/signals: 重复意图', () => {
     expect(repeat).toBeDefined()
     if (repeat && repeat.kind === 'repeat') {
       expect(repeat.count).toBe(2)
+      // P2-2：意图核心词供建议标题使用
+      expect(repeat.intentKey).toBe('总结')
     }
   })
 

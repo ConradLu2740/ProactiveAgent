@@ -121,7 +121,8 @@ function signalToCandidate(signal: Signal, ctx: RuleContext): RuleMatch | undefi
 
     case 'repeat': {
       if (signal.count < REPEAT_THRESHOLD) return undefined
-      const title = `定期${signal.intent}`
+      // P2-2：标题用意图核心词（"定期总结"），reason 保留完整意图文本
+      const title = `定期${signal.intentKey ?? signal.intent.slice(0, 2)}`
       const existing = ctx.existingAutomationTitles.some(
         (t) => t === title || t.includes(signal.intent) || signal.intent.includes(t),
       )

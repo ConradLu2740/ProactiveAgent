@@ -20,6 +20,27 @@ describe('中文时间解析', () => {
     expect(r?.cron).toBe('9 0 * * *')
   })
 
+  it('每天下午 5 点（数字前带空格）→ cron 17点', () => {
+    const r = parseChineseTime('每天下午 5 点帮我检查发布状态', NOW)
+    expect(r?.cron).toBe('17 0 * * *')
+    expect(r?.label).toContain('17:00')
+  })
+
+  it('每天下午5点（无空格）→ cron 17点', () => {
+    const r = parseChineseTime('每天下午5点检查发布状态', NOW)
+    expect(r?.cron).toBe('17 0 * * *')
+  })
+
+  it('每周一上午 10 点（带空格）→ cron 周一10点', () => {
+    const r = parseChineseTime('每周一上午 10 点开会', NOW)
+    expect(r?.cron).toBe('10 0 * * 1')
+  })
+
+  it('明天下午 3 点（带空格）→ dueAt 明天15:00', () => {
+    const r = parseChineseTime('明天下午 3 点提交报告', NOW)
+    expect(r?.dueAt).toBe(new Date(2026, 7, 7, 15, 0, 0).getTime())
+  })
+
   it('每天（无钟点）→ 默认 9点', () => {
     const r = parseChineseTime('每天都要备份数据库', NOW)
     expect(r?.cron).toBe('9 0 * * *')

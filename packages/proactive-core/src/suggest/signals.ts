@@ -94,6 +94,8 @@ export interface RepeatSignal {
   kind: 'repeat'
   /** 重复行为描述（同一意图出现次数） */
   intent: string
+  /** 意图核心词（前 2 字，用于建议标题，如"总结"） */
+  intentKey: string
   count: number
   messageIndexes: number[]
   confidence: number
@@ -196,6 +198,9 @@ export function extractSignals(userMessages: string[]): Signal[] {
       if (match) {
         const raw = match[0].trim()
         if (raw.length < 4) continue // 防"还没"断片
+        // P1-3：排除"待办"作为产品/功能名词的上下文（"笔记+待办全栈应用"≠ 未完成任务），
+        // 避免对项目名/功能名含"待办"的用户持续误报；"待办清单/事项/任务"仍保留真实语义。
+        if (/^待办(?:应用|功能|模块|系统|项目|全栈|页面|界面|页|组件|仓库|官网|站点|页面)/.test(raw)) continue
         signals.push({
           kind: 'todo',
           raw,
@@ -216,7 +221,7 @@ export function extractSignals(userMessages: string[]): Signal[] {
 
 /** 重复意图检测：识别同一意图词在多条消息中反复出现 */
 function detectRepeatIntents(userMessages: string[]): RepeatSignal[] {
-  const intentCounts = new Map<string, { count: number; indexes: number[]; intent: string }>()
+  const intentCounts = new Map<string, { count: number; indexes: number[]; intent: string; intentKey: string }>()
 
   for (let i = 0; i < userMessages.length; i++) {
     const text = userMessages[i] ?? ''
@@ -242,7 +247,7 @@ function detectRepeatIntents(userMessages: string[]): RepeatSignal[] {
       existing.count += 1
       existing.indexes.push(i)
     } else {
-      intentCounts.set(intentKey, { count: 1, indexes: [i], intent: intentGroup })
+      intentCounts.set(intentKey, { count: 1, indexes: [i], intent: intentGroup, intentKey })
     }
   }
 
@@ -252,6 +257,7 @@ function detectRepeatIntents(userMessages: string[]): RepeatSignal[] {
       signals.push({
         kind: 'repeat',
         intent: entry.intent ?? key,
+        intentKey: entry.intentKey ?? key,
         count: entry.count,
         messageIndexes: entry.indexes,
         // 重复次数越多越可信，但封顶 0.9

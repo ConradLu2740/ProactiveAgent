@@ -12,13 +12,14 @@
  */
 
 import { createServer, type Server } from 'node:http'
-import { memoryService, suggestService, getConfigDir } from '@proactive-agent/core'
+import { memoryService, suggestService, getConfigDir, getProjectIdentity } from '@proactive-agent/core'
 import { listTasks, taskStats } from './task-store'
 
 /** 构建 /api/today 数据负载 */
 export function buildTodayPayload(): {
   generatedAt: string
   dataDir: string
+  project: { key: string; displayName: string; identitySource: string }
   suggestions: Array<{ id: string; kind: string; title: string; reason: string; status: string }>
   hotScenes: Array<{ title: string; heat: number; atomCount: number }>
   persona: { exists: boolean; summary: string }
@@ -49,9 +50,12 @@ export function buildTodayPayload(): {
   const tasks = listTasks()
   const ts = taskStats()
   const roi = suggestService.getSuggestionRoiStats()
+  const identity = getProjectIdentity()
   return {
     generatedAt: new Date().toISOString(),
     dataDir: getConfigDir(),
+    // P2-3：面板展示当前项目标识（多项目隔离时明确数据范围）
+    project: { key: identity.key, displayName: identity.displayName, identitySource: identity.identitySource },
     suggestions,
     hotScenes,
     persona: { exists: !!personaRaw, summary: persona.summary ?? '' },
@@ -162,6 +166,7 @@ export function buildTodayHtml(): string {
 <body>
   <h1>ProactiveAgent · 主动中心</h1>
   <div class="sub" id="meta-time">${esc(dateStr)} · 数据目录 ${esc(p.dataDir)}</div>
+  <div class="sub" id="meta-project">项目 ${esc(p.project.displayName)}（key=${esc(p.project.key)} · ${esc(p.project.identitySource)}）</div>
 
   <h2>待处理建议（<span id="sug-count">${p.suggestions.length}</span>）</h2>
   <div id="suggestions">
@@ -215,6 +220,7 @@ const KIND = { correction:'纠正建议', followup:'跟进建议', automation:'�
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function render(p){
   document.getElementById('meta-time').textContent = new Date().toLocaleString('zh-CN') + ' · 数据目录 ' + p.dataDir;
+  document.getElementById('meta-project').textContent = '项目 ' + p.project.displayName + '（key=' + p.project.key + ' · ' + p.project.identitySource + '）';
   const sug = document.getElementById('suggestions');
   sug.innerHTML = p.suggestions.length
     ? p.suggestions.map(s=>'<div class="card sug"><div class="sug-kind">'+esc(KIND[s.kind]||s.kind)+'</div><div class="sug-title">'+esc(s.title)+'</div><div class="sug-reason">'+esc(s.reason)+'</div><div class="sug-id">'+esc(s.id)+'</div></div>').join('')
