@@ -1,6 +1,19 @@
-# Smithery 配置：让 Smithery 自动索引并分发 ProactiveAgent（stdio MCP server）
-# 参考：https://smithery.ai/docs/publish
-# 分发形态：npm 包 @proactive-agent/mcp（零依赖，bin: proactive-mcp）
+# ⚠️ 已废弃：Smithery 被 Arcade.dev 收购后改版（2026），不再支持本文件
+#
+# 旧版通过 smithery.yaml + GitHub 集成让 Smithery 云端构建并托管 stdio server。
+# 改版后 Smithery 只支持两种发布方式：
+#   1. HTTP URL（远程 MCP server）
+#   2. MCPB bundle（本地 stdio server 打包）
+#
+# ProactiveAgent 采用 MCPB 方式，发布流程：
+#   bash scripts/pack-mcpb.sh --build        # 打包 dist-publish/proactive-agent-<VERSION>.mcpb
+#   smithery mcp publish ./dist-publish/proactive-agent-<VERSION>.mcpb -n <org>/proactive-agent
+#
+# 已上架：https://smithery.ai/servers/1797650355/proactive-agent
+# 打包脚本：scripts/pack-mcpb.sh（mcpb CLI 来自 @anthropic-ai/mcpb devDependency）
+#
+# 本文件保留仅作历史参考，Smithery 不再读取。
+
 startCommand:
   type: stdio
   configSchema:

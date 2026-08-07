@@ -12,7 +12,8 @@
     "test": "bun test --parallel 1"
   },
   "devDependencies": {
-    "typescript": "^5.0.0",
-    "@types/bun": "latest"
+    "@anthropic-ai/mcpb": "^2.1.2",
+    "@types/bun": "latest",
+    "typescript": "^5.0.0"
   }
 }
