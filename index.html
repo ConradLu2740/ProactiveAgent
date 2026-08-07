@@ -3,24 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ProactiveAgent · 教一次，处处用 — Teach once, use everywhere</title>
-<meta name="description" content="ProactiveAgent MCP Server: proactive memory + suggestions for any MCP-capable agent. 零依赖 MCP 主动记忆+建议 Server：Claude Code / Kimi Code / Cline / Cursor / Proma 共享同一份主动记忆。">
-<!-- SEO：OG / Twitter / canonical -->
-<meta property="og:title" content="ProactiveAgent · 教一次，处处用">
-<meta property="og:description" content="零依赖 MCP 主动记忆+建议 Server：跨工具共享记忆 + 主动建议 + 按项目隔离。npm i @proactive-agent/mcp">
+<title>ProactiveAgent · 让所有 AI 记住你</title>
+<meta name="description" content="One MCP server, proactive memory for every AI. 一个 MCP，让 Claude Code / Kimi Code / Cline / Cursor / Proma 共享主动记忆。">
+<meta property="og:title" content="ProactiveAgent · 让所有 AI 记住你">
+<meta property="og:description" content="One MCP, proactive memory for every AI. 零依赖、跨工具共享、防投毒。npm i @proactive-agent/mcp">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://proactive-agent.top/">
 <meta property="og:site_name" content="ProactiveAgent">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="ProactiveAgent · 教一次，处处用">
-<meta name="twitter:description" content="MCP 主动记忆：跨工具共享记忆 + 主动建议 + 按项目隔离。npm i @proactive-agent/mcp">
+<meta name="twitter:title" content="ProactiveAgent">
+<meta name="twitter:description" content="One MCP, proactive memory for every AI.">
 <link rel="canonical" href="https://proactive-agent.top/">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
   "name": "ProactiveAgent",
-  "description": "零依赖 MCP Server：跨工具共享记忆 + 主动建议，按项目隔离记忆。",
+  "description": "Zero-dependency MCP server with shared proactive memory across AI coding tools.",
   "operatingSystem": "macOS, Linux, Windows",
   "softwareVersion": "0.5.4",
   "url": "https://github.com/ConradLu2740/ProactiveAgent",
@@ -41,112 +40,112 @@
     --blue-hover: #167ff7;
     --blue10: rgba(23, 131, 255, 0.1);
     --green: #16c456;
-    --yellow: #ffd230;
     --purple: #985ffb;
-    --red: #ff3849;
     --mono: "SF Mono", SFMono-Regular, ui-monospace, Menlo, Consolas, "Liberation Mono", monospace;
     --sans: "Comic Sans MS", "Comic Sans", "Comic Neue", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", sans-serif;
   }
   * { margin:0; padding:0; box-sizing:border-box; }
   html { scroll-behavior:smooth; }
-  body { background:var(--bg); color:var(--text); font-family:var(--sans); line-height:1.6; -webkit-font-smoothing:antialiased; }
+  body { background:var(--bg); color:var(--text); font-family:var(--sans); line-height:1.65; -webkit-font-smoothing:antialiased; font-size:16px; }
   a { color:var(--blue); text-decoration:none; }
   a:hover { text-decoration:underline; }
 
   /* ===== Nav ===== */
   .nav { position:sticky; top:0; z-index:100; display:flex; align-items:center; justify-content:space-between;
     padding:14px 32px; background:rgba(251,250,249,0.88); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); border-bottom:1px solid var(--line); }
-  .nav-logo { font-weight:700; font-size:15px; color:var(--text); display:flex; align-items:center; gap:8px; }
-  .nav-logo .mark { width:18px; height:18px; border-radius:6px; background:linear-gradient(135deg,var(--blue),var(--green)); display:flex; align-items:center; justify-content:center; font-size:10px; color:#fff; font-weight:800; }
-  .nav-links { display:flex; gap:24px; font-size:14px; }
+  .nav-logo { font-weight:700; font-size:17px; color:var(--text); display:flex; align-items:center; gap:8px; }
+  .nav-logo .mark { width:22px; height:22px; border-radius:7px; background:linear-gradient(135deg,var(--blue),var(--green)); display:flex; align-items:center; justify-content:center; font-size:12px; color:#fff; font-weight:800; }
+  .nav-links { display:flex; gap:28px; font-size:16px; align-items:center; }
   .nav-links a { color:var(--text2); }
   .nav-links a:hover { color:var(--text); }
-  .nav-github { font-size:13px; padding:8px 16px; border:1px solid var(--line2); border-radius:8px; color:var(--text); transition:all 0.15s; }
-  .nav-github:hover { border-color:var(--blue); color:var(--blue); text-decoration:none; }
+  .lang-btn { font-family:var(--sans); font-size:15px; font-weight:600; padding:8px 16px; border:1px solid var(--line2); border-radius:999px; background:var(--bg-card); color:var(--text); cursor:pointer; transition:all 0.15s; }
+  .lang-btn:hover { border-color:var(--blue); color:var(--blue); }
 
   /* ===== Hero ===== */
-  .hero { position:relative; padding:96px 24px 64px; text-align:center; overflow:hidden;
-    background:radial-gradient(800px 400px at 50% -60px, var(--blue10), transparent 60%), var(--bg); }
-  .hero-badge { display:inline-flex; align-items:center; gap:8px; background:var(--blue10); color:var(--blue); font-size:13px; font-weight:600; padding:6px 16px; border-radius:999px; margin-bottom:24px; letter-spacing:0.3px; }
-  .hero-badge .dot { width:7px; height:7px; border-radius:50%; background:var(--blue); animation:pulse 1.6s infinite; }
+  .hero { position:relative; padding:110px 24px 72px; text-align:center; overflow:hidden;
+    background:radial-gradient(800px 420px at 50% -60px, var(--blue10), transparent 60%), var(--bg); }
+  .hero-badge { display:inline-flex; align-items:center; gap:8px; background:var(--blue10); color:var(--blue); font-size:14px; font-weight:600; padding:8px 20px; border-radius:999px; margin-bottom:28px; letter-spacing:0.3px; }
+  .hero-badge .dot { width:8px; height:8px; border-radius:50%; background:var(--blue); animation:pulse 1.6s infinite; }
   @keyframes pulse { 0%,100%{opacity:1; transform:scale(1)} 50%{opacity:0.4; transform:scale(0.75)} }
-  .hero h1 { font-size:48px; font-weight:600; letter-spacing:-0.96px; line-height:1.2; margin-bottom:18px; }
+  .hero h1 { font-size:56px; font-weight:700; letter-spacing:-1.1px; line-height:1.2; margin-bottom:24px; }
   .hero h1 em { font-style:normal; color:var(--blue); }
-  .hero .sub { font-size:17px; color:var(--text2); max-width:680px; margin:0 auto 12px; line-height:1.7; }
+  .hero .sub { font-size:20px; color:var(--text2); max-width:720px; margin:0 auto 12px; line-height:1.7; }
   .hero .sub strong { color:var(--text); font-weight:600; }
-  .hero .sub2 { font-size:14.5px; color:var(--text3); max-width:640px; margin:0 auto 36px; }
-  .hero-cta { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-bottom:48px; }
-  .btn { display:inline-flex; align-items:center; gap:8px; font-size:14px; font-weight:500; padding:12px 24px; border-radius:8px; border:1px solid var(--line2); background:var(--bg-card); color:var(--text); text-decoration:none; transition:all 0.15s; }
+  .hero .sub2 { font-size:16px; color:var(--text3); max-width:660px; margin:0 auto 40px; }
+  .hero-cta { display:flex; gap:14px; justify-content:center; flex-wrap:wrap; margin-bottom:56px; }
+  .btn { display:inline-flex; align-items:center; gap:8px; font-size:16px; font-weight:500; padding:14px 28px; border-radius:10px; border:1px solid var(--line2); background:var(--bg-card); color:var(--text); text-decoration:none; transition:all 0.15s; }
   .btn:hover { border-color:var(--blue); transform:translateY(-1px); text-decoration:none; }
   .btn.primary { background:var(--blue); border-color:var(--blue); color:#fff; font-weight:600; }
   .btn.primary:hover { background:var(--blue-hover); box-shadow:0 6px 24px rgba(23,131,255,0.25); }
 
-  /* ===== Terminal preview ===== */
-  .term-wrap { max-width:640px; margin:0 auto; }
-  .term { background:#1e1e1e; border-radius:12px; overflow:hidden; text-align:left; box-shadow:0 16px 48px rgba(0,0,0,0.14); }
-  .term .bar { display:flex; align-items:center; gap:6px; padding:12px 16px; background:#2d2d2d; }
-  .term .bar .dot { width:11px; height:11px; border-radius:50%; }
+  /* ===== Terminal ===== */
+  .term-wrap { max-width:680px; margin:0 auto; }
+  .term { background:#1e1e1e; border-radius:14px; overflow:hidden; text-align:left; box-shadow:0 16px 48px rgba(0,0,0,0.14); }
+  .term .bar { display:flex; align-items:center; gap:6px; padding:14px 18px; background:#2d2d2d; }
+  .term .bar .dot { width:12px; height:12px; border-radius:50%; }
   .term .bar .dot.r { background:#ff5f57; } .term .bar .dot.y { background:#febc2e; } .term .bar .dot.g { background:#28c840; }
-  .term .bar span { margin-left:8px; font-family:var(--mono); font-size:12px; color:rgba(255,255,255,0.5); }
-  .term pre { padding:22px 24px; font-family:var(--mono); font-size:13.5px; line-height:1.75; color:#e6edf3; overflow-x:auto; }
+  .term .bar span { margin-left:8px; font-family:var(--mono); font-size:13px; color:rgba(255,255,255,0.5); }
+  .term pre { padding:24px 26px; font-family:var(--mono); font-size:14.5px; line-height:1.8; color:#e6edf3; overflow-x:auto; }
   .term .c { color:#6e7681; } .term .k { color:#ff7b72; } .term .s { color:#a5d6ff; } .term .v { color:#d2a8ff; }
 
   /* ===== Stats ===== */
-  .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:16px; max-width:900px; margin:48px auto 0; padding:0 24px 72px; }
-  .stat { background:var(--bg-card); border:1px solid var(--line); border-radius:16px; padding:24px 16px; text-align:center; transition:border-color 0.15s, transform 0.15s; }
+  .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:18px; max-width:960px; margin:52px auto 0; padding:0 24px 80px; }
+  .stat { background:var(--bg-card); border:1px solid var(--line); border-radius:18px; padding:28px 16px; text-align:center; transition:border-color 0.15s, transform 0.15s; }
   .stat:hover { border-color:var(--line2); transform:translateY(-2px); }
-  .stat .num { font-size:30px; font-weight:600; letter-spacing:-0.6px; color:var(--text); }
+  .stat .num { font-size:38px; font-weight:700; letter-spacing:-0.8px; color:var(--text); }
   .stat .num.b { color:var(--blue); } .stat .num.g { color:var(--green); } .stat .num.p { color:var(--purple); }
-  .stat .lbl { font-size:13px; color:var(--text2); margin-top:4px; }
+  .stat .lbl { font-size:15px; color:var(--text2); margin-top:6px; }
 
   /* ===== Section ===== */
-  .section { max-width:1080px; margin:0 auto; padding:64px 24px; }
-  .section h2 { font-size:34px; font-weight:600; letter-spacing:-0.6px; text-align:center; margin-bottom:12px; }
-  .section .lead { text-align:center; color:var(--text2); font-size:15.5px; max-width:680px; margin:0 auto 44px; }
+  .section { max-width:1100px; margin:0 auto; padding:72px 24px; }
+  .section h2 { font-size:42px; font-weight:700; letter-spacing:-0.8px; text-align:center; margin-bottom:14px; }
+  .section .lead { text-align:center; color:var(--text2); font-size:18px; max-width:700px; margin:0 auto 48px; }
   .section .lead b { color:var(--text); }
 
-  /* ===== Feature grid ===== */
-  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:18px; }
-  .card { background:var(--bg-card); border:1px solid var(--line); border-radius:16px; padding:28px 26px; transition:border-color 0.15s, transform 0.15s, box-shadow 0.15s; }
+  /* ===== Cards ===== */
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(310px,1fr)); gap:20px; }
+  .card { background:var(--bg-card); border:1px solid var(--line); border-radius:18px; padding:32px 30px; transition:border-color 0.15s, transform 0.15s, box-shadow 0.15s; }
   .card:hover { border-color:var(--line2); transform:translateY(-2px); box-shadow:0 8px 32px rgba(0,0,0,0.06); }
-  .card .icon { font-size:28px; margin-bottom:14px; }
-  .card h3 { font-size:17px; font-weight:600; margin-bottom:10px; }
-  .card p { font-size:14px; color:var(--text2); line-height:1.7; }
-  .card .tag { display:inline-block; font-family:var(--mono); font-size:11px; padding:3px 10px; border-radius:6px; margin-top:14px; background:var(--blue10); color:var(--blue); }
+  .card .icon { font-size:32px; margin-bottom:16px; }
+  .card h3 { font-size:19px; font-weight:600; margin-bottom:12px; }
+  .card p { font-size:16px; color:var(--text2); line-height:1.7; }
 
   /* ===== Install ===== */
-  .install-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:18px; }
-  .install-card { background:var(--bg-card); border:1px solid var(--line); border-radius:16px; padding:26px; }
-  .install-card h3 { font-size:15px; font-weight:600; margin-bottom:14px; color:var(--text); display:flex; align-items:center; gap:10px; }
-  .install-card h3 .n { width:24px; height:24px; border-radius:8px; background:var(--blue10); color:var(--blue); display:flex; align-items:center; justify-content:center; font-size:13px; flex-shrink:0; font-weight:600; }
-  .install-card pre { background:#f5f5f5; border:1px solid var(--line); border-radius:8px; padding:14px 16px; font-family:var(--mono); font-size:13px; line-height:1.7; overflow-x:auto; color:var(--text); }
-  .install-card p { font-size:13px; color:var(--text2); margin-top:12px; line-height:1.6; }
+  .install-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(310px,1fr)); gap:20px; }
+  .install-card { background:var(--bg-card); border:1px solid var(--line); border-radius:18px; padding:30px; }
+  .install-card h3 { font-size:17px; font-weight:600; margin-bottom:16px; color:var(--text); display:flex; align-items:center; gap:12px; }
+  .install-card h3 .n { width:28px; height:28px; border-radius:9px; background:var(--blue10); color:var(--blue); display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0; font-weight:600; }
+  .install-card pre { background:#f5f5f5; border:1px solid var(--line); border-radius:10px; padding:16px 18px; font-family:var(--mono); font-size:14px; line-height:1.7; overflow-x:auto; color:var(--text); }
+  .install-card p { font-size:15px; color:var(--text2); margin-top:14px; line-height:1.65; }
 
   /* ===== Compat ===== */
-  .compat { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin-top:30px; }
-  .compat .chip { font-size:13px; padding:9px 18px; border-radius:999px; background:var(--bg-card); border:1px solid var(--line2); color:var(--text2); }
+  .compat { display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin-top:32px; }
+  .compat .chip { font-size:16px; padding:12px 22px; border-radius:999px; background:var(--bg-card); border:1px solid var(--line2); color:var(--text2); }
   .compat .chip b { color:var(--text); font-weight:600; }
   .compat .chip .ok { color:var(--green); }
 
   /* ===== CTA ===== */
-  .cta { text-align:center; padding:80px 24px; background:var(--bg); border-top:1px solid var(--line); }
-  .cta h2 { font-size:34px; font-weight:600; letter-spacing:-0.6px; margin-bottom:14px; }
-  .cta p { color:var(--text2); max-width:560px; margin:0 auto 30px; font-size:15px; }
+  .cta { text-align:center; padding:88px 24px; background:var(--bg); border-top:1px solid var(--line); }
+  .cta h2 { font-size:42px; font-weight:700; letter-spacing:-0.8px; margin-bottom:16px; }
+  .cta p { color:var(--text2); max-width:600px; margin:0 auto 32px; font-size:18px; }
 
   /* ===== Footer ===== */
-  .footer { border-top:1px solid var(--line); padding:36px 24px; text-align:center; color:var(--text3); font-size:13px; }
-  .footer .links { display:flex; gap:18px; justify-content:center; margin-bottom:12px; flex-wrap:wrap; }
+  .footer { border-top:1px solid var(--line); padding:40px 24px; text-align:center; color:var(--text3); font-size:14px; }
+  .footer .links { display:flex; gap:20px; justify-content:center; margin-bottom:12px; flex-wrap:wrap; }
   .footer .links a { color:var(--text2); }
   .footer .badges { display:flex; gap:10px; justify-content:center; margin-bottom:14px; flex-wrap:wrap; }
   .footer .badges img { height:20px; border-radius:4px; }
 
-  @media (max-width:640px) {
+  @media (max-width:680px) {
     .nav { padding:12px 16px; }
-    .nav-links { display:none; }
-    .hero { padding:64px 16px 48px; }
-    .hero h1 { font-size:34px; letter-spacing:-0.6px; }
-    .section { padding:48px 16px; }
-    .section h2 { font-size:28px; }
+    .nav-links { gap:16px; font-size:15px; }
+    .nav-links a:nth-child(2), .nav-links a:nth-child(3) { display:none; }
+    .hero { padding:72px 16px 48px; }
+    .hero h1 { font-size:36px; letter-spacing:-0.7px; }
+    .hero .sub { font-size:17px; }
+    .section { padding:52px 16px; }
+    .section h2 { font-size:32px; }
+    .cta h2 { font-size:32px; }
   }
 </style>
 </head>
@@ -155,161 +154,122 @@
 <nav class="nav">
   <a class="nav-logo" href="#"><span class="mark">P</span> ProactiveAgent</a>
   <div class="nav-links">
-    <a href="#why">为什么</a>
-    <a href="#features">能力</a>
-    <a href="#install">安装</a>
-    <a href="#compat">兼容</a>
-    <a href="https://github.com/ConradLu2740/ProactiveAgent/blob/main/README.md" target="_blank" rel="noopener">文档</a>
-    <a href="https://smithery.ai/servers/1797650355/proactive-agent" target="_blank" rel="noopener">Smithery</a>
+    <a href="#features" data-i18n="nav_features">功能</a>
+    <a href="#install" data-i18n="nav_install">安装</a>
+    <a href="#compat" data-i18n="nav_compat">兼容</a>
+    <a href="https://github.com/ConradLu2740/ProactiveAgent" target="_blank" rel="noopener" data-i18n="nav_github">GitHub</a>
+    <button class="lang-btn" id="langBtn" onclick="toggleLang()">EN</button>
   </div>
-  <a class="nav-github" href="https://github.com/ConradLu2740/ProactiveAgent" target="_blank" rel="noopener">GitHub ↗</a>
 </nav>
 
 <section class="hero">
-  <div class="hero-badge"><span class="dot"></span> v0.5.4 · 零依赖 MCP · 已在 Smithery 上架</div>
-  <h1>教一次，<em>处处用</em>。<br>一个 MCP，所有 Agent 共享主动记忆。</h1>
-  <p class="sub">让 Claude Code / Kimi Code / Cline / Cursor / Proma 共享同一份「主动记忆」——<strong>它不仅记住你教过的一切，更会在合适的时机主动开口提醒你</strong>。</p>
-  <p class="sub2">纠正 · 跟进 · 自动化 · 待办 · 技能，五类主动建议。跨工具共享，按项目隔离，防投毒设计。</p>
+  <div class="hero-badge"><span class="dot"></span><span data-i18n="hero_badge">v0.5.4 · 零依赖 · 已上架 Smithery</span></div>
+  <h1><span data-i18n="hero_h1_1">一个 MCP，</span><br><em data-i18n="hero_h1_2">让所有 AI 记住你。</em></h1>
+  <p class="sub" data-i18n="hero_sub">Claude Code、Kimi Code、Cline、Cursor 共享同一份主动记忆。它不但记住你教过的一切，还会在合适的时机主动提醒你。</p>
+  <p class="sub2" data-i18n="hero_sub2">纠正 · 跟进 · 自动化 · 待办 · 技能，五类主动建议 · 跨工具共享 · 按项目隔离 · 防投毒</p>
   <div class="hero-cta">
-    <a class="btn primary" href="#install">快速开始（&lt; 1 分钟）</a>
-    <a class="btn" href="https://github.com/ConradLu2740/ProactiveAgent" target="_blank" rel="noopener">查看源码</a>
-    <a class="btn" href="https://smithery.ai/servers/1797650355/proactive-agent" target="_blank" rel="noopener">Smithery 上架页</a>
+    <a class="btn primary" href="#install" data-i18n="cta_start">快速开始（1 分钟）</a>
+    <a class="btn" href="https://github.com/ConradLu2740/ProactiveAgent" target="_blank" rel="noopener" data-i18n="cta_source">查看源码</a>
+    <a class="btn" href="https://smithery.ai/servers/1797650355/proactive-agent" target="_blank" rel="noopener">Smithery</a>
   </div>
   <div class="term-wrap">
     <div class="term">
       <div class="bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span>bash</span></div>
-<pre><span class="c"># 一条命令，所有支持 MCP 的 agent 立即拥有主动记忆</span>
+<pre><span class="c" data-i18n="term1"># 一条命令，所有支持 MCP 的 AI 立即拥有主动记忆</span>
 <span class="k">npm install</span> <span class="s">@proactive-agent/mcp</span>
 <span class="k">npx</span> proactive-mcp init
-<span class="c"># 然后：Claude Code 记住 → Kimi Code 召回（100% 命中）</span></pre>
+<span class="c" data-i18n="term2"># Claude Code 记住 → Kimi Code 召回（100% 命中）</span></pre>
     </div>
   </div>
 </section>
 
 <div class="stats">
-  <div class="stat"><div class="num b">18</div><div class="lbl">MCP Tools</div></div>
-  <div class="stat"><div class="num g">5</div><div class="lbl">主动建议类型</div></div>
-  <div class="stat"><div class="num p">98</div><div class="lbl">Smithery 质量分</div></div>
-  <div class="stat"><div class="num">0</div><div class="lbl">外部依赖</div></div>
+  <div class="stat"><div class="num b">18</div><div class="lbl" data-i18n="stat_tools">个 MCP 工具</div></div>
+  <div class="stat"><div class="num g">5</div><div class="lbl" data-i18n="stat_types">类主动建议</div></div>
+  <div class="stat"><div class="num p">98</div><div class="lbl" data-i18n="stat_score">Smithery 质量分</div></div>
+  <div class="stat"><div class="num">0</div><div class="lbl" data-i18n="stat_deps">外部依赖</div></div>
 </div>
 
-<section class="section" id="why">
-  <h2>为什么值得用</h2>
-  <p class="lead">和「只会记」的记忆工具不同：<b>ProactiveAgent 会记，也会在想该提醒你的时刻主动开口</b>。</p>
+<section class="section" id="features">
+  <h2 data-i18n="features_h2">核心特性</h2>
+  <p class="lead" data-i18n="features_lead">会记，也会在想提醒你的时候主动开口。</p>
   <div class="grid">
     <div class="card">
       <div class="icon">🧠</div>
-      <h3>记忆是「用户级资产」</h3>
-      <p>不是工具级资产。你在 Claude Code 里教的偏好和流程，Kimi Code、Cline、Cursor 也能直接召回——跨工具共享同一份长期记忆。</p>
-      <span class="tag">cross-tool memory</span>
+      <h3 data-i18n="f1_t">跨工具共享</h3>
+      <p data-i18n="f1_d">在 Claude Code 里教的偏好，Kimi Code、Cline、Cursor 都能直接用。</p>
     </div>
     <div class="card">
       <div class="icon">💡</div>
-      <h3>主动建议：该沉默时沉默</h3>
-      <p>不只是被动检索。在合适的时机主动给出纠正 / 跟进 / 自动化 / 待办 / 技能五类建议，且遵循「该沉默时沉默」的克制原则。</p>
-      <span class="tag">proactive suggestions</span>
+      <h3 data-i18n="f2_t">主动提醒</h3>
+      <p data-i18n="f2_d">纠正、跟进、待办、自动化、技能——五类提醒，该说才说。</p>
     </div>
     <div class="card">
       <div class="icon">🛡️</div>
-      <h3>防投毒设计</h3>
-      <p>自动提取的记忆默认 pending，需确认后才进入召回。恶意或错误内容不会污染记忆库，安全有底线。</p>
-      <span class="tag">anti-poisoning</span>
+      <h3 data-i18n="f3_t">防投毒</h3>
+      <p data-i18n="f3_d">记忆先确认再生效，恶意内容进不来。</p>
     </div>
     <div class="card">
       <div class="icon">🔌</div>
-      <h3>即插即用</h3>
-      <p>一个 MCP 挂所有。无需 clone 仓库、无需 bun、无 Node 依赖烦恼——npm 安装即用，零配置起步。</p>
-      <span class="tag">zero-dependency</span>
+      <h3 data-i18n="f4_t">零依赖</h3>
+      <p data-i18n="f4_d">npm 装完即用，无需 clone、无需 bun。</p>
     </div>
     <div class="card">
       <div class="icon">📁</div>
-      <h3>按项目隔离</h3>
-      <p>记忆分项目层与全局层：项目专属规则不串味，全局偏好处处可用。支持逃生模式，隐私可控。</p>
-      <span class="tag">scoped memory</span>
+      <h3 data-i18n="f5_t">按项目隔离</h3>
+      <p data-i18n="f5_d">项目规则不串味，全局偏好处处可用。</p>
     </div>
     <div class="card">
       <div class="icon">⏱️</div>
-      <h3>时间感知</h3>
-      <p>定期需求、周期任务、每日复盘——时间感知的建议引擎会在对的时间提醒你，还有 TTL 归档治理记忆规模。</p>
-      <span class="tag">time-aware</span>
-    </div>
-  </div>
-</section>
-
-<section class="section" id="features">
-  <h2>核心能力</h2>
-  <p class="lead"><b>18 个 MCP Tools</b>，任何支持 MCP 的宿主都可用；还有 Resources / Prompts / Hooks 全链路能力。</p>
-  <div class="grid">
-    <div class="card">
-      <h3>✍️ 主动记忆写入</h3>
-      <p><code>memory_capture</code> 显式沉淀 · <code>memory_extract</code> 自动提取 · <code>memory_pending/confirm/reject</code> 防投毒确认流</p>
-    </div>
-    <div class="card">
-      <h3>🔍 检索与召回</h3>
-      <p><code>memory_recall</code> 关键词 + embedding 混合检索（倒排索引加速，万条级仍低延迟）</p>
-    </div>
-    <div class="card">
-      <h3>💬 主动建议闭环</h3>
-      <p><code>suggest_now / list / accept / ignore</code> 五类建议生成、反馈、频率学习</p>
-    </div>
-    <div class="card">
-      <h3>👤 画像与场景</h3>
-      <p><code>persona_get / save</code> 用户画像 · <code>scene_summary</code> 热点场景 · <code>memory_stats</code> 统计</p>
-    </div>
-    <div class="card">
-      <h3>📅 复盘与引导</h3>
-      <p><code>daily_review</code> 每日复盘 · <code>onboarding_guide</code> 冷启动引导 · 会话中途/结束信号</p>
-    </div>
-    <div class="card">
-      <h3>🔧 宿主集成</h3>
-      <p>hooks 自动挂载（UserPromptSubmit / SessionEnd / Today push），CLI：init / doctor / stats / demo / migrate / archive</p>
+      <h3 data-i18n="f6_t">时间感知</h3>
+      <p data-i18n="f6_d">定期任务、每日复盘，在对的时间提醒你。</p>
     </div>
   </div>
 </section>
 
 <section class="section" id="install">
-  <h2>快速开始（&lt; 1 分钟）</h2>
-  <p class="lead">无需 clone 仓库，无需 bun，一条命令开始。</p>
+  <h2 data-i18n="install_h2">快速开始</h2>
+  <p class="lead" data-i18n="install_lead">一条命令，1 分钟搞定。</p>
   <div class="install-grid">
     <div class="install-card">
-      <h3><span class="n">1</span> 安装</h3>
+      <h3><span class="n">1</span><span data-i18n="i1_t">安装</span></h3>
       <pre>npm install @proactive-agent/mcp</pre>
-      <p>零依赖 npm 包，安装即可用。</p>
+      <p data-i18n="i1_d">零依赖，装完即用。</p>
     </div>
     <div class="install-card">
-      <h3><span class="n">2</span> 初始化挂载</h3>
+      <h3><span class="n">2</span><span data-i18n="i2_t">初始化</span></h3>
       <pre>npx proactive-mcp init</pre>
-      <p>自动生成 Claude Code / Cline / Cursor 挂载配置 + hooks。支持 <code>--kimi</code>、<code>--local</code>、<code>--force</code> 选项。</p>
+      <p data-i18n="i2_d">自动挂载到 Claude Code、Cline、Cursor，支持 --kimi。</p>
     </div>
     <div class="install-card">
-      <h3><span class="n">3</span> 手动挂载（任意宿主）</h3>
+      <h3><span class="n">3</span><span data-i18n="i3_t">手动挂载</span></h3>
       <pre>"command": "npx",
 "args": ["-y", "@proactive-agent/mcp@latest"]</pre>
-      <p>任何支持 MCP 的客户端，添加 stdio server 即可。</p>
+      <p data-i18n="i3_d">任何支持 MCP 的客户端，添加 stdio server 即可。</p>
     </div>
   </div>
 </section>
 
 <section class="section" id="compat">
-  <h2>兼容所有 MCP 宿主</h2>
-  <p class="lead">数据默认存在 <code>~/.proma-proactive/</code>（用户级共享，跨工具复用），可用 <code>PROACTIVE_DATA_DIR</code> 覆盖。</p>
+  <h2 data-i18n="compat_h2">兼容所有 MCP 宿主</h2>
+  <p class="lead" data-i18n="compat_lead">数据存在 <b>~/.proma-proactive/</b>，跨工具共享。</p>
   <div class="compat">
     <span class="chip"><b>Claude Code</b> <span class="ok">✓</span></span>
     <span class="chip"><b>Kimi Code</b> <span class="ok">✓</span></span>
     <span class="chip"><b>Cline</b> <span class="ok">✓</span></span>
     <span class="chip"><b>Cursor</b> <span class="ok">✓</span></span>
     <span class="chip"><b>Proma</b> <span class="ok">✓</span></span>
-    <span class="chip">任何 MCP-capable client</span>
+    <span class="chip" data-i18n="compat_any">任意 MCP 客户端</span>
   </div>
 </section>
 
 <section class="cta">
-  <h2>让 AI 记住你，并且在需要时主动开口</h2>
-  <p>教一次，处处用。现在就给你的 agent 装上主动记忆。</p>
+  <h2 data-i18n="cta_h2">让 AI 记住你，并在需要时主动开口</h2>
+  <p data-i18n="cta_p">教一次，处处用。现在就给你的 AI 装上主动记忆。</p>
   <div class="hero-cta">
-    <a class="btn primary" href="https://github.com/ConradLu2740/ProactiveAgent#快速开始-1-分钟无需-clone-无需-bun" target="_blank" rel="noopener">查看完整文档</a>
-    <a class="btn" href="https://github.com/ConradLu2740/ProactiveAgent" target="_blank" rel="noopener">Star on GitHub</a>
-    <a class="btn" href="https://smithery.ai/servers/1797650355/proactive-agent" target="_blank" rel="noopener">Smithery 安装</a>
+    <a class="btn primary" href="https://github.com/ConradLu2740/ProactiveAgent/blob/main/README.md" target="_blank" rel="noopener" data-i18n="cta_docs">查看文档</a>
+    <a class="btn" href="https://github.com/ConradLu2740/ProactiveAgent" target="_blank" rel="noopener" data-i18n="cta_star">Star on GitHub</a>
+    <a class="btn" href="https://smithery.ai/servers/1797650355/proactive-agent" target="_blank" rel="noopener">Smithery</a>
   </div>
 </section>
 
@@ -321,11 +281,88 @@
   <div class="links">
     <a href="https://github.com/ConradLu2740/ProactiveAgent" target="_blank" rel="noopener">GitHub</a>
     <a href="https://smithery.ai/servers/1797650355/proactive-agent" target="_blank" rel="noopener">Smithery</a>
-    <a href="https://github.com/ConradLu2740/ProactiveAgent/blob/main/README.md" target="_blank" rel="noopener">文档</a>
-    <a href="https://github.com/ConradLu2740/ProactiveAgent/issues" target="_blank" rel="noopener">Issues</a>
+    <a href="https://github.com/ConradLu2740/ProactiveAgent/blob/main/README.md" target="_blank" rel="noopener">Docs</a>
   </div>
-  <div>ProactiveAgent · Teach once, use everywhere · MIT License</div>
+  <div>ProactiveAgent · MIT License</div>
 </footer>
 
+<script>
+const I18N = {
+  zh: {
+    nav_features: "功能", nav_install: "安装", nav_compat: "兼容", nav_github: "GitHub",
+    hero_badge: "v0.5.4 · 零依赖 · 已上架 Smithery",
+    hero_h1_1: "一个 MCP，", hero_h1_2: "让所有 AI 记住你。",
+    hero_sub: "Claude Code、Kimi Code、Cline、Cursor 共享同一份主动记忆。它不但记住你教过的一切，还会在合适的时机主动提醒你。",
+    hero_sub2: "纠正 · 跟进 · 自动化 · 待办 · 技能，五类主动建议 · 跨工具共享 · 按项目隔离 · 防投毒",
+    cta_start: "快速开始（1 分钟）", cta_source: "查看源码",
+    term1: "# 一条命令，所有支持 MCP 的 AI 立即拥有主动记忆",
+    term2: "# Claude Code 记住 → Kimi Code 召回（100% 命中）",
+    stat_tools: "个 MCP 工具", stat_types: "类主动建议", stat_score: "Smithery 质量分", stat_deps: "外部依赖",
+    features_h2: "核心特性", features_lead: "会记，也会在想提醒你的时候主动开口。",
+    f1_t: "跨工具共享", f1_d: "在 Claude Code 里教的偏好，Kimi Code、Cline、Cursor 都能直接用。",
+    f2_t: "主动提醒", f2_d: "纠正、跟进、待办、自动化、技能——五类提醒，该说才说。",
+    f3_t: "防投毒", f3_d: "记忆先确认再生效，恶意内容进不来。",
+    f4_t: "零依赖", f4_d: "npm 装完即用，无需 clone、无需 bun。",
+    f5_t: "按项目隔离", f5_d: "项目规则不串味，全局偏好处处可用。",
+    f6_t: "时间感知", f6_d: "定期任务、每日复盘，在对的时间提醒你。",
+    install_h2: "快速开始", install_lead: "一条命令，1 分钟搞定。",
+    i1_t: "安装", i1_d: "零依赖，装完即用。",
+    i2_t: "初始化", i2_d: "自动挂载到 Claude Code、Cline、Cursor，支持 --kimi。",
+    i3_t: "手动挂载", i3_d: "任何支持 MCP 的客户端，添加 stdio server 即可。",
+    compat_h2: "兼容所有 MCP 宿主", compat_lead: "数据存在 ", compat_any: "任意 MCP 客户端",
+    cta_h2: "让 AI 记住你，并在需要时主动开口",
+    cta_p: "教一次，处处用。现在就给你的 AI 装上主动记忆。",
+    cta_docs: "查看文档", cta_star: "Star on GitHub",
+  },
+  en: {
+    nav_features: "Features", nav_install: "Install", nav_compat: "Compatibility", nav_github: "GitHub",
+    hero_badge: "v0.5.4 · Zero-dependency · Live on Smithery",
+    hero_h1_1: "One MCP,", hero_h1_2: "every AI remembers you.",
+    hero_sub: "Shared proactive memory for Claude Code, Kimi Code, Cline & Cursor. It remembers what you teach — and speaks up when it matters.",
+    hero_sub2: "Corrections · Follow-ups · Automation · Todos · Skills — five nudges · Cross-tool · Scoped · Anti-poisoning",
+    cta_start: "Quick start (1 min)", cta_source: "Source code",
+    term1: "# One command — every MCP-capable AI gets proactive memory",
+    term2: "# Teach in Claude Code → recall in Kimi Code (100%)",
+    stat_tools: "MCP tools", stat_types: "Nudge types", stat_score: "Smithery score", stat_deps: "Dependencies",
+    features_h2: "Core features", features_lead: "It remembers everything — and speaks up when it should.",
+    f1_t: "Cross-tool memory", f1_d: "Teach once in Claude Code — use it in Kimi Code, Cline and Cursor.",
+    f2_t: "Proactive nudges", f2_d: "Corrections, follow-ups, todos, automation, skills — five nudges, only when needed.",
+    f3_t: "Anti-poisoning", f3_d: "Memories are confirmed before use. Bad content stays out.",
+    f4_t: "Zero-dependency", f4_d: "Install via npm and go. No clone, no bun.",
+    f5_t: "Scoped memory", f5_d: "Project rules stay scoped. Global prefs work everywhere.",
+    f6_t: "Time-aware", f6_d: "Periodic tasks and daily reviews, nudged at the right time.",
+    install_h2: "Quick start", install_lead: "One command. Under a minute.",
+    i1_t: "Install", i1_d: "Zero-dependency. Ready to use.",
+    i2_t: "Init", i2_d: "Auto-wires into Claude Code, Cline & Cursor. Supports --kimi.",
+    i3_t: "Manual setup", i3_d: "Any MCP-capable client: add it as a stdio server.",
+    compat_h2: "Works with any MCP host", compat_lead: "Data lives in ", compat_any: "Any MCP client",
+    cta_h2: "Let AI remember you — and speak up when needed",
+    cta_p: "Teach once, use everywhere. Give your AI proactive memory now.",
+    cta_docs: "Docs", cta_star: "Star on GitHub",
+  }
+};
+
+function setLang(lang) {
+  const dict = I18N[lang] || I18N.zh;
+  document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (dict[key] !== undefined) el.textContent = dict[key];
+  });
+  document.getElementById('langBtn').textContent = lang === 'zh' ? 'EN' : '中文';
+  try { localStorage.setItem('pa_lang', lang); } catch (e) {}
+}
+
+function toggleLang() {
+  const cur = (document.documentElement.lang || 'zh').startsWith('zh') ? 'zh' : 'en';
+  setLang(cur === 'zh' ? 'en' : 'zh');
+}
+
+(function init() {
+  let lang = 'zh';
+  try { lang = localStorage.getItem('pa_lang') || 'zh'; } catch (e) {}
+  setLang(lang);
+})();
+</script>
 </body>
 </html>
