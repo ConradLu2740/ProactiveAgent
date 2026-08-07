@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ProactiveAgent · Live Story — Teach once, use everywhere</title>
+<meta name="description" content="ProactiveAgent live validation: Claude Code remembers → Kimi Code recalls, cross-tool shared memory; proactive suggestions hit behavior corrections & automation needs.">
+<!-- SEO: OG / Twitter / canonical -->
+<meta property="og:title" content="ProactiveAgent · Live Story — Teach once, use everywhere">
+<meta property="og:description" content="Zero-dependency MCP proactive memory + suggestions server: Claude Code remembers → Kimi Code recalls; mid-session proactive push + time-aware suggestions + ROI metrics; npm 0.5.3.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://conradlu2740.github.io/ProactiveAgent/story.html">
+<meta property="og:image" content="https://conradlu2740.github.io/ProactiveAgent/docs/today-panel.png">
+<meta property="og:site_name" content="ProactiveAgent">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="ProactiveAgent · Teach once, use everywhere">
+<meta name="twitter:description" content="MCP proactive memory: cross-tool shared memory + proactive suggestions + per-project isolation. npm i @proactive-agent/mcp">
+<meta name="twitter:image" content="https://conradlu2740.github.io/ProactiveAgent/docs/today-panel.png">
+<link rel="canonical" href="https://conradlu2740.github.io/ProactiveAgent/story.html">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "ProactiveAgent",
+  "description": "Zero-dependency MCP server: cross-tool shared memory + proactive suggestions, per-project isolation.",
+  "operatingSystem": "macOS, Linux, Windows",
+  "softwareVersion": "0.5.0",
+  "url": "https://github.com/ConradLu2740/ProactiveAgent",
+  "applicationCategory": "DeveloperApplication"
+}
+</script>
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg2: #161b22;
+    --bg3: #1c2129;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.12);
+    --text: #e6edf3;
+    --text2: #8b949e;
+    --text3: #57606a;
+    --blue: #58a6ff;
+    --green: #3fb950;
+    --yellow: #d29922;
+    --red: #f85149;
+    --purple: #bc8cff;
+    --mono: "SF Mono", SFMono-Regular, ui-monospace, Menlo, Consolas, "Liberation Mono", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body { background:var(--bg); color:var(--text); font-family:var(--sans); line-height:1.6; -webkit-font-smoothing:antialiased; }
+  ::selection { background:rgba(88,166,255,0.3); }
+
+  /* ===== Hero ===== */
+  .hero { position:relative; padding:72px 24px 56px; text-align:center; overflow:hidden;
+    background:radial-gradient(1200px 500px at 50% -100px, rgba(88,166,255,0.12), transparent 60%),
+               radial-gradient(900px 400px at 80% 120%, rgba(63,185,80,0.08), transparent 55%),
+               var(--bg);
+  }
+  .hero-badge { display:inline-flex; align-items:center; gap:8px; background:rgba(63,185,80,0.1); border:1px solid rgba(63,185,80,0.25); color:var(--green); font-size:13px; font-weight:600; padding:5px 14px; border-radius:999px; margin-bottom:20px; letter-spacing:0.3px; }
+  .hero-badge .dot { width:7px; height:7px; border-radius:50%; background:var(--green); animation:pulse 1.6s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1; transform:scale(1)} 50%{opacity:0.4; transform:scale(0.75)} }
+  .hero h1 { font-size:44px; font-weight:800; letter-spacing:-0.5px; line-height:1.2; margin-bottom:16px; }
+  .hero h1 em { font-style:normal; background:linear-gradient(90deg,var(--blue),var(--green)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .hero .sub { font-size:17px; color:var(--text2); max-width:640px; margin:0 auto 30px; }
+  .hero .sub strong { color:var(--text); font-weight:600; }
+  .hero-cta { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+  .btn { display:inline-flex; align-items:center; gap:8px; font-family:var(--mono); font-size:13.5px; padding:11px 20px; border-radius:8px; border:1px solid var(--border2); background:var(--bg2); color:var(--text); text-decoration:none; transition:all 0.15s; }
+  .btn:hover { border-color:var(--blue); transform:translateY(-1px); }
+  .btn.primary { background:linear-gradient(135deg, rgba(88,166,255,0.18), rgba(63,185,80,0.14)); border-color:rgba(88,166,255,0.4); color:var(--text); font-weight:600; }
+  .btn.primary:hover { border-color:var(--blue); box-shadow:0 4px 24px rgba(88,166,255,0.2); }
+  .btn .kbd { font-size:11px; color:var(--text3); border:1px solid var(--border2); padding:1px 6px; border-radius:4px; }
+
+  .stats-row { display:flex; gap:36px; justify-content:center; margin-top:44px; flex-wrap:wrap; }
+  .stat { text-align:center; }
+  .stat .num { font-family:var(--mono); font-size:24px; font-weight:700; color:var(--blue); }
+  .stat .num.g { color:var(--green); }
+  .stat .label { font-size:12px; color:var(--text3); margin-top:2px; letter-spacing:0.3px; }
+
+  /* ===== Section ===== */
+  .section { max-width:1080px; margin:0 auto; padding:64px 24px; }
+  .section-head { text-align:center; margin-bottom:40px; }
+  .section-kicker { font-family:var(--mono); font-size:12.5px; color:var(--blue); text-transform:uppercase; letter-spacing:2px; margin-bottom:10px; }
+  .section-head h2 { font-size:30px; font-weight:700; margin-bottom:10px; }
+  .section-head p { color:var(--text2); font-size:15px; max-width:600px; margin:0 auto; }
+
+  /* ===== Scenario layout ===== */
+  .scene { background:var(--bg2); border:1px solid var(--border); border-radius:16px; padding:28px; margin-bottom:20px; }
+  .scene-title { display:flex; align-items:center; gap:12px; font-size:17px; font-weight:700; margin-bottom:6px; }
+  .scene-title .tag { font-family:var(--mono); font-size:11px; padding:3px 10px; border-radius:999px; background:rgba(88,166,255,0.12); color:var(--blue); border:1px solid rgba(88,166,255,0.25); font-weight:600; }
+  .scene-title .tag.g { background:rgba(63,185,80,0.12); color:var(--green); border-color:rgba(63,185,80,0.25); }
+  .scene-desc { color:var(--text2); font-size:14px; margin-bottom:20px; }
+
+  /* ===== Terminals ===== */
+  .term-grid { display:grid; grid-template-columns:1fr auto 1fr; gap:16px; align-items:stretch; }
+  .term-grid.single { grid-template-columns:1fr; }
+  .term { border-radius:12px; overflow:hidden; background:#0d1117; border:1px solid var(--border2); box-shadow:0 8px 30px rgba(0,0,0,0.35); display:flex; flex-direction:column; }
+  .term-head { display:flex; align-items:center; gap:7px; padding:10px 14px; background:var(--bg3); border-bottom:1px solid var(--border); }
+  .term-head .dots { display:flex; gap:7px; }
+  .term-head .d { width:11px; height:11px; border-radius:50%; }
+  .term-head .d.r { background:#ff5f57; } .term-head .d.y { background:#febc2e; } .term-head .d.g { background:#28c840; }
+  .term-head .t { font-size:12px; color:var(--text2); margin-left:8px; font-family:var(--mono); }
+  .term-head .badge { margin-left:auto; font-size:10.5px; color:var(--text3); font-family:var(--mono); display:flex; align-items:center; gap:5px; }
+  .term-head .badge .live { width:6px; height:6px; border-radius:50%; background:var(--green); animation:pulse 1.6s infinite; }
+  .term-body { padding:14px 16px; font-family:var(--mono); font-size:12.5px; line-height:1.85; min-height:180px; }
+  .l { opacity:0; transform:translateY(4px); transition:opacity 0.25s, transform 0.25s; white-space:pre-wrap; word-break:break-word; }
+  .l.on { opacity:1; transform:none; }
+  .p { color:var(--green); }          /* prompt */
+  .c { color:var(--text); }           /* command */
+  .o { color:var(--text2); }          /* output */
+  .ok { color:var(--green); }
+  .hi { color:var(--blue); font-weight:600; }
+  .wa { color:var(--yellow); }
+  .rd { color:var(--red); }
+  .dim { color:var(--text3); }
+  .arrow-node { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; color:var(--blue); padding:0 4px; }
+  .arrow-node .a { font-size:22px; line-height:1; animation:floaty 2s ease-in-out infinite; }
+  .arrow-node .lbl { font-size:11px; color:var(--text3); font-family:var(--mono); white-space:nowrap; }
+  @keyframes floaty { 0%,100%{transform:translateY(0)} 50%{transform:translateY(4px)} }
+
+  /* shared storage bar */
+  .share-bar { margin-top:18px; border:1px dashed rgba(88,166,255,0.3); border-radius:10px; padding:12px 16px; display:flex; align-items:center; gap:14px; background:rgba(88,166,255,0.04); }
+  .share-bar .icon { font-size:18px; }
+  .share-bar .info { font-family:var(--mono); font-size:12.5px; color:var(--text2); }
+  .share-bar .info b { color:var(--blue); }
+  .share-bar .info .path { color:var(--text3); }
+
+  /* suggestion card */
+  .sugg { margin-top:14px; border:1px solid rgba(210,153,34,0.35); border-left:3px solid var(--yellow); border-radius:8px; background:rgba(210,153,34,0.07); padding:12px 16px; font-family:var(--mono); font-size:12.5px; opacity:0; transform:translateY(6px); transition:opacity 0.4s, transform 0.4s; }
+  .sugg.on { opacity:1; transform:none; }
+  .sugg .tag-row { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+  .sugg .tag { font-size:10.5px; padding:2px 9px; border-radius:999px; font-weight:700; letter-spacing:0.5px; }
+  .sugg .tag.corr { background:rgba(210,153,34,0.16); color:var(--yellow); }
+  .sugg .tag.auto { background:rgba(188,140,255,0.16); color:var(--purple); }
+  .sugg .title { font-size:13.5px; color:var(--text); font-weight:700; }
+  .sugg .reason { color:var(--text2); margin:6px 0; }
+  .sugg .meta { color:var(--text3); font-size:11.5px; display:flex; gap:16px; flex-wrap:wrap; }
+  .sugg .meta b { color:var(--text2); }
+  .sugg .actions { margin-top:12px; display:flex; gap:8px; flex-wrap:wrap; }
+  .chip { font-size:12px; font-family:var(--mono); padding:4px 12px; border-radius:6px; border:1px solid var(--border2); background:var(--bg3); color:var(--text2); cursor:default; }
+  .chip.accept { border-color:rgba(63,185,80,0.4); color:var(--green); background:rgba(63,185,80,0.08); }
+  .chip.ignore { border-color:rgba(248,81,73,0.35); color:var(--red); background:rgba(248,81,73,0.06); }
+  .chip.done { border-color:var(--green); color:var(--green); background:rgba(63,185,80,0.14); }
+
+  /* feedback loop */
+  .flow { margin-top:14px; display:flex; gap:14px; flex-wrap:wrap; opacity:0; transform:translateY(6px); transition:all 0.4s; }
+  .flow.on { opacity:1; transform:none; }
+  .flow .node { flex:1; min-width:150px; background:var(--bg3); border:1px solid var(--border); border-radius:8px; padding:10px 14px; font-family:var(--mono); font-size:11.5px; color:var(--text2); }
+  .flow .node b { display:block; color:var(--text); font-size:12px; margin-bottom:4px; }
+  .flow .node .val { color:var(--green); }
+  .flow .node .val.b { color:var(--blue); }
+
+  /* control buttons */
+  .scene-ctrl { margin-top:20px; display:flex; gap:10px; align-items:center; }
+  .ctrl-btn { font-family:var(--mono); font-size:13px; padding:8px 16px; border-radius:8px; border:1px solid var(--border2); background:var(--bg3); color:var(--text); cursor:pointer; transition:all 0.15s; }
+  .ctrl-btn:hover { border-color:var(--blue); color:var(--blue); }
+  .ctrl-btn.primary { border-color:rgba(88,166,255,0.4); color:var(--blue); }
+  .ctrl-btn:disabled { opacity:0.4; cursor:not-allowed; }
+  .ctrl-state { font-size:12px; color:var(--text3); font-family:var(--mono); }
+
+  /* footer CTA */
+  .final { text-align:center; padding:72px 24px; background:radial-gradient(900px 400px at 50% 120%, rgba(63,185,80,0.08), transparent 60%), var(--bg); border-top:1px solid var(--border); }
+  .final h2 { font-size:32px; font-weight:800; margin-bottom:14px; }
+  .final h2 em { font-style:normal; color:var(--green); }
+  .final p { color:var(--text2); font-size:15px; max-width:560px; margin:0 auto 28px; }
+  .final .cmd { font-family:var(--mono); font-size:14px; background:var(--bg2); border:1px solid var(--border2); border-radius:10px; padding:16px 24px; display:inline-flex; align-items:center; gap:10px; color:var(--text); }
+  .final .cmd .pmt { color:var(--green); }
+  .final .cmd .hl { color:var(--blue); }
+  .final .links { margin-top:24px; display:flex; gap:20px; justify-content:center; font-size:13.5px; }
+  .final .links a { color:var(--blue); text-decoration:none; border-bottom:1px dashed rgba(88,166,255,0.4); padding-bottom:1px; }
+  .final .links a:hover { color:var(--text); }
+
+  footer { text-align:center; padding:28px 16px; color:var(--text3); font-size:12.5px; border-top:1px solid var(--border); }
+  footer a { color:var(--text2); text-decoration:none; }
+
+  /* responsive */
+  @media (max-width: 860px) {
+    .hero h1 { font-size:32px; }
+    .term-grid { grid-template-columns:1fr; }
+    .arrow-node { flex-direction:row; }
+    .section { padding:44px 16px; }
+    .scene { padding:20px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Language switch -->
+<div class="lang-switch"><a href="story.html">中文</a><span class="sep">|</span><a class="active" href="story.en.html">EN</a></div>
+
+<!-- ============ HERO ============ -->
+<header class="hero">
+  <div class="hero-badge"><span class="dot"></span> Live-tested · 2026-08-07 · v0.5.3 · <span class="dim" style="opacity:0.8">Auto-plays on load; replay manually anytime</span></div>
+  <h1>Teach once, <em>use everywhere</em></h1>
+  <p class="sub">A plug-and-play proactive capability add-on for <strong>Claude Code / Kimi Code / Cline / Cursor / Proma</strong>.<br>Cross-tool shared proactive memory + proactive suggestions that stay silent when they should — <strong>mid-session proactive push</strong> + time-aware prefill + ROI feedback loop. One MCP mount, every agent gains it instantly.</p>
+  <div class="hero-cta">
+    <a class="btn primary" href="https://github.com/ConradLu2740/ProactiveAgent" target="_blank" rel="noopener">GitHub repo →</a>
+    <a class="btn" href="#scene1">Cross-tool sharing</a>
+    <a class="btn" href="#scene2">Proactive suggestions</a>
+    <a class="btn" href="#scene3">Security &amp; execution</a>
+    <a class="btn" href="#scene5">Today panel</a>
+  </div>
+  <div class="stats-row">
+    <div class="stat"><div class="num">100%</div><div class="label">Cross-tool recall hit</div></div>
+    <div class="stat"><div class="num g">0 lines</div><div class="label">Host code changes</div></div>
+    <div class="stat"><div class="num">18</div><div class="label">MCP tools</div></div>
+    <div class="stat"><div class="num g">3</div><div class="label">Real hosts verified</div></div>
+    <div class="stat"><div class="num">239</div><div class="label">Automated tests</div></div>
+    <div class="stat"><div class="num g">9</div><div class="label">Interactive scenes</div></div>
+  </div>
+</header>
+
+<!-- ============ SCENE 1: Cross-tool sharing ============ -->
+<section class="section" id="scene1">
+  <div class="section-head">
+    <div class="section-kicker">Story 01</div>
+    <h2>Cross-tool sharing: Claude Code remembers, Kimi Code gets it instantly</h2>
+    <p>Memory is a “user-level asset”. Teach once in Claude Code, and Kimi Code reads the same memory through the same MCP server — zero config, works immediately. Real measured output below.</p>
+  </div>
+
+  <div class="scene">
+    <div class="scene-title"><span class="tag">ACT 1 · Write</span>Remember once in Claude Code</div>
+    <div class="scene-desc">The agent calls <code>memory_capture</code> to write key project info into long-term memory (default <code>~/.proma-proactive/</code>).</div>
+    <div class="term-grid">
+      <div class="term">
+        <div class="term-head"><div class="dots"><span class="d r"></span><span class="d y"></span><span class="d g"></span></div><span class="t">Claude Code</span><span class="badge"><span class="live"></span>proj-a</span></div>
+        <div class="term-body" id="t1a"></div>
+      </div>
+    </div>
+    <div class="share-bar">
+      <div class="icon">💾</div>
+      <div class="info">User-level shared storage: <b>~/.proma-proactive/</b> (overridable via <span class="path">PROACTIVE_DATA_DIR</span>)<br>Memory is a user asset, not owned by any single tool.</div>
+    </div>
+    <div class="scene-ctrl">
+      <button class="ctrl-btn primary" id="btn1a" onclick="playScene1()">▶ Play</button>
+      <span class="ctrl-state" id="state1a">Waiting</span>
+    </div>
+  </div>
+
+  <div class="scene">
+    <div class="scene-title"><span class="tag g">ACT 2 · Recall</span>Learn it directly in Kimi Code</div>
+    <div class="scene-desc">Kimi Code mounts the same MCP server and calls <code>memory_recall</code> — it hits the memory written by Claude Code, <strong class="ok">100% relevance</strong>.</div>
+    <div class="term-grid">
+      <div class="term">
+        <div class="term-head"><div class="dots"><span class="d r"></span><span class="d y"></span><span class="d g"></span></div><span class="t">Kimi Code</span><span class="badge"><span class="live"></span>proj-b · separate dir</span></div>
+        <div class="term-body" id="t1b"></div>
+      </div>
+    </div>
+    <div class="scene-ctrl">
+      <button class="ctrl-btn primary" id="btn1b" onclick="playScene1b()">▶ Play</button>
+      <span class="ctrl-state" id="state1b">Waiting</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SCENE 2: Proactive suggestions ============ -->
+<section class="section" id="scene2">
+  <div class="section-head">
+    <div class="section-kicker">Story 02</div>
+    <h2>Proactive suggestions: speak only when it should</h2>
+    <p>Not a noisy pusher. The suggest engine only speaks on clear signals: <strong>you corrected the agent</strong> (correction), <strong>you expressed a recurring need</strong> (automation), <strong>you said later</strong> (followup) — since 0.5.0 it also supports <strong>mid-session real-time push</strong> (UserPromptSubmit hook, no need to wait for session end). Real measured output below.</p>
+  </div>
+
+  <div class="scene">
+    <div class="scene-title"><span class="tag">ACT 3 · Correction</span>You correct behavior → suggestion to persist the rule</div>
+    <div class="scene-desc">You say “always write unit tests before committing from now on”, suggest_now detects it as a behavior-correction signal.</div>
+    <div class="term-grid single">
+      <div class="term">
+        <div class="term-head"><div class="dots"><span class="d r"></span><span class="d y"></span><span class="d g"></span></div><span class="t">Kimi Code</span><span class="badge"><span class="live"></span>same data dir</span></div>
+        <div class="term-body" id="t2"></div>
+      </div>
+    </div>
+    <div class="scene-ctrl">
+      <button class="ctrl-btn primary" id="btn2" onclick="playScene2()">▶ Play</button>
+      <span class="ctrl-state" id="state2">Waiting</span>
+    </div>
+  </div>
+
+  <div class="scene">
+    <div class="scene-title"><span class="tag">ACT 4 · Automation</span>You express a recurring need → suggestion to create a scheduled task</div>
+    <div class="scene-desc">You say “check project progress and summarize at 5pm every day”, suggest_now detects it as an automation signal.</div>
+    <div class="term-grid single">
+      <div class="term">
+        <div class="term-head"><div class="dots"><span class="d r"></span><span class="d y"></span><span class="d g"></span></div><span class="t">Kimi Code</span><span class="badge"><span class="live"></span>same data dir</span></div>
+        <div class="term-body" id="t3"></div>
+      </div>
+    </div>
+    <div class="scene-ctrl">
+      <button class="ctrl-btn primary" id="btn3" onclick="playScene3()">▶ Play</button>
+      <span class="ctrl-state" id="state3">Waiting</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SCENE 3: Security & execution ============ -->
+<section class="section" id="scene3">
+  <div class="section-head">
+    <div class="section-kicker">Story 03</div>
+    <h2>Security baseline &amp; “accept = execute”</h2>
+    <p>Memory safety has a baseline: auto-extracted items are <b>pending by default</b>, LLM config follows the <b>same-source principle</b>; and the suggestion loop has upgraded from “just recorded” to “<b>accept = execute</b>” — automation/todo suggestions really become tasks.</p>
+  </div>
+
+  <div class="scene">
+    <div class="scene-title"><span class="tag">ACT 5 · Anti-poisoning</span>Auto-extracted items are pending; confirm before recall</div>
+    <div class="scene-desc"><code>memory_extract</code> hands the conversation to the engine (LLM mode by default, degrades to rule mode with zero outbound traffic) — results are <b>pending by default</b>; only your confirmation lets them enter recall, blocking malicious/incorrect injection.</div>
+    <div class="term-grid single">
+      <div class="term">
+        <div class="term-head"><div class="dots"><span class="d r"></span><span class="d y"></span><span class="d g"></span></div><span class="t">Claude Code</span><span class="badge"><span class="live"></span>memory_extract</span></div>
+        <div class="term-body" id="t4"></div>
+      </div>
+    </div>
+    <div class="scene-ctrl">
+      <button class="ctrl-btn primary" id="btn4" onclick="playScene4()">▶ Play</button>
+      <span class="ctrl-state" id="state4">Waiting</span>
+    </div>
+  </div>
+
+  <div class="scene">
+    <div class="scene-title"><span class="tag g">ACT 6 · Execute</span>Accept = execute: really creates a scheduled task</div>
+    <div class="scene-desc">Since 0.5.2 <code>suggest_accept</code> is no longer just “recorded” — automation/todo suggestions go through Action Executor, <strong class="ok">really writing to the local task queue</strong> (<code>PROACTIVE_DATA_DIR/tasks.json</code>) and returning a task ID; a host-injected real executor auto-overrides.</div>
+    <div class="term-grid single">
+      <div class="term">
+        <div class="term-head"><div class="dots"><span class="d r"></span><span class="d y"></span><span class="d g"></span></div><span class="t">Kimi Code</span><span class="badge"><span class="live"></span>Action Executor</span></div>
+        <div class="term-body" id="t5"></div>
+      </div>
+    </div>
+    <div class="scene-ctrl">
+      <button class="ctrl-btn primary" id="btn5" onclick="playScene5()">▶ Play</button>
+      <span class="ctrl-state" id="state5">Waiting</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SCENE 4: Time-aware & Kimi relay ============ -->
+<section class="section" id="scene4">
+  <div class="section-head">
+    <div class="section-kicker">Story 04</div>
+    <h2>Time-aware prefill &amp; Kimi proactive relay</h2>
+    <p>Recurring needs no longer require manual form filling: the <b>time parser</b> converts zh/en expressions into real <code>cron</code> prefills; the Kimi host uses <b><code>&lt;notification&gt;</code></b> to make the model proactively speak to you.</p>
+  </div>
+
+  <div class="scene">
+    <div class="scene-title"><span class="tag">ACT 7 · Prefill</span>“5pm every day” → cron prefilled, accept to create</div>
+    <div class="scene-desc">You say “check project progress and summarize at 5pm every day” (a spaced Chinese time expression) — the parser converts it to <code>cron: 0 17 * * *</code> prefilled in the suggestion; accept to create the scheduled task directly. 0.5.3 fixed spaced parsing.</div>
+    <div class="term-grid single">
+      <div class="term">
+        <div class="term-head"><div class="dots"><span class="d r"></span><span class="d y"></span><span class="d g"></span></div><span class="t">Kimi Code</span><span class="badge"><span class="live"></span>time parser</span></div>
+        <div class="term-body" id="t6"></div>
+      </div>
+    </div>
+    <div class="scene-ctrl">
+      <button class="ctrl-btn primary" id="btn6" onclick="playScene6()">▶ Play</button>
+      <span class="ctrl-state" id="state6">Waiting</span>
+    </div>
+  </div>
+
+  <div class="scene">
+    <div class="scene-title"><span class="tag g">ACT 8 · Relay</span>Kimi model sees the notification and proactively speaks</div>
+    <div class="scene-desc">Through Kimi externalHooks <code>UserPromptSubmit</code>: the hook outputs <code>&lt;notification&gt;</code> XML aligned with Kimi's task notification convention, and the Kimi model relays the suggestion proactively.</div>
+    <div class="term-grid single">
+      <div class="term">
+        <div class="term-head"><div class="dots"><span class="d r"></span><span class="d y"></span><span class="d g"></span></div><span class="t">Kimi Code</span><span class="badge"><span class="live"></span>notification relay</span></div>
+        <div class="term-body" id="t7"></div>
+      </div>
+    </div>
+    <div class="scene-ctrl">
+      <button class="ctrl-btn primary" id="btn7" onclick="playScene7()">▶ Play</button>
+      <span class="ctrl-state" id="state7">Waiting</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SCENE 5: ROI & Today panel ============ -->
+<section class="section" id="scene5">
+  <div class="section-head">
+    <div class="section-kicker">Story 05</div>
+    <h2>ROI feedback loop &amp; Today panel</h2>
+    <p>Suggestions are not “fire and forget”: a <b>ROI funnel</b> (suggested → accepted → executed) + per-type accept rate + auto budget reduction; the <b>/today proactive center</b> puts suggestions, scenes, persona and tasks right in front of you.</p>
+  </div>
+
+  <div class="scene">
+    <div class="scene-title"><span class="tag">ACT 9 · Panel</span>Today center: see what's happening at a glance</div>
+    <div class="scene-desc">Any host can open <code>http://127.0.0.1:8737/today</code> in a browser (15s auto refresh): pending suggestions, hot scenes, memory stats, landed tasks, user persona and the ROI funnel on one screen.</div>
+    <div class="term-grid single">
+      <div class="term">
+        <div class="term-head"><div class="dots"><span class="d r"></span><span class="d y"></span><span class="d g"></span></div><span class="t">Today panel</span><span class="badge"><span class="live"></span>http://127.0.0.1:8737/today</span></div>
+        <div class="term-body" id="t8"></div>
+      </div>
+    </div>
+    <div class="scene-ctrl">
+      <button class="ctrl-btn primary" id="btn8" onclick="playScene8()">▶ Play</button>
+      <span class="ctrl-state" id="state8">Waiting</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ Footer ============ -->
+<div class="final">
+  <h2>One MCP mount, <em>every agent instantly gains proactive abilities</em></h2>
+  <p>ProactiveAgent has been validated on three completely different hosts: Claude Code, Kimi Code, and Proma. Plug-and-play, zero host code changes.</p>
+  <div class="cmd"><span class="pmt">$</span> npm install <span class="hl">@proactive-agent/mcp</span> <span class="dim"># then npx proactive-mcp init (generates .mcp.json + hooks)</span></div>
+  <div class="links">
+    <a href="https://github.com/ConradLu2740/ProactiveAgent" target="_blank" rel="noopener">GitHub</a>
+    <a href="https://github.com/ConradLu2740/ProactiveAgent/releases" target="_blank" rel="noopener">Releases</a>
+    <a href="https://github.com/ConradLu2740/ProactiveAgent/blob/main/README.md" target="_blank" rel="noopener">README</a>
+  </div>
+  <div class="cmd" style="margin-top:14px;"><span class="dim">v0.5.3 (2026-08-07): time-parse fix · todo noun misreport excluded · instruction-extract filtering · 239 tests green · bilingual README</span></div>
+</div>
+
+<footer>ProactiveAgent · Live-verified story · data from real 2026-08-05 runs + 2026-08-07 fullstack dogfooding revalidation · MIT License</footer>
+
+<script>
+/* ===== terminal playback engine ===== */
+const LINES = {
+  // ACT 1: Claude Code writes
+  t1a: [
+    { cls:'c',  html:'<span class="p">❯</span> claude' },
+    { cls:'c',  html:'<span class="p">❯</span> Use memory_capture: ProactiveAgent is built with bun, runs as an MCP Server' },
+    { cls:'o',  html:'· Memory written <span class="ok">[fact]</span> priority 70: ProactiveAgent is built with <span class="hi">bun</span>, runs as an MCP Server' },
+    { cls:'o',  html:'· Target audience: AI agent developers' },
+    { cls:'o',  html:'· <span class="dim">Persisted to ~/.proma-proactive/memory/atoms/2026-08-05.jsonl</span>' },
+    { cls:'o',  html:'· <span class="ok">✔ Confirmed, entered long-term memory (confirmed=true)</span>' },
+  ],
+  // ACT 2: Kimi Code recalls
+  t1b: [
+    { cls:'c',  html:'<span class="p">❯</span> kimi' },
+    { cls:'c',  html:'<span class="p">❯</span> Use memory_recall: what is ProactiveAgent built with?' },
+    { cls:'o',  html:'· Relevant memory (1 hit):' },
+    { cls:'o',  html:'· 1. <span class="ok">[fact]</span> ProactiveAgent is built with <span class="hi">bun</span>, runs as an MCP Server' },
+    { cls:'o',  html:'&nbsp;&nbsp;&nbsp;&nbsp;<span class="dim">priority 70 · relevance</span> <span class="hi">100%</span>' },
+    { cls:'o',  html:'· <span class="ok">✔ Hit the memory written by Claude Code — no re-teaching needed</span>' },
+  ],
+  // ACT 3: correction suggestion
+  t2: [
+    { cls:'c',  html:'<span class="p">❯</span> always write unit tests before committing from now on' },
+    { cls:'o',  html:'· suggest_now evaluating… <span class="dim">(signal type: behavior correction)</span>' },
+  ],
+  // ACT 4: automation suggestion
+  t3: [
+    { cls:'c',  html:'<span class="p">❯</span> check project progress and summarize at 5pm every day' },
+    { cls:'o',  html:'· suggest_now evaluating… <span class="dim">(signal type: recurring need)</span>' },
+  ],
+  // ACT 5: anti-poisoning (pending)
+  t4: [
+    { cls:'c',  html:'<span class="p">❯</span> memory_extract: extract anything worth remembering from this conversation' },
+    { cls:'o',  html:'· Extraction done, <span class="wa">pending by default (awaiting confirmation)</span>:' },
+    { cls:'o',  html:'· 1. <span class="hi">[pending]</span> project built with bun, MCP Server form <span class="dim">(awaiting confirmation)</span>' },
+    { cls:'o',  html:'· 2. <span class="wa">[pending]</span> “Use Bun.serve to start HTTP service (default port 8787)…” <span class="dim">(suspected instruction noise, filtered in 0.5.3)</span>' },
+    { cls:'o',  html:'· <span class="ok">✔ You confirm #1, reject #2 → only confirmed memory enters recall</span>' },
+    { cls:'o',  html:'· <span class="dim">Same-source principle: the LLM apiKey decides the trust source; baseUrl/model only from the same source</span>' },
+  ],
+  // ACT 6: accept = execute
+  t5: [
+    { cls:'c',  html:'<span class="p">❯</span> check release status at 5pm every day' },
+    { cls:'o',  html:'· suggest_now → <span class="hi">automation suggestion</span> → you click <span class="ok">suggest_accept</span>' },
+    { cls:'o',  html:'· Action Executor running… <span class="dim">(default local executor)</span>' },
+    { cls:'o',  html:'· <span class="ok">✅ Scheduled task created #task_1786026864539_fbbju3: release status at 5pm</span>' },
+    { cls:'o',  html:'· <span class="dim">Written to PROACTIVE_DATA_DIR/tasks.json; visible & completable in /today</span>' },
+  ],
+  // ACT 7: time-aware prefill
+  t6: [
+    { cls:'c',  html:'<span class="p">❯</span> check project progress and summarize at 5pm every day' },
+    { cls:'o',  html:'· Time parser: <span class="hi">“5pm every day”</span> (spaced) → <span class="ok">cron: 0 17 * * *</span>' },
+    { cls:'o',  html:'· Suggestion prefills a real cron, not just “open the form”' },
+    { cls:'o',  html:'· <span class="dim">0.5.3 fix: spaced Chinese times parse correctly now (previously fell back to 09:00)</span>' },
+  ],
+  // ACT 8: Kimi proactive relay
+  t7: [
+    { cls:'c',  html:'<span class="p">❯</span> always use pnpm to install dependencies from now on' },
+    { cls:'o',  html:'· kimi-user-prompt hook evaluates (UserPromptSubmit) → emits <span class="hi">&lt;notification&gt;</span>:' },
+    { cls:'o',  html:'&nbsp;&nbsp;<span class="dim">&lt;notification id="pa-…" category="proactive" type="suggestion"&gt;</span>' },
+    { cls:'o',  html:'&nbsp;&nbsp;<span class="dim">Title: Remember this correction · Severity: info</span>' },
+    { cls:'o',  html:'&nbsp;&nbsp;<span class="dim">&lt;/notification&gt;</span>' },
+    { cls:'o',  html:'· Kimi sees the notification and speaks: <span class="ok">“You said use pnpm from now on — want me to remember it?”</span>' },
+  ],
+  // ACT 9: Today panel
+  t8: [
+    { cls:'o',  html:'<span class="dim">┌─ ProactiveAgent · Today Center (15s auto refresh)</span>' },
+    { cls:'o',  html:'<span class="dim">│  Data dir /Users/…/dogfood-data · project dogfood-demo</span>' },
+    { cls:'o',  html:'<span class="dim">│</span> Pending suggestions (7) <span class="dim">: correction 5 · todo 2</span>' },
+    { cls:'o',  html:'<span class="dim">│</span> Hot scene: <span class="hi">write unit tests before committing</span> (heat 60 · 3 memories)' },
+    { cls:'o',  html:'<span class="dim">│</span> Memory stats: <span class="ok">3 atoms</span> (preference 1 · correction 1 · sop 1) · 6 pending' },
+    { cls:'o',  html:'<span class="dim">│</span> ROI: 7 suggested · 0 accepted · type accept correction 0/5 · <span class="wa">insufficient sample, no budget cut</span>' },
+    { cls:'o',  html:'<span class="dim">└─</span> persona generated (with src traceability)' },
+  ],
+};
+
+function typeInto(elId, lines, delay, onDone) {
+  const el = document.getElementById(elId);
+  el.innerHTML = '';
+  let i = 0;
+  function next() {
+    if (i >= lines.length) { onDone && onDone(); return; }
+    const div = document.createElement('div');
+    div.className = 'l';
+    div.innerHTML = lines[i].html;
+    el.appendChild(div);
+    requestAnimationFrame(() => div.classList.add('on'));
+    i++;
+    setTimeout(next, delay);
+  }
+  setTimeout(next, 300);
+}
+
+/* append suggestion card */
+function appendSugg(elId, html) {
+  const el = document.getElementById(elId);
+  const div = document.createElement('div');
+  div.className = 'sugg';
+  div.innerHTML = html;
+  el.appendChild(div);
+  requestAnimationFrame(() => div.classList.add('on'));
+  return div;
+}
+
+/* ===== scene 1a: write ===== */
+let playing1a = false;
+function playScene1a() {
+  if (playing1a) return; playing1a = true;
+  const btn = document.getElementById('btn1a');
+  const st = document.getElementById('state1a');
+  btn.disabled = true; st.textContent = 'Playing…';
+  typeInto('t1a', LINES.t1a, 620, () => {
+    st.innerHTML = '<span class="ok">✔ Done — memory written to shared storage</span>';
+    btn.textContent = '↻ Replay'; btn.disabled = false; playing1a = false;
+  });
+}
+document.getElementById('btn1a').addEventListener('click', playScene1a);
+
+/* ===== scene 1b: recall ===== */
+let playing1b = false;
+function playScene1b() {
+  if (playing1b) return; playing1b = true;
+  const btn = document.getElementById('btn1b');
+  const st = document.getElementById('state1b');
+  btn.disabled = true; st.textContent = 'Playing…';
+  typeInto('t1b', LINES.t1b, 620, () => {
+    st.innerHTML = '<span class="ok">✔ Done — cross-tool sharing verified</span>';
+    btn.textContent = '↻ Replay'; btn.disabled = false; playing1b = false;
+  });
+}
+document.getElementById('btn1b').addEventListener('click', playScene1b);
+
+/* ===== scene 2: correction ===== */
+let playing2 = false;
+function playScene2() {
+  if (playing2) return; playing2 = true;
+  const btn = document.getElementById('btn2');
+  const st = document.getElementById('state2');
+  btn.disabled = true; st.textContent = 'Playing…';
+  typeInto('t2', LINES.t2, 700, () => {
+    // suggestion card
+    appendSugg('t2', `
+      <div class="tag-row"><span class="tag corr">CORRECTION</span><span class="title">Remember this correction</span></div>
+      <div class="reason">You just corrected behavior — persist this rule to long-term memory so it never happens again.</div>
+      <div class="meta"><span>Suggestion ID: <b>c6e763d9-8184-4f04-848f-0ebd97d2fb6d</b></span><span>Signal: <b>behavior correction</b></span></div>
+      <div class="actions">
+        <span class="chip accept">✔ suggest_accept</span>
+        <span class="chip ignore">suggest_ignore</span>
+      </div>
+    `);
+    // accept
+    setTimeout(() => {
+      appendSugg('t2', `
+        <div class="tag-row"><span class="tag corr">ACCEPTED</span><span class="title" style="color:var(--green)">✔ Accepted</span></div>
+        <div class="meta"><span>Feedback loop: <b>typeWeights.correction</b> <b class="val">1.0 → 1.2</b> (frequency learning)</span></div>
+      `);
+      st.innerHTML = '<span class="ok">✔ Done — accepted, feedback looped back</span>';
+      btn.textContent = '↻ Replay'; btn.disabled = false; playing2 = false;
+    }, 1400);
+  });
+}
+document.getElementById('btn2').addEventListener('click', playScene2);
+
+/* ===== scene 3: automation ===== */
+let playing3 = false;
+function playScene3() {
+  if (playing3) return; playing3 = true;
+  const btn = document.getElementById('btn3');
+  const st = document.getElementById('state3');
+  btn.disabled = true; st.textContent = 'Playing…';
+  typeInto('t3', LINES.t3, 700, () => {
+    appendSugg('t3', `
+      <div class="tag-row"><span class="tag auto">AUTOMATION</span><span class="title">Create a scheduled task</span></div>
+      <div class="reason">You expressed a recurring / long-term need — create a scheduled task so it runs unattended.</div>
+      <div class="meta"><span>Suggestion ID: <b>edfc23b1-f39d-482d-85de-862d7678d464</b></span><span>Signal: <b>recurring need</b></span></div>
+      <div class="actions">
+        <span class="chip accept">✔ suggest_accept</span>
+        <span class="chip ignore">suggest_ignore</span>
+      </div>
+    `);
+    setTimeout(() => {
+      appendSugg('t3', `
+        <div class="tag-row"><span class="tag auto">ACCEPTED</span><span class="title" style="color:var(--green)">✔ Accepted</span></div>
+        <div class="meta"><span>Scheduled task queued, runs unattended</span></div>
+      `);
+      st.innerHTML = '<span class="ok">✔ Done — intent detected proactively, no need to remember it yourself</span>';
+      btn.textContent = '↻ Replay'; btn.disabled = false; playing3 = false;
+    }, 1400);
+  });
+}
+document.getElementById('btn3').addEventListener('click', playScene3);
+
+/* ===== scene 4: anti-poisoning (pending) ===== */
+let playing4 = false;
+function playScene4() {
+  if (playing4) return; playing4 = true;
+  const btn = document.getElementById('btn4');
+  const st = document.getElementById('state4');
+  btn.disabled = true; st.textContent = 'Playing…';
+  typeInto('t4', LINES.t4, 640, () => {
+    appendSugg('t4', `
+      <div class="tag-row"><span class="tag" style="background:rgba(255,255,255,0.08);color:var(--text2);border-color:var(--border2)">PENDING</span><span class="title">Pending memories (2)</span></div>
+      <div class="meta"><span>✔ Confirm #1 → enters recall</span><span>✘ Reject #2 → discarded</span></div>
+      <div class="actions"><span class="chip accept">memory_confirm</span><span class="chip ignore">memory_reject</span></div>
+    `);
+    st.innerHTML = '<span class="ok">✔ Done — only confirmation takes effect, injection chain blocked</span>';
+    btn.textContent = '↻ Replay'; btn.disabled = false; playing4 = false;
+  });
+}
+document.getElementById('btn4').addEventListener('click', playScene4);
+
+/* ===== scene 5: accept = execute ===== */
+let playing5 = false;
+function playScene5() {
+  if (playing5) return; playing5 = true;
+  const btn = document.getElementById('btn5');
+  const st = document.getElementById('state5');
+  btn.disabled = true; st.textContent = 'Playing…';
+  typeInto('t5', LINES.t5, 640, () => {
+    appendSugg('t5', `
+      <div class="tag-row"><span class="tag auto">EXECUTED</span><span class="title" style="color:var(--green)">✅ Scheduled task created</span></div>
+      <div class="meta"><span>Task ID: <b>task_1786026864539_fbbju3</b></span><span>cron: <b>0 17 * * *</b></span><span>status: <b>pending</b></span></div>
+      <div class="reason">Written to PROACTIVE_DATA_DIR/tasks.json · view/complete in /today · host-injected real executor auto-overrides</div>
+    `);
+    st.innerHTML = '<span class="ok">✔ Done — accept = execute, no longer a fallback instruction text</span>';
+    btn.textContent = '↻ Replay'; btn.disabled = false; playing5 = false;
+  });
+}
+document.getElementById('btn5').addEventListener('click', playScene5);
+
+/* ===== scene 6: time-aware prefill ===== */
+let playing6 = false;
+function playScene6() {
+  if (playing6) return; playing6 = true;
+  const btn = document.getElementById('btn6');
+  const st = document.getElementById('state6');
+  btn.disabled = true; st.textContent = 'Playing…';
+  typeInto('t6', LINES.t6, 700, () => {
+    appendSugg('t6', `
+      <div class="tag-row"><span class="tag auto">AUTOMATION</span><span class="title">Create scheduled task (every day 17:00)</span></div>
+      <div class="meta"><span>cron prefilled: <b class="val">0 17 * * *</b></span><span>Suggestion ID: <b>8836d211-9e7b-478d-82ff-6572dd5c2abd</b></span></div>
+      <div class="actions"><span class="chip accept">✔ Accept → create the scheduled task directly</span></div>
+    `);
+    st.innerHTML = '<span class="ok">✔ Done — time expression converted to cron automatically, zero manual filling</span>';
+    btn.textContent = '↻ Replay'; btn.disabled = false; playing6 = false;
+  });
+}
+document.getElementById('btn6').addEventListener('click', playScene6);
+
+/* ===== scene 7: Kimi proactive relay ===== */
+let playing7 = false;
+function playScene7() {
+  if (playing7) return; playing7 = true;
+  const btn = document.getElementById('btn7');
+  const st = document.getElementById('state7');
+  btn.disabled = true; st.textContent = 'Playing…';
+  typeInto('t7', LINES.t7, 620, () => {
+    appendSugg('t7', `
+      <div class="tag-row"><span class="tag corr">NOTIFICATION</span><span class="title">Kimi proactive relay</span></div>
+      <div class="reason">Kimi: You said “use pnpm from now on” — want me to save this rule to long-term memory?<span class="dim"> (accept: suggest_accept)</span></div>
+    `);
+    st.innerHTML = '<span class="ok">✔ Done — model speaks proactively after seeing the notification</span>';
+    btn.textContent = '↻ Replay'; btn.disabled = false; playing7 = false;
+  });
+}
+document.getElementById('btn7').addEventListener('click', playScene7);
+
+/* ===== scene 8: Today panel ===== */
+let playing8 = false;
+function playScene8() {
+  if (playing8) return; playing8 = true;
+  const btn = document.getElementById('btn8');
+  const st = document.getElementById('state8');
+  btn.disabled = true; st.textContent = 'Playing…';
+  typeInto('t8', LINES.t8, 260, () => {
+    st.innerHTML = '<span class="ok">✔ Done — /today: suggestions · scenes · memory · tasks · persona · ROI at a glance</span>';
+    btn.textContent = '↻ Replay'; btn.disabled = false; playing8 = false;
+  });
+}
+document.getElementById('btn8').addEventListener('click', playScene8);
+
+/* ===== auto-play: play once when scrolled into view, keep the final frame ===== */
+const AUTO_PLAY_SCENES = [
+  { btn: 'btn1a', play: playScene1a },
+  { btn: 'btn1b', play: playScene1b },
+  { btn: 'btn2',  play: playScene2 },
+  { btn: 'btn3',  play: playScene3 },
+  { btn: 'btn4',  play: playScene4 },
+  { btn: 'btn5',  play: playScene5 },
+  { btn: 'btn6',  play: playScene6 },
+  { btn: 'btn7',  play: playScene7 },
+  { btn: 'btn8',  play: playScene8 },
+];
+const autoPlayed = {};
+
+if ('IntersectionObserver' in window) {
+  const io = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        const btnId = entry.target.dataset.btn;
+        if (!btnId || autoPlayed[btnId]) continue;
+        autoPlayed[btnId] = true;
+        const item = AUTO_PLAY_SCENES.find((s) => s.btn === btnId);
+        if (item) item.play();
+      }
+    },
+    { threshold: 0.15, rootMargin: '0px 0px -10% 0px' },
+  );
+  for (const s of AUTO_PLAY_SCENES) {
+    const btnEl = document.getElementById(s.btn);
+    if (!btnEl) continue;
+    const scene = btnEl.closest('.scene');
+    if (!scene) continue;
+    scene.dataset.btn = s.btn;
+    io.observe(scene);
+  }
+  // auto-play the first scene immediately on load (no scrolling needed)
+  setTimeout(() => {
+    if (!autoPlayed['btn1a']) { autoPlayed['btn1a'] = true; playScene1a(); }
+  }, 600);
+} else {
+  // no IntersectionObserver (very old browsers): play all once as fallback
+  for (const s of AUTO_PLAY_SCENES) {
+    if (!autoPlayed[s.btn]) { autoPlayed[s.btn] = true; s.play(); }
+  }
+}
+</script>
+</body>
+</html>
