@@ -118,6 +118,12 @@
   .install-card pre { background:#f5f5f5; border:1px solid var(--line); border-radius:10px; padding:16px 18px; font-family:var(--mono); font-size:14px; line-height:1.7; overflow-x:auto; color:var(--text); }
   .install-card p { font-size:15px; color:var(--text2); margin-top:14px; line-height:1.65; }
 
+  /* ===== Install note ===== */
+  .install-note { margin-top:24px; background:var(--blue10); border:1px solid rgba(23,131,255,0.2); border-radius:14px; padding:20px 24px; font-size:15.5px; color:var(--text); line-height:1.8; }
+  .install-note b { color:var(--blue); }
+  .install-note code { font-family:var(--mono); font-size:13.5px; background:var(--bg-card); border:1px solid var(--line); padding:2px 8px; border-radius:6px; }
+  .install-note .ok { color:var(--green); font-weight:600; }
+
   /* ===== Compat ===== */
   .compat { display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin-top:32px; }
   .compat .chip { font-size:16px; padding:12px 22px; border-radius:999px; background:var(--bg-card); border:1px solid var(--line2); color:var(--text2); }
@@ -248,6 +254,10 @@
       <p data-i18n="i3_d">任何支持 MCP 的客户端，添加 stdio server 即可。</p>
     </div>
   </div>
+  <div class="install-note">
+    <span class="ok">✓</span> <span data-i18n="note_1">Windows 与 Linux/macOS 安装命令完全一致</span><span data-i18n="note_1b">（仅需 Node ≥ 18）</span>。<br>
+    <span data-i18n="note_2">数据目录默认 </span><code>~/.proma-proactive/</code><span data-i18n="note_2b">（Windows 为 </span><code data-i18n="win_path">C:\Users\&lt;用户名&gt;\.proma-proactive\</code><span data-i18n="note_2c">）</span>。
+  </div>
 </section>
 
 <section class="section" id="compat">
@@ -309,6 +319,9 @@ const I18N = {
     i1_t: "安装", i1_d: "零依赖，装完即用。",
     i2_t: "初始化", i2_d: "自动挂载到 Claude Code、Cline、Cursor，支持 --kimi。",
     i3_t: "手动挂载", i3_d: "任何支持 MCP 的客户端，添加 stdio server 即可。",
+    note_1: "Windows 与 Linux/macOS 安装命令完全一致", note_1b: "（仅需 Node ≥ 18）",
+    note_2: "数据目录默认 ", note_2b: "（Windows 为 ", note_2c: "）",
+    win_path: "C:\\Users\\<用户名>\\.proma-proactive\\",
     compat_h2: "兼容所有 MCP 宿主", compat_lead: "数据存在 ", compat_any: "任意 MCP 客户端",
     cta_h2: "让 AI 记住你，并在需要时主动开口",
     cta_p: "教一次，处处用。现在就给你的 AI 装上主动记忆。",
@@ -335,6 +348,9 @@ const I18N = {
     i1_t: "Install", i1_d: "Zero-dependency. Ready to use.",
     i2_t: "Init", i2_d: "Auto-wires into Claude Code, Cline & Cursor. Supports --kimi.",
     i3_t: "Manual setup", i3_d: "Any MCP-capable client: add it as a stdio server.",
+    note_1: "Identical install commands on Windows, Linux & macOS", note_1b: " (Node ≥ 18 only)",
+    note_2: "Data lives in ", note_2b: " (", note_2c: " on Windows)",
+    win_path: "C:\\Users\\<username>\\.proma-proactive\\",
     compat_h2: "Works with any MCP host", compat_lead: "Data lives in ", compat_any: "Any MCP client",
     cta_h2: "Let AI remember you — and speak up when needed",
     cta_p: "Teach once, use everywhere. Give your AI proactive memory now.",
