@@ -155,11 +155,11 @@ python3 - <<PYEOF
 import json, zipfile, os
 tools = json.load(open("$SMOKE_DIR/tools-array.json"))
 full = json.load(open("$MCPB_DIR/manifest.json"))
-# 每个 tool 保留 name/inputSchema/description/title/execution（Smithery ServerCard.Tool）
+# 每个 tool 保留 name/inputSchema/outputSchema/annotations/description/title/execution（Smithery ServerCard.Tool）
 smithery_tools = []
 for t in tools:
     e = {"name": t["name"], "inputSchema": t.get("inputSchema", {"type": "object", "properties": {}, "required": []})}
-    for k in ("description", "title", "execution"):
+    for k in ("outputSchema", "annotations", "description", "title", "execution"):
         if t.get(k): e[k] = t[k]
     smithery_tools.append(e)
 full["tools"] = smithery_tools

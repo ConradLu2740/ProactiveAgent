@@ -30,6 +30,12 @@ function text(msg: string): { content: Array<{ type: 'text'; text: string }> } {
   return { content: [{ type: 'text', text: msg }] }
 }
 
+
+/** 所有工具统一返回的 text 结果 schema（供 outputSchema 声明，提升目录质量分） */
+const textResultSchema = z.object({
+  content: z.array(z.object({ type: z.literal('text'), text: z.string() })),
+})
+
 function safeJson(v: unknown): string {
   try {
     return JSON.stringify(v, null, 2)
@@ -59,6 +65,8 @@ export function registerTools(server: McpServer): void {
         priority: z.number().int().min(0).max(100).optional().describe('重要度 0-100，默认 50'),
         scope: z.enum(WRITE_SCOPES).optional().describe('写入层：project 项目层（默认）/ global 全局共享层'),
       },
+      outputSchema: textResultSchema,
+      annotations: {"idempotentHint": true},
     },
     async ({ content, type, priority, scope }) => {
       try {
@@ -91,6 +99,8 @@ export function registerTools(server: McpServer): void {
         sessionId: z.string().optional().describe('来源会话 ID（可回溯）'),
         scope: z.enum(WRITE_SCOPES).optional().describe('提取候选写入层：project（默认）/ global'),
       },
+      outputSchema: textResultSchema,
+      annotations: {"idempotentHint": true},
     },
     async ({ messages, sessionId, scope }) => {
       try {
@@ -127,6 +137,8 @@ export function registerTools(server: McpServer): void {
         type: z.enum(MEMORY_TYPES).optional().describe('按类型过滤'),
         scope: z.enum(READ_SCOPES).optional().describe('读取层：auto 项目+全局合并（默认）/ project / global'),
       },
+      outputSchema: textResultSchema,
+      annotations: {"readOnlyHint": true, "idempotentHint": true},
     },
     async ({ query, limit, type, scope }) => {
       try {
@@ -154,6 +166,8 @@ export function registerTools(server: McpServer): void {
         '1. 待确认记忆（atom）：用 memory_confirm / memory_reject 处理\n' +
         '2. 待确认行为纠正（correction）：用 correction_confirm / correction_reject 处理',
       inputSchema: {},
+      outputSchema: textResultSchema,
+      annotations: {"readOnlyHint": true, "idempotentHint": true},
     },
     async () => {
       const pending = memoryService.pendingAtoms()
@@ -182,6 +196,8 @@ export function registerTools(server: McpServer): void {
       title: '确认记忆',
       description: '确认一条待确认记忆（确认后进入召回；correction/preference/sop 类型会同步刷新用户画像）。',
       inputSchema: { id: z.string().describe('记忆 ID（来自 memory_pending）') },
+      outputSchema: textResultSchema,
+      annotations: {"idempotentHint": true},
     },
     async ({ id }) => {
       const atom = memoryService.confirmAtomById(id)
@@ -195,6 +211,8 @@ export function registerTools(server: McpServer): void {
       title: '拒绝记忆',
       description: '拒绝并删除一条待确认记忆（错误提取或投毒内容）。',
       inputSchema: { id: z.string().describe('记忆 ID（来自 memory_pending）') },
+      outputSchema: textResultSchema,
+      annotations: {"destructiveHint": true, "idempotentHint": true},
     },
     async ({ id }) => {
       const ok = memoryService.rejectAtomById(id)
@@ -214,6 +232,8 @@ export function registerTools(server: McpServer): void {
       inputSchema: {
         scope: z.enum(READ_SCOPES).optional().describe('读取层：auto 合并视图（默认）/ project / global'),
       },
+      outputSchema: textResultSchema,
+      annotations: {"readOnlyHint": true, "idempotentHint": true},
     },
     async ({ scope }) => {
       const persona = memoryService.personaRaw(normalizeReadScope(scope) as 'auto' | 'project' | 'global')
@@ -232,6 +252,8 @@ export function registerTools(server: McpServer): void {
         content: z.string().min(1).max(10000).describe('画像 markdown 内容'),
         scope: z.enum(WRITE_SCOPES).optional().describe('写入层：project（默认）/ global'),
       },
+      outputSchema: textResultSchema,
+      annotations: {"idempotentHint": true},
     },
     async ({ content, scope }) => {
       try {
@@ -249,6 +271,8 @@ export function registerTools(server: McpServer): void {
       title: '近期热点场景',
       description: '读取最近热点场景摘要（主动性的时机信号：最近在做什么、热度多高）。',
       inputSchema: { limit: z.number().int().min(1).max(10).default(3).describe('返回场景数，默认 3') },
+      outputSchema: textResultSchema,
+      annotations: {"readOnlyHint": true, "idempotentHint": true},
     },
     async ({ limit }) => {
       const summary = memoryService.hotScenesSummary(limit)
@@ -273,6 +297,8 @@ export function registerTools(server: McpServer): void {
       title: '记忆统计',
       description: '查看记忆系统统计（atom 数量、类型分布、待确认、画像状态）。',
       inputSchema: {},
+      outputSchema: textResultSchema,
+      annotations: {"readOnlyHint": true, "idempotentHint": true},
     },
     async () => {
       const s = memoryService.stats()
@@ -317,6 +343,8 @@ export function registerTools(server: McpServer): void {
           .optional()
           .describe('评估触发点：session_end=会话结束（默认）/ session_mid=会话中实时（强信号才推）/ manual=手动'),
       },
+      outputSchema: textResultSchema,
+      annotations: {"idempotentHint": true},
     },
     async ({ messages, sessionId, trigger }) => {
       try {
@@ -344,6 +372,8 @@ export function registerTools(server: McpServer): void {
       title: '列出建议',
       description: '列出建议记录，可按状态过滤（suggested 待处理 / accepted 已接受 / ignored 已忽略 / never 永不建议）。',
       inputSchema: { status: z.enum(SUGGEST_STATUS).optional().describe('状态过滤') },
+      outputSchema: textResultSchema,
+      annotations: {"readOnlyHint": true, "idempotentHint": true},
     },
     async ({ status }) => {
       const records = suggestService.listSuggestionsForUI(status)
@@ -367,6 +397,8 @@ export function registerTools(server: McpServer): void {
         id: z.string().describe('建议 ID（来自 suggest_now / suggest_list）'),
         host: z.string().optional().describe('当前宿主名（claude-code / kimi / cline / cursor / proma），用于动作降级文案'),
       },
+      outputSchema: textResultSchema,
+      annotations: {"idempotentHint": true},
     },
     async ({ id, host }) => {
       const result = await suggestService.handleSuggestionFeedback(id, 'accepted', { host: host ?? 'mcp' })
@@ -383,6 +415,8 @@ export function registerTools(server: McpServer): void {
       title: '忽略建议',
       description: '忽略一条建议（计入频率学习：同类建议权重收敛；多次忽略后该类型自动静默）。',
       inputSchema: { id: z.string().describe('建议 ID（来自 suggest_now / suggest_list）') },
+      outputSchema: textResultSchema,
+      annotations: {"idempotentHint": true},
     },
     async ({ id }) => {
       const result = await suggestService.handleSuggestionFeedback(id, 'ignored')
@@ -398,6 +432,8 @@ export function registerTools(server: McpServer): void {
         '确认一条待确认的行为纠正（来自 corrections.json，通常是 memory_extract 规则模式提取）。' +
         '确认后生效：写入 correction 记忆并回流用户画像。ID 来自 memory_pending 返回的 correction 条目。',
       inputSchema: { id: z.string().describe('纠正 ID（来自 memory_pending）') },
+      outputSchema: textResultSchema,
+      annotations: {"idempotentHint": true},
     },
     async ({ id }) => {
       const ok = memoryService.confirmCorrection(id)
@@ -413,6 +449,8 @@ export function registerTools(server: McpServer): void {
         '拒绝一条待确认的行为纠正（错误提取或投毒内容）。' +
         'ID 来自 memory_pending 返回的 correction 条目。',
       inputSchema: { id: z.string().describe('纠正 ID（来自 memory_pending）') },
+      outputSchema: textResultSchema,
+      annotations: {"destructiveHint": true, "idempotentHint": true},
     },
     async ({ id }) => {
       const ok = memoryService.rejectCorrection(id)
@@ -431,6 +469,8 @@ export function registerTools(server: McpServer): void {
         '返回的模板文本会引导你按步骤调用 memory_recall / memory_extract / scene_summary / suggest_now 完成复盘。' +
         '适合会话结束时或每日定时触发。',
       inputSchema: { date: z.string().optional().describe('复盘日期（默认今天）') },
+      outputSchema: textResultSchema,
+      annotations: {"readOnlyHint": true, "idempotentHint": true},
     },
     async ({ date }) => {
       return text(buildDailyReviewText(date))
@@ -445,6 +485,8 @@ export function registerTools(server: McpServer): void {
         '冷启动说明：教会本会话如何用好 ProactiveAgent 的记忆与建议工具（何时用 memory_capture/recall/extract、' +
         '如何确认待确认记忆、克制原则）。新环境/新项目第一次挂载时调用一次。',
       inputSchema: {},
+      outputSchema: textResultSchema,
+      annotations: {"readOnlyHint": true, "idempotentHint": true},
     },
     async () => {
       return text(buildOnboardingText())
