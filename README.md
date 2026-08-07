@@ -11,6 +11,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Made with Bun](https://img.shields.io/badge/Bun-🟡-black?logo=bun)](https://bun.sh)
 [![GitHub](https://img.shields.io/badge/GitHub-ProactiveAgent-181717?logo=github)](https://github.com/ConradLu2740/ProactiveAgent)
+[![smithery badge](https://smithery.ai/badge/1797650355/proactive-agent)](https://smithery.ai/servers/1797650355/proactive-agent)
 
 ---
 
