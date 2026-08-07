@@ -23,6 +23,7 @@ import { runStats } from './cli/stats'
 import { runDemo } from './cli/demo'
 import { runMigrate } from './cli/migrate'
 import { runExtract } from './cli/extract'
+import { runArchive } from './cli/archive'
 
 /**
  * 包版本。发布时由 scripts/publish-proactive.sh 通过 bun build
@@ -100,6 +101,11 @@ async function main(): Promise<void> {
     runExtract(argv)
     return
   }
+  // archive：TTL 记忆归档（--dry-run 预览 / --status 查看配置）
+  if (argv.includes('archive')) {
+    runArchive(argv)
+    return
+  }
   // --today：启动本地主动中心 Web 面板（不进入 stdio MCP）
   if (argv.includes('--today')) {
     const port = Number(process.env.PROACTIVE_TODAY_PORT ?? 8737)
@@ -112,11 +118,11 @@ async function main(): Promise<void> {
   }
 
   // 未知首参数：友好提示而非静默进入 stdio（避免用户手滑后进程永久挂起）
-  const KNOWN = new Set(['init', 'doctor', 'stats', 'demo', 'migrate', 'extract', '--today', '--help', '-h', '--version', '-v'])
+  const KNOWN = new Set(['init', 'doctor', 'stats', 'demo', 'migrate', 'extract', 'archive', '--today', '--help', '-h', '--version', '-v'])
   const first = argv[0]
   if (first && !first.startsWith('-') && !KNOWN.has(first)) {
     console.error(`未知子命令: ${first}`)
-    console.error('可用命令: init · doctor · stats · demo · migrate · extract · --today · --help · --version')
+    console.error('可用命令: init · doctor · stats · demo · migrate · extract · archive · --today · --help · --version')
     process.exit(1)
   }
   const server = createServer()

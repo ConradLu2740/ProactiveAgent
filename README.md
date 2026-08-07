@@ -235,7 +235,7 @@ A：多数方案是"单工具的被动记忆"。ProactiveAgent 是**跨工具共
 A：只有 `memory_extract` 的 LLM 模式会把**当前对话片段**发给你自己配置的 LLM（默认 DeepSeek 兼容接口）；规则模式零外发。显式 capture/recall 纯本地。
 
 **Q：记忆量大后性能会变慢吗？**
-A：当前 `memory_recall` 对记忆原子（atoms）做全量扫描检索，个人/中小项目（数千条以内）无感知；当记忆量达到**上万条**后建议做索引化优化（倒排索引 + 时间窗口预过滤），已在 Roadmap（M9）。同时建议定期用 `proactive-mcp stats` 观察记忆规模。
+A：0.5.4 起 `memory_recall` 使用<b>倒排索引</b>（term → atoms，缓存 + 自动失效 + fail-open），只扫描含查询词的候选集，替代全量扫描——个人/中小项目无感知，上万条记忆也能保持低延迟。同时建议定期用 `proactive-mcp stats` 观察记忆规模，并用 `proactive-mcp archive` 做 TTL 归档治理。
 
 ---
 
@@ -257,8 +257,8 @@ A：当前 `memory_recall` 对记忆原子（atoms）做全量扫描检索，个
 - [x] 指标面板：建议接受率 / 打扰率（0.5.0：`suggestionRoiStats` 漏斗 + 类型接受率 + 自动降预算，Today 面板 ROI 区展示）
 - [x] embedding 本地化（0.1.x：local node-llama-cpp + embeddinggemma / api 双模式，默认 off fail-open）
 - [x] 多语言 README（0.5.3：README.en.md + 中英文切换）
-- [ ] 记忆索引化（倒排索引，支撑上万条）
-- [ ] 自动归档 / TTL 记忆管理
+- [x] 记忆索引化（0.5.4：倒排索引 + 缓存失效 + fail-open，支撑上万条）
+- [x] 自动归档 / TTL 记忆管理（0.5.4：按类型 TTL + env 覆盖 + archive CLI）
 
 ## 贡献
 

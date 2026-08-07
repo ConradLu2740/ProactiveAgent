@@ -30,6 +30,7 @@ import {
   writeFileSync,
 } from 'node:fs'
 import { join } from 'node:path'
+import { resetIndexCache } from './inverted-index'
 import {
   getMemoryRootDir,
   getMemoryIndexPath,
@@ -257,6 +258,8 @@ export function writeAtom(
     console.error('[Memory] 写入 atom 失败:', error)
     throw new Error('写入记忆条目失败')
   }
+  // M9：数据变更后使倒排索引缓存失效
+  resetIndexCache()
   return full
 }
 
@@ -455,6 +458,7 @@ export function deleteAtom(id: string): boolean {
       const tmpPath = filePath + '.tmp'
       writeFileSync(tmpPath, kept.join('\n'), 'utf-8')
       renameSync(tmpPath, filePath)
+      resetIndexCache()
       return true
     }
   }
@@ -488,6 +492,7 @@ export function updateAtomById(id: string, atom: MemoryAtom, scope?: 'project' |
       const tmpPath = filePath + '.tmp'
       writeFileSync(tmpPath, lines.join('\n'), 'utf-8')
       renameSync(tmpPath, filePath)
+      resetIndexCache()
       return atom
     }
   }
@@ -747,6 +752,7 @@ export function clearAllMemory(): void {
       // 忽略
     }
   }
+  resetIndexCache()
 }
 
 // ===== Stats / 清理 =====
@@ -776,6 +782,15 @@ export function getMemoryStats(): MemoryStats {
     personaExists: !!readPersonaRaw(),
     rootDir: getMemoryRootDir(),
     lastExtractionAt: getLastExtractionAt(),
+    // M9：归档数（惰性 require 避免与 ttl 的循环依赖；跟随 getGlobalAtomsDir 模式）
+    archivedCount: (() => {
+      try {
+        const { readArchivedCount } = require('./ttl') as { readArchivedCount: () => number }
+        return readArchivedCount()
+      } catch {
+        return 0
+      }
+    })(),
   }
 }
 

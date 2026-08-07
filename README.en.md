@@ -236,7 +236,7 @@ A: Most are "single-tool passive memory". ProactiveAgent is **cross-tool shared 
 A: Only `memory_extract` in LLM mode sends the current conversation snippet to the LLM you configured (default DeepSeek-compatible). Rule mode is zero outbound. Explicit capture/recall is purely local.
 
 **Q: Does performance degrade with large memory?**
-A: Current `memory_recall` does a full scan over atoms — imperceptible for personal/small projects (up to a few thousand entries). At 10k+ entries, indexing is recommended (inverted index + time-window pre-filter), already on the Roadmap (M9). Watch memory size with `proactive-mcp stats`.
+A: Since 0.5.4, `memory_recall` uses an <b>inverted index</b> (term → atoms, cached + auto-invalidation + fail-open) that only scans candidate atoms containing query terms — imperceptible for personal/small projects, and stays low-latency even at 10k+ memories. Also watch memory size with `proactive-mcp stats` and use `proactive-mcp archive` for TTL archiving.
 
 ---
 
@@ -258,8 +258,8 @@ A: Current `memory_recall` does a full scan over atoms — imperceptible for per
 - [x] Metrics panel: accept rate / disturb rate (0.5.0: `suggestionRoiStats` funnel + type accept rate + auto budget reduction, shown in Today ROI section)
 - [x] Local embeddings (0.1.x: local node-llama-cpp + embeddinggemma / api dual mode, default off fail-open)
 - [x] Bilingual README (0.5.3: README.en.md + language switch)
-- [ ] Memory indexing (inverted index, supports 10k+ entries)
-- [ ] Auto-archive / TTL memory management
+- [x] Memory indexing (0.5.4: inverted index + cache invalidation + fail-open, supports 10k+ entries)
+- [x] Auto-archive / TTL memory management (0.5.4: per-type TTL + env override + archive CLI)
 
 ## Contributing
 

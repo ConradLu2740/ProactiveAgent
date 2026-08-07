@@ -19,6 +19,7 @@ import { setAutomationTitlesProvider } from './provider'
 export * from './paths'
 export * from './provider'
 export * from './memory/repo-extract'
+export * from './memory/ttl'
 export type { ProactiveCoreOptions } from './types'
 
 export { memoryService, suggestService }

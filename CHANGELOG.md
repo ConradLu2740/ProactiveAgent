@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.5.4 (2026-08-07)
+
+「性能与记忆治理」批次：Roadmap 仅剩的两个纯代码项落地（M9）。
+
+### 新增
+
+- **记忆索引化（倒排索引，M9）**：新增 `inverted-index.ts`——term → atomIds 倒排索引，`memory_recall` 先用索引缩小候选集（只扫描含查询词的 atoms），替代全量扫描；内存缓存 + 签名失效（数量/首尾 id 变化自动重建）+ store 写入时显式失效；无命中时 fail-open 回退全量，保证不漏召回。支撑上万条记忆，召回结果与全量扫描一致（回归覆盖）。
+- **自动归档 / TTL 记忆管理（M9）**：新增 `ttl.ts`——按类型默认 TTL（event 30 天 / todo_context 90 天 / fact 365 天；preference/correction/sop 永久），`PROACTIVE_TTL_DAYS=N` 统一覆盖、`PROACTIVE_TTL_OFF=1` 禁用；过期 atom 移入 `archive/archive.jsonl` 并从 atoms 删除（自然不进召回）；recall 前懒执行（每天至多一次）；`memory_stats` 展示归档数。
+- **CLI `proactive-mcp archive`**：`--status` 查看归档配置 / `--dry-run` 预览过期数 / 直接执行归档。
+
+### 测试
+
+- 255 全绿（新增 16：inverted-index 8 + ttl 8），core + mcp typecheck 干净
+- `bun test` 改为串行（`--parallel 1`）：memory 层测试依赖 `PROACTIVE_DATA_DIR/PROMA_MEMORY_DIR`，并行 worker 共享 env 会互相污染（既有已知问题，随 ttl 磁盘测试扩大而暴露）
+
 ## 0.5.3 (2026-08-07)
 
 「真实场景 dogfooding 修复」批次：依据全栈开发者真实使用 Claude Code + Kimi Code 的模拟验证报告（`.context/pa-dogfood-simulation-report.md`）修复的断点。

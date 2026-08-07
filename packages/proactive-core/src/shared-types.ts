@@ -74,6 +74,8 @@ export interface MemoryStats {
   personaExists: boolean
   rootDir: string
   lastExtractionAt: number
+  /** M9：已归档记忆数（TTL 管理） */
+  archivedCount: number
 }
 
 /** 记忆检索请求 */
