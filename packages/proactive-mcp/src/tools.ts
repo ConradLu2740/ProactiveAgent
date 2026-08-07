@@ -45,8 +45,8 @@ function safeJson(v: unknown): string {
 }
 
 const messageSchema = z.object({
-  role: z.enum(['user', 'assistant']).describe('消息角色'),
-  content: z.string().describe('消息内容'),
+  role: z.enum(['user', 'assistant']).describe('Message role'),
+  content: z.string().describe('Message content'),
 })
 
 export function registerTools(server: McpServer): void {
@@ -54,16 +54,18 @@ export function registerTools(server: McpServer): void {
 
   server.registerTool(
     'memory_capture',
-    {
-      title: '记住一条记忆',
+        {
+      title: 'Capture a memory',
       description:
-        '显式沉淀一条长期记忆（立即生效，进入召回）。适合用户明确表达偏好/事实/流程/纠正时主动调用。' +
-        '内容应简洁、自包含、可独立理解。类型：fact 事实 / preference 偏好 / correction 纠正 / sop 流程 / todo_context 任务上下文 / event 事件。',
+        'Explicitly store a long-term memory (takes effect immediately, enters recall). ' +
+        'Use when the user clearly expresses a preference/fact/process/correction. ' +
+        'Keep content concise, self-contained, and independently understandable. ' +
+        'Types: fact / preference / correction / sop / todo_context / event.',
       inputSchema: {
-        content: z.string().min(1).max(2000).describe('记忆内容'),
-        type: z.enum(MEMORY_TYPES).default('fact').describe('记忆类型'),
-        priority: z.number().int().min(0).max(100).optional().describe('重要度 0-100，默认 50'),
-        scope: z.enum(WRITE_SCOPES).optional().describe('写入层：project 项目层（默认）/ global 全局共享层'),
+        content: z.string().min(1).max(2000).describe('Memory content'),
+        type: z.enum(MEMORY_TYPES).default('fact').describe('Memory type'),
+        priority: z.number().int().min(0).max(100).optional().describe('Importance 0-100, default 50'),
+        scope: z.enum(WRITE_SCOPES).optional().describe('Write scope: project (default) / global'),
       },
       outputSchema: textResultSchema,
       annotations: {"idempotentHint": true},
@@ -88,16 +90,16 @@ export function registerTools(server: McpServer): void {
 
   server.registerTool(
     'memory_extract',
-    {
-      title: '从对话中提取记忆',
+        {
+      title: 'Extract memories from conversation',
       description:
-        '把最近一段对话消息交给引擎自动提取记忆（LLM 或规则模式）。' +
-        '提取结果默认 pending（待确认，防投毒），需要后续用 memory_pending + memory_confirm 确认。' +
-        '适合宿主在会话结束钩子或定期把消息交给引擎。LLM 未配置时自动降级规则模式（零外发）。',
+        'Feed recent conversation messages to the engine for automatic memory extraction (LLM or rule mode). ' +
+        'Extracted items default to pending (anti-poisoning), confirm via memory_pending + memory_confirm. ' +
+        'Suitable for host session-end hooks or periodic extraction. Falls back to rule mode (zero external calls) when LLM is not configured.',
       inputSchema: {
-        messages: z.array(messageSchema).min(1).max(100).describe('对话消息（按时间顺序）'),
-        sessionId: z.string().optional().describe('来源会话 ID（可回溯）'),
-        scope: z.enum(WRITE_SCOPES).optional().describe('提取候选写入层：project（默认）/ global'),
+        messages: z.array(messageSchema).min(1).max(100).describe('Conversation messages (chronological)'),
+        sessionId: z.string().optional().describe('Source session ID (for traceability)'),
+        scope: z.enum(WRITE_SCOPES).optional().describe('Candidate write scope: project (default) / global'),
       },
       outputSchema: textResultSchema,
       annotations: {"idempotentHint": true},
@@ -126,16 +128,16 @@ export function registerTools(server: McpServer): void {
 
   server.registerTool(
     'memory_recall',
-    {
-      title: '检索记忆',
+        {
+      title: 'Recall memories',
       description:
-        '按关键词检索长期记忆（keyword + embedding 混合，embedding 不可用时降级 keyword）。' +
-        '返回匹配的记忆条目、类型、重要度与相似度。适合在任何任务开始时检索相关上下文注入。',
+        'Search long-term memories by keywords (keyword + embedding hybrid; falls back to keyword when embedding is unavailable). ' +
+        'Returns matching entries with type, importance, and similarity. Use at the start of any task to inject relevant context.',
       inputSchema: {
-        query: z.string().min(1).describe('检索关键词/问题'),
-        limit: z.number().int().min(1).max(20).default(5).describe('返回条数上限，默认 5'),
-        type: z.enum(MEMORY_TYPES).optional().describe('按类型过滤'),
-        scope: z.enum(READ_SCOPES).optional().describe('读取层：auto 项目+全局合并（默认）/ project / global'),
+        query: z.string().min(1).describe('Search keyword/question'),
+        limit: z.number().int().min(1).max(20).default(5).describe('Max results, default 5'),
+        type: z.enum(MEMORY_TYPES).optional().describe('Filter by type'),
+        scope: z.enum(READ_SCOPES).optional().describe('Read scope: auto merged (default) / project / global'),
       },
       outputSchema: textResultSchema,
       annotations: {"readOnlyHint": true, "idempotentHint": true},
@@ -159,12 +161,12 @@ export function registerTools(server: McpServer): void {
 
   server.registerTool(
     'memory_pending',
-    {
-      title: '待确认记忆与纠正',
+        {
+      title: 'Pending memories & corrections',
       description:
-        '列出自动提取但尚未确认的内容（防投毒：需用户确认后才进入召回）。两类：\n' +
-        '1. 待确认记忆（atom）：用 memory_confirm / memory_reject 处理\n' +
-        '2. 待确认行为纠正（correction）：用 correction_confirm / correction_reject 处理',
+        'List automatically extracted but unconfirmed items (anti-poisoning: only enter recall after user confirmation). Two kinds:\n' +
+        '1. Pending memories (atom): handle with memory_confirm / memory_reject\n' +
+        '2. Pending corrections: handle with correction_confirm / correction_reject',
       inputSchema: {},
       outputSchema: textResultSchema,
       annotations: {"readOnlyHint": true, "idempotentHint": true},
@@ -192,10 +194,10 @@ export function registerTools(server: McpServer): void {
 
   server.registerTool(
     'memory_confirm',
-    {
-      title: '确认记忆',
-      description: '确认一条待确认记忆（确认后进入召回；correction/preference/sop 类型会同步刷新用户画像）。',
-      inputSchema: { id: z.string().describe('记忆 ID（来自 memory_pending）') },
+        {
+      title: 'Confirm memory',
+      description: 'Confirm a pending memory (enters recall; correction/preference/sop types also refresh the user persona).',
+      inputSchema: { id: z.string().describe('Memory ID (from memory_pending)') },
       outputSchema: textResultSchema,
       annotations: {"idempotentHint": true},
     },
@@ -207,10 +209,10 @@ export function registerTools(server: McpServer): void {
 
   server.registerTool(
     'memory_reject',
-    {
-      title: '拒绝记忆',
-      description: '拒绝并删除一条待确认记忆（错误提取或投毒内容）。',
-      inputSchema: { id: z.string().describe('记忆 ID（来自 memory_pending）') },
+        {
+      title: 'Reject memory',
+      description: 'Reject and delete a pending memory (incorrect extraction or poisoned content).',
+      inputSchema: { id: z.string().describe('Memory ID (from memory_pending)') },
       outputSchema: textResultSchema,
       annotations: {"destructiveHint": true, "idempotentHint": true},
     },
@@ -224,13 +226,14 @@ export function registerTools(server: McpServer): void {
 
   server.registerTool(
     'persona_get',
-    {
-      title: '读取用户画像',
+        {
+      title: 'Get user persona',
       description:
-        '读取 L3 用户画像 markdown（稳定的用户偏好/行为规则摘要）。适合宿主注入系统提示或初始化上下文。' +
-        '默认返回合并视图（global 基础画像 + 当前项目覆盖，逐条标注 scope）。',
+        'Read the L3 user persona markdown (stable summary of user preferences/behavior rules). ' +
+        'Suitable for injecting into system prompts or initialization context. ' +
+        'Returns the merged view by default (global base persona + current project overrides, with per-line scope).',
       inputSchema: {
-        scope: z.enum(READ_SCOPES).optional().describe('读取层：auto 合并视图（默认）/ project / global'),
+        scope: z.enum(READ_SCOPES).optional().describe('Read scope: auto merged (default) / project / global'),
       },
       outputSchema: textResultSchema,
       annotations: {"readOnlyHint": true, "idempotentHint": true},
@@ -243,14 +246,14 @@ export function registerTools(server: McpServer): void {
 
   server.registerTool(
     'persona_save',
-    {
-      title: '保存用户画像（项目覆盖）',
+        {
+      title: 'Save user persona',
       description:
-        '手动保存/覆盖用户画像 markdown。默认写当前项目层（覆盖合并视图中该项目部分）；' +
-        'scope=global 时写全局基础画像。供用户主动维护画像或项目专属行为规则。',
+        'Manually save/overwrite persona markdown. Defaults to the current project layer (overrides that project part of the merged view); ' +
+        'scope=global writes the global base persona. For maintaining the persona or project-specific behavior rules.',
       inputSchema: {
-        content: z.string().min(1).max(10000).describe('画像 markdown 内容'),
-        scope: z.enum(WRITE_SCOPES).optional().describe('写入层：project（默认）/ global'),
+        content: z.string().min(1).max(10000).describe('Persona markdown content'),
+        scope: z.enum(WRITE_SCOPES).optional().describe('Write scope: project (default) / global'),
       },
       outputSchema: textResultSchema,
       annotations: {"idempotentHint": true},
@@ -267,10 +270,10 @@ export function registerTools(server: McpServer): void {
 
   server.registerTool(
     'scene_summary',
-    {
-      title: '近期热点场景',
-      description: '读取最近热点场景摘要（主动性的时机信号：最近在做什么、热度多高）。',
-      inputSchema: { limit: z.number().int().min(1).max(10).default(3).describe('返回场景数，默认 3') },
+        {
+      title: 'Recent hot scenes',
+      description: 'Read recent hot-scene summaries (timing signal for proactivity: what is being worked on recently, how hot).',
+      inputSchema: { limit: z.number().int().min(1).max(10).default(3).describe('Number of scenes, default 3') },
       outputSchema: textResultSchema,
       annotations: {"readOnlyHint": true, "idempotentHint": true},
     },
@@ -293,9 +296,9 @@ export function registerTools(server: McpServer): void {
 
   server.registerTool(
     'memory_stats',
-    {
-      title: '记忆统计',
-      description: '查看记忆系统统计（atom 数量、类型分布、待确认、画像状态）。',
+        {
+      title: 'Memory stats',
+      description: 'View memory system statistics (atom count, type distribution, pending items, persona status).',
       inputSchema: {},
       outputSchema: textResultSchema,
       annotations: {"readOnlyHint": true, "idempotentHint": true},
@@ -329,19 +332,20 @@ export function registerTools(server: McpServer): void {
 
   server.registerTool(
     'suggest_now',
-    {
-      title: '评估是否产生建议',
+        {
+      title: 'Evaluate suggestions',
       description:
-        '评估一段会话消息是否值得给出主动建议（correction 纠正 / followup 跟进 / automation 自动化 / skill 技能 / todo 待办）。' +
-        '核心原则：该沉默时沉默。单次最多 1 条，同会话有预算限制，免打扰时段不产生。返回本次新增建议（可能为空）。' +
-        '支持 trigger 参数：session_end（默认，会话结束评估）/ session_mid（会话中实时，只推强信号 correction/automation，限 1 条）/ manual（手动）。',
+        'Evaluate whether a conversation excerpt deserves proactive suggestions (correction / followup / automation / skill / todo). ' +
+        'Core principle: silence is also a skill. At most 1 per call, session budget limits, none during do-not-disturb hours. ' +
+        'Returns newly created suggestions (may be empty). ' +
+        'trigger: session_end (default) / session_mid (realtime, strong signals only, max 1) / manual.',
       inputSchema: {
-        messages: z.array(messageSchema).min(1).max(200).describe('本会话的对话消息（按时间顺序）'),
-        sessionId: z.string().optional().describe('会话 ID（用于预算去重）'),
+        messages: z.array(messageSchema).min(1).max(200).describe('Conversation messages (chronological)'),
+        sessionId: z.string().optional().describe('Session ID (for budget dedup)'),
         trigger: z
           .enum(['session_end', 'session_mid', 'manual'])
           .optional()
-          .describe('评估触发点：session_end=会话结束（默认）/ session_mid=会话中实时（强信号才推）/ manual=手动'),
+          .describe('Trigger point: session_end=end of session (default) / session_mid=realtime (strong signals only) / manual'),
       },
       outputSchema: textResultSchema,
       annotations: {"idempotentHint": true},
@@ -368,10 +372,10 @@ export function registerTools(server: McpServer): void {
 
   server.registerTool(
     'suggest_list',
-    {
-      title: '列出建议',
-      description: '列出建议记录，可按状态过滤（suggested 待处理 / accepted 已接受 / ignored 已忽略 / never 永不建议）。',
-      inputSchema: { status: z.enum(SUGGEST_STATUS).optional().describe('状态过滤') },
+        {
+      title: 'List suggestions',
+      description: 'List suggestion records, filterable by status (suggested / accepted / ignored / never).',
+      inputSchema: { status: z.enum(SUGGEST_STATUS).optional().describe('Status filter') },
       outputSchema: textResultSchema,
       annotations: {"readOnlyHint": true, "idempotentHint": true},
     },
@@ -387,15 +391,15 @@ export function registerTools(server: McpServer): void {
 
   server.registerTool(
     'suggest_accept',
-    {
-      title: '接受建议',
+        {
+      title: 'Accept suggestion',
       description:
-        '接受一条建议。对 memory_correction 类型会直接写入行为纠正并回流用户画像（用户点接受 = 明确认可）。' +
-        '对 automation/todo 类型会尝试真实创建（需宿主注入执行器），否则返回可执行指令。' +
-        '可传 host 标注当前宿主名（如 claude-code / kimi），用于降级指令文案。',
+        'Accept a suggestion. For memory_correction types, writes a behavior correction and refreshes the persona (accept = explicit approval). ' +
+        'For automation/todo types, tries to actually create it (requires host-injected executor), otherwise returns executable instructions. ' +
+        'Pass host to label the current host (e.g. claude-code / kimi) for fallback wording.',
       inputSchema: {
-        id: z.string().describe('建议 ID（来自 suggest_now / suggest_list）'),
-        host: z.string().optional().describe('当前宿主名（claude-code / kimi / cline / cursor / proma），用于动作降级文案'),
+        id: z.string().describe('Suggestion ID (from suggest_now / suggest_list)'),
+        host: z.string().optional().describe('Current host name (claude-code / kimi / cline / cursor / proma) for fallback wording'),
       },
       outputSchema: textResultSchema,
       annotations: {"idempotentHint": true},
@@ -411,10 +415,10 @@ export function registerTools(server: McpServer): void {
 
   server.registerTool(
     'suggest_ignore',
-    {
-      title: '忽略建议',
-      description: '忽略一条建议（计入频率学习：同类建议权重收敛；多次忽略后该类型自动静默）。',
-      inputSchema: { id: z.string().describe('建议 ID（来自 suggest_now / suggest_list）') },
+        {
+      title: 'Ignore suggestion',
+      description: 'Ignore a suggestion (counts toward frequency learning: similar suggestions converge in weight; repeated ignores auto-silence that type).',
+      inputSchema: { id: z.string().describe('Suggestion ID (from suggest_now / suggest_list)') },
       outputSchema: textResultSchema,
       annotations: {"idempotentHint": true},
     },
@@ -426,12 +430,12 @@ export function registerTools(server: McpServer): void {
 
   server.registerTool(
     'correction_confirm',
-    {
-      title: '确认行为纠正',
+        {
+      title: 'Confirm behavior correction',
       description:
-        '确认一条待确认的行为纠正（来自 corrections.json，通常是 memory_extract 规则模式提取）。' +
-        '确认后生效：写入 correction 记忆并回流用户画像。ID 来自 memory_pending 返回的 correction 条目。',
-      inputSchema: { id: z.string().describe('纠正 ID（来自 memory_pending）') },
+        'Confirm a pending behavior correction (from corrections.json, usually extracted by memory_extract rule mode). ' +
+        'On confirmation: writes a correction memory and refreshes the persona. ID comes from memory_pending correction entries.',
+      inputSchema: { id: z.string().describe('Correction ID (from memory_pending)') },
       outputSchema: textResultSchema,
       annotations: {"idempotentHint": true},
     },
@@ -443,12 +447,12 @@ export function registerTools(server: McpServer): void {
 
   server.registerTool(
     'correction_reject',
-    {
-      title: '拒绝行为纠正',
+        {
+      title: 'Reject behavior correction',
       description:
-        '拒绝一条待确认的行为纠正（错误提取或投毒内容）。' +
-        'ID 来自 memory_pending 返回的 correction 条目。',
-      inputSchema: { id: z.string().describe('纠正 ID（来自 memory_pending）') },
+        'Reject a pending behavior correction (incorrect extraction or poisoned content). ' +
+        'ID comes from memory_pending correction entries.',
+      inputSchema: { id: z.string().describe('Correction ID (from memory_pending)') },
       outputSchema: textResultSchema,
       annotations: {"destructiveHint": true, "idempotentHint": true},
     },
@@ -462,13 +466,13 @@ export function registerTools(server: McpServer): void {
 
   server.registerTool(
     'daily_review',
-    {
-      title: '每日复盘模板',
+        {
+      title: 'Daily review',
       description:
-        '生成每日复盘指引：把今天的工作整理为长期记忆并生成改进建议。' +
-        '返回的模板文本会引导你按步骤调用 memory_recall / memory_extract / scene_summary / suggest_now 完成复盘。' +
-        '适合会话结束时或每日定时触发。',
-      inputSchema: { date: z.string().optional().describe('复盘日期（默认今天）') },
+        'Generate a daily review guide: organize today\'s work into long-term memories and generate improvement suggestions. ' +
+        'The returned template guides you through memory_recall / memory_extract / scene_summary / suggest_now. ' +
+        'Suitable at session end or on a daily schedule.',
+      inputSchema: { date: z.string().optional().describe('Review date (default today)') },
       outputSchema: textResultSchema,
       annotations: {"readOnlyHint": true, "idempotentHint": true},
     },
@@ -479,11 +483,11 @@ export function registerTools(server: McpServer): void {
 
   server.registerTool(
     'onboarding_guide',
-    {
-      title: 'ProactiveAgent 使用说明',
+        {
+      title: 'Onboarding guide',
       description:
-        '冷启动说明：教会本会话如何用好 ProactiveAgent 的记忆与建议工具（何时用 memory_capture/recall/extract、' +
-        '如何确认待确认记忆、克制原则）。新环境/新项目第一次挂载时调用一次。',
+        'Cold-start guide: teaches this session how to use ProactiveAgent memory & suggestion tools (when to use memory_capture/recall/extract, ' +
+        'how to confirm pending memories, restraint principle). Call once on first mount in a new environment/project.',
       inputSchema: {},
       outputSchema: textResultSchema,
       annotations: {"readOnlyHint": true, "idempotentHint": true},
