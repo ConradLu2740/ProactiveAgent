@@ -1,6 +1,8 @@
 # ProactiveAgent 🧠
 
-> **Teach once, use everywhere.** Let Claude Code / Kimi Code / Cline / Cursor / Proma share the same "proactive memory" and proactively remind you at the right moment — one MCP mount, every agent instantly gains proactive abilities.
+> **Teach once, use everywhere.** Let Claude Code / Kimi Code / Cline / Cursor / Proma share the same "proactive memory" — it doesn't just remember what you taught; it **proactively speaks up at the right moment**. One MCP mount, every agent instantly gains proactive abilities.
+
+> **Unlike memory tools that only "remember"**: ProactiveAgent remembers, and also speaks up when it should — five kinds of proactive suggestions: correction, follow-up, automation, todo, skill.
 
 <p align="center">
   <a href="README.md">中文</a> · <b><a href="README.en.md">English</a></b>

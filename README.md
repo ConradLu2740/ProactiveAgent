@@ -1,6 +1,8 @@
 # ProactiveAgent 🧠
 
-> **教一次，处处用。** 让 Claude Code / Kimi Code / Cline / Cursor / Proma 共享同一份「主动记忆」，并在合适的时机主动提醒你——一个 MCP 挂载，所有 agent 立即拥有主动能力。
+> **教一次，处处用。** 让 Claude Code / Kimi Code / Cline / Cursor / Proma 共享同一份「主动记忆」——它不仅记住你教过的一切，更会在**合适的时机主动开口提醒你**。一个 MCP 挂载，所有 agent 立即拥有主动能力。
+
+> **和其他「只会记」的记忆工具不同**：ProactiveAgent 会记，也会在想该提醒你的时刻主动开口——纠正、跟进、自动化、待办、技能，五类主动建议。
 
 <p align="center">
   <b><a href="README.md">中文</a></b> · <a href="README.en.md">English</a>
