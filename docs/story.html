@@ -195,12 +195,16 @@
     <a class="btn primary" href="https://github.com/ConradLu2740/ProactiveAgent" target="_blank" rel="noopener">GitHub 仓库 →</a>
     <a class="btn" href="#scene1">看跨工具共享</a>
     <a class="btn" href="#scene2">看主动建议</a>
+    <a class="btn" href="#scene3">看安全闭环</a>
+    <a class="btn" href="#scene5">看 Today 面板</a>
   </div>
   <div class="stats-row">
     <div class="stat"><div class="num">100%</div><div class="label">跨工具召回命中</div></div>
     <div class="stat"><div class="num g">0 行</div><div class="label">宿主代码改动</div></div>
-    <div class="stat"><div class="num">17</div><div class="label">MCP 工具</div></div>
+    <div class="stat"><div class="num">18</div><div class="label">MCP 工具</div></div>
     <div class="stat"><div class="num g">3</div><div class="label">真实宿主验证</div></div>
+    <div class="stat"><div class="num">239</div><div class="label">自动化测试</div></div>
+    <div class="stat"><div class="num g">9</div><div class="label">交互场景</div></div>
   </div>
 </header>
 
@@ -286,6 +290,108 @@
   </div>
 </section>
 
+<!-- ============ SCENE 3：安全与闭环 ============ -->
+<section class="section" id="scene3">
+  <div class="section-head">
+    <div class="section-kicker">Story 03</div>
+    <h2>安全底线与“接受即执行”</h2>
+    <p>记忆安全有底线：自动提取的<b>默认 pending</b>、LLM 配置<b>同源原则</b>；而建议闭环从“只是记录”升级为“<b>接受即执行</b>”——automation/todo 建议真正落地为任务。</p>
+  </div>
+
+  <div class="scene">
+    <div class="scene-title"><span class="tag">ACT 5 · 防投毒</span>自动提取默认 pending，确认才进召回</div>
+    <div class="scene-desc"><code>memory_extract</code> 把对话交给引擎提取（默认 LLM 模式，可降级规则模式零外发）——提取结果<b>默认 pending（待确认）</b>，你确认后才进入召回，阻断恶意/错误内容注入。</div>
+    <div class="term-grid single">
+      <div class="term">
+        <div class="term-head"><div class="dots"><span class="d r"></span><span class="d y"></span><span class="d g"></span></div><span class="t">Claude Code</span><span class="badge"><span class="live"></span>memory_extract</span></div>
+        <div class="term-body" id="t4"></div>
+      </div>
+    </div>
+    <div class="scene-ctrl">
+      <button class="ctrl-btn primary" id="btn4" onclick="playScene4()">▶ 播放此场景</button>
+      <span class="ctrl-state" id="state4">等待播放</span>
+    </div>
+  </div>
+
+  <div class="scene">
+    <div class="scene-title"><span class="tag g">ACT 6 · 执行</span>接受即执行：真实创建定时任务</div>
+    <div class="scene-desc">0.5.2 起 <code>suggest_accept</code> 不再只是“已记录”——automation/todo 建议走 Action Executor，<strong class="ok">真实写入本地任务队列</strong>（<code>PROACTIVE_DATA_DIR/tasks.json</code>）并返回任务 ID；宿主注入真实执行器时自动覆盖。</div>
+    <div class="term-grid single">
+      <div class="term">
+        <div class="term-head"><div class="dots"><span class="d r"></span><span class="d y"></span><span class="d g"></span></div><span class="t">Kimi Code</span><span class="badge"><span class="live"></span>Action Executor</span></div>
+        <div class="term-body" id="t5"></div>
+      </div>
+    </div>
+    <div class="scene-ctrl">
+      <button class="ctrl-btn primary" id="btn5" onclick="playScene5()">▶ 播放此场景</button>
+      <span class="ctrl-state" id="state5">等待播放</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SCENE 4：时间感知 + Kimi 转述 ============ -->
+<section class="section" id="scene4">
+  <div class="section-head">
+    <div class="section-kicker">Story 04</div>
+    <h2>时间感知预填 &amp; Kimi 主动转述</h2>
+    <p>周期需求不再需要用户自己填表单：<b>时间解析器</b>把中英文表达换算成真实 <code>cron</code> 预填；Kimi 宿主通过 <b><code>&lt;notification&gt;</code></b> 让模型主动向你开口。</p>
+  </div>
+
+  <div class="scene">
+    <div class="scene-title"><span class="tag">ACT 7 · 预填</span>“每天下午 5 点” → cron 预填，接受即建</div>
+    <div class="scene-desc">你说「每天下午 5 点帮我检查项目进展并汇总」（含空格的中文时间），时间解析器换算为 <code>cron: 0 17 * * *</code> 预填进建议，接受后直接创建定时任务。0.5.3 修复了带空格解析。</div>
+    <div class="term-grid single">
+      <div class="term">
+        <div class="term-head"><div class="dots"><span class="d r"></span><span class="d y"></span><span class="d g"></span></div><span class="t">Kimi Code</span><span class="badge"><span class="live"></span>时间解析</span></div>
+        <div class="term-body" id="t6"></div>
+      </div>
+    </div>
+    <div class="scene-ctrl">
+      <button class="ctrl-btn primary" id="btn6" onclick="playScene6()">▶ 播放此场景</button>
+      <span class="ctrl-state" id="state6">等待播放</span>
+    </div>
+  </div>
+
+  <div class="scene">
+    <div class="scene-title"><span class="tag g">ACT 8 · 转述</span>Kimi 模型看到通知，主动向你开口</div>
+    <div class="scene-desc">Kimi externalHooks 的 <code>UserPromptSubmit</code> 通道：hook 输出对齐 Kimi task 通知范式的 <code>&lt;notification&gt;</code> XML，Kimi 模型看到后主动向用户转述建议。</div>
+    <div class="term-grid single">
+      <div class="term">
+        <div class="term-head"><div class="dots"><span class="d r"></span><span class="d y"></span><span class="d g"></span></div><span class="t">Kimi Code</span><span class="badge"><span class="live"></span>notification 转述</span></div>
+        <div class="term-body" id="t7"></div>
+      </div>
+    </div>
+    <div class="scene-ctrl">
+      <button class="ctrl-btn primary" id="btn7" onclick="playScene7()">▶ 播放此场景</button>
+      <span class="ctrl-state" id="state7">等待播放</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SCENE 5：ROI 与 Today 面板 ============ -->
+<section class="section" id="scene5">
+  <div class="section-head">
+    <div class="section-kicker">Story 05</div>
+    <h2>ROI 反馈闭环 &amp; Today 面板</h2>
+    <p>建议不是“发了就算”：<b>ROI 漏斗</b>（suggested → accepted → executed）+ 类型接受率 + 自动降预算；<b>/today 主动中心</b> 把建议、场景、画像、任务摆在你面前。</p>
+  </div>
+
+  <div class="scene">
+    <div class="scene-title"><span class="tag">ACT 9 · 面板</span>Today 主动中心：一眼看清正在发生什么</div>
+    <div class="scene-desc">任何宿主都能开浏览器看 <code>http://127.0.0.1:8737/today</code>（15s 自动刷新）：待处理建议、热点场景、记忆统计、已落地任务、用户画像、ROI 漏斗一屏掌握。</div>
+    <div class="term-grid single">
+      <div class="term">
+        <div class="term-head"><div class="dots"><span class="d r"></span><span class="d y"></span><span class="d g"></span></div><span class="t">Today 面板</span><span class="badge"><span class="live"></span>http://127.0.0.1:8737/today</span></div>
+        <div class="term-body" id="t8"></div>
+      </div>
+    </div>
+    <div class="scene-ctrl">
+      <button class="ctrl-btn primary" id="btn8" onclick="playScene8()">▶ 播放此场景</button>
+      <span class="ctrl-state" id="state8">等待播放</span>
+    </div>
+  </div>
+</section>
+
 <!-- ============ 结尾 ============ -->
 <div class="final">
   <h2>一个 MCP 挂载，<em>所有 agent 立即拥有主动能力</em></h2>
@@ -296,9 +402,10 @@
     <a href="https://github.com/ConradLu2740/ProactiveAgent/releases" target="_blank" rel="noopener">Releases</a>
     <a href="https://github.com/ConradLu2740/ProactiveAgent/blob/main/README.md" target="_blank" rel="noopener">README</a>
   </div>
+  <div class="cmd" style="margin-top:14px;"><span class="dim">版本 0.5.3（2026-08-07）：时间解析修复 · 待办名词误报排除 · 指令提取过滤 · 239 测试全绿 · 中英文 README</span></div>
 </div>
 
-<footer>ProactiveAgent · 实测验证故事 · 数据来自 2026-08-05 真实运行输出 · MIT License</footer>
+<footer>ProactiveAgent · 实测验证故事 · 数据来自 2026-08-05 真实运行输出 + 2026-08-07 全栈 dogfooding 复验 · MIT License</footer>
 
 <script>
 /* ===== 终端播放引擎 ===== */
@@ -330,6 +437,49 @@ const LINES = {
   t3: [
     { cls:'c',  html:'<span class="p">❯</span> 每天下午 5 点帮我检查项目进展并汇总' },
     { cls:'o',  html:'· suggest_now 评估中… <span class="dim">（信号类型：周期性需求）</span>' },
+  ],
+  // ACT 5: 防投毒（pending）
+  t4: [
+    { cls:'c',  html:'<span class="p">❯</span> memory_extract：从这段对话提取值得记住的内容' },
+    { cls:'o',  html:'· 引擎提取完成，<span class="wa">默认 pending（待确认）</span>：' },
+    { cls:'o',  html:'· 1. <span class="hi">[pending]</span> 项目用 bun 构建，MCP Server 形态 <span class="dim">（待确认）</span>' },
+    { cls:'o',  html:'· 2. <span class="wa">[pending]</span> “用 Bun.serve 起 HTTP 服务（默认端口 8787）…” <span class="dim">（疑似指令噪声，0.5.3 已过滤）</span>' },
+    { cls:'o',  html:'· <span class="ok">✔ 你确认 1、拒绝 2 → 只有确认过的记忆进入召回</span>' },
+    { cls:'o',  html:'· <span class="dim">同源原则：LLM 配置的 apiKey 决定信任源，baseUrl/model 只从同源取</span>' },
+  ],
+  // ACT 6: 接受即执行
+  t5: [
+    { cls:'c',  html:'<span class="p">❯</span> 每天下午 5 点帮我检查发布状态' },
+    { cls:'o',  html:'· suggest_now → <span class="hi">automation 建议</span> → 你点击 <span class="ok">suggest_accept</span>' },
+    { cls:'o',  html:'· Action Executor 执行中… <span class="dim">（默认本地执行器）</span>' },
+    { cls:'o',  html:'· <span class="ok">✅ 已创建定时任务 #task_1786026864539_fbbju3：下午 5 点发布状态</span>' },
+    { cls:'o',  html:'· <span class="dim">落盘到 PROACTIVE_DATA_DIR/tasks.json，/today 面板可见可完成</span>' },
+  ],
+  // ACT 7: 时间感知预填
+  t6: [
+    { cls:'c',  html:'<span class="p">❯</span> 每天下午 5 点帮我检查项目进展并汇总' },
+    { cls:'o',  html:'· 时间解析器：<span class="hi">“每天下午 5 点”</span>（带空格）→ <span class="ok">cron: 0 17 * * *</span>' },
+    { cls:'o',  html:'· 建议预填真实 cron，不再只给“打开表单”' },
+    { cls:'o',  html:'· <span class="dim">0.5.3 修复：数字前带空格的中文时间也正确解析（此前会落到默认 09:00）</span>' },
+  ],
+  // ACT 8: Kimi 主动转述
+  t7: [
+    { cls:'c',  html:'<span class="p">❯</span> 以后都用 pnpm 安装依赖' },
+    { cls:'o',  html:'· kimi-user-prompt hook 评估（UserPromptSubmit）→ 输出 <span class="hi">&lt;notification&gt;</span>：' },
+    { cls:'o',  html:'&nbsp;&nbsp;<span class="dim">&lt;notification id="pa-…" category="proactive" type="suggestion"&gt;</span>' },
+    { cls:'o',  html:'&nbsp;&nbsp;<span class="dim">Title: 记住这个纠正 · Severity: info</span>' },
+    { cls:'o',  html:'&nbsp;&nbsp;<span class="dim">&lt;/notification&gt;</span>' },
+    { cls:'o',  html:'· Kimi 模型看到通知，主动开口：<span class="ok">“上次你说以后都用 pnpm，要记住吗？”</span>' },
+  ],
+  // ACT 9: Today 面板
+  t8: [
+    { cls:'o',  html:'<span class="dim">┌─ ProactiveAgent · 主动中心（15s 自动刷新）</span>' },
+    { cls:'o',  html:'<span class="dim">│  数据目录 /Users/…/dogfood-data · 项目 dogfood-demo</span>' },
+    { cls:'o',  html:'<span class="dim">│</span> 待处理建议（7）<span class="dim">：纠正 5 · 待办 2</span>' },
+    { cls:'o',  html:'<span class="dim">│</span> 热点场景：<span class="hi">提交代码前必须先写单元测试</span>（热度 60 · 3 条记忆）' },
+    { cls:'o',  html:'<span class="dim">│</span> 记忆统计：<span class="ok">3 原子</span>（preference 1 · correction 1 · sop 1）· 待确认 6' },
+    { cls:'o',  html:'<span class="dim">│</span> ROI：建议 7 · 接受 0 · 类型接受率 correction 0/5 · <span class="wa">样本不足暂不降预算</span>' },
+    { cls:'o',  html:'<span class="dim">└─</span> 画像已生成（含来源溯源 src）' },
   ],
 };
 
@@ -448,6 +598,95 @@ function playScene3() {
   });
 }
 document.getElementById('btn3').addEventListener('click', playScene3);
+
+/* ===== 场景 4：防投毒（pending） ===== */
+let playing4 = false;
+function playScene4() {
+  if (playing4) return; playing4 = true;
+  const btn = document.getElementById('btn4');
+  const st = document.getElementById('state4');
+  btn.disabled = true; st.textContent = '播放中…';
+  typeInto('t4', LINES.t4, 640, () => {
+    appendSugg('t4', `
+      <div class="tag-row"><span class="tag" style="background:rgba(255,255,255,0.08);color:var(--text2);border-color:var(--border2)">PENDING</span><span class="title">待确认记忆（2 条）</span></div>
+      <div class="meta"><span>✔ 确认第 1 条 → 进入召回</span><span>✘ 拒绝第 2 条 → 丢弃</span></div>
+      <div class="actions"><span class="chip accept">memory_confirm</span><span class="chip ignore">memory_reject</span></div>
+    `);
+    st.innerHTML = '<span class="ok">✔ 完成 — 确认才生效，阻断投毒链</span>';
+    btn.textContent = '↻ 重播'; btn.disabled = false; playing4 = false;
+  });
+}
+document.getElementById('btn4').addEventListener('click', playScene4);
+
+/* ===== 场景 5：接受即执行 ===== */
+let playing5 = false;
+function playScene5() {
+  if (playing5) return; playing5 = true;
+  const btn = document.getElementById('btn5');
+  const st = document.getElementById('state5');
+  btn.disabled = true; st.textContent = '播放中…';
+  typeInto('t5', LINES.t5, 640, () => {
+    appendSugg('t5', `
+      <div class="tag-row"><span class="tag auto">EXECUTED</span><span class="title" style="color:var(--green)">✅ 已创建定时任务</span></div>
+      <div class="meta"><span>任务 ID：<b>task_1786026864539_fbbju3</b></span><span>cron：<b>0 17 * * *</b></span><span>状态：<b>pending</b></span></div>
+      <div class="reason">落盘 PROACTIVE_DATA_DIR/tasks.json · /today 可查看与完成 · 宿主注入真实执行器时自动覆盖</div>
+    `);
+    st.innerHTML = '<span class="ok">✔ 完成 — 接受即执行，不再是降级指令文本</span>';
+    btn.textContent = '↻ 重播'; btn.disabled = false; playing5 = false;
+  });
+}
+document.getElementById('btn5').addEventListener('click', playScene5);
+
+/* ===== 场景 6：时间感知预填 ===== */
+let playing6 = false;
+function playScene6() {
+  if (playing6) return; playing6 = true;
+  const btn = document.getElementById('btn6');
+  const st = document.getElementById('state6');
+  btn.disabled = true; st.textContent = '播放中…';
+  typeInto('t6', LINES.t6, 700, () => {
+    appendSugg('t6', `
+      <div class="tag-row"><span class="tag auto">AUTOMATION</span><span class="title">开启定时任务（每天 17:00）</span></div>
+      <div class="meta"><span>cron 预填：<b class="val">0 17 * * *</b></span><span>建议 ID：<b>8836d211-9e7b-478d-82ff-6572dd5c2abd</b></span></div>
+      <div class="actions"><span class="chip accept">✔ 接受 → 直接创建定时任务</span></div>
+    `);
+    st.innerHTML = '<span class="ok">✔ 完成 — 时间表达自动换算 cron，用户零填写</span>';
+    btn.textContent = '↻ 重播'; btn.disabled = false; playing6 = false;
+  });
+}
+document.getElementById('btn6').addEventListener('click', playScene6);
+
+/* ===== 场景 7：Kimi 主动转述 ===== */
+let playing7 = false;
+function playScene7() {
+  if (playing7) return; playing7 = true;
+  const btn = document.getElementById('btn7');
+  const st = document.getElementById('state7');
+  btn.disabled = true; st.textContent = '播放中…';
+  typeInto('t7', LINES.t7, 620, () => {
+    appendSugg('t7', `
+      <div class="tag-row"><span class="tag corr">NOTIFICATION</span><span class="title">Kimi 主动转述</span></div>
+      <div class="reason">Kimi：上次你说“以后都用 pnpm 安装依赖”，要我把这条规则记入长期记忆吗？<span class="dim">（接受：suggest_accept）</span></div>
+    `);
+    st.innerHTML = '<span class="ok">✔ 完成 — 模型看到通知后主动开口，无需用户想起</span>';
+    btn.textContent = '↻ 重播'; btn.disabled = false; playing7 = false;
+  });
+}
+document.getElementById('btn7').addEventListener('click', playScene7);
+
+/* ===== 场景 8：Today 面板 ===== */
+let playing8 = false;
+function playScene8() {
+  if (playing8) return; playing8 = true;
+  const btn = document.getElementById('btn8');
+  const st = document.getElementById('state8');
+  btn.disabled = true; st.textContent = '播放中…';
+  typeInto('t8', LINES.t8, 260, () => {
+    st.innerHTML = '<span class="ok">✔ 完成 — /today 一屏掌握建议 · 场景 · 记忆 · 任务 · 画像 · ROI</span>';
+    btn.textContent = '↻ 重播'; btn.disabled = false; playing8 = false;
+  });
+}
+document.getElementById('btn8').addEventListener('click', playScene8);
 </script>
 </body>
 </html>
