@@ -16,7 +16,8 @@
 
 > Everything below is real output from 2026-08-05, not a demo animation: Claude Code writes memory → Kimi Code recalls it (100% hit); behavior corrections / recurring requests → proactive suggestions hit and are accepted.
 
-**👉 Open the interactive story page: [docs/story.html](docs/story.html)**
+**👉 Open the interactive story page: [Live demo (GitHub Pages)](https://conradlu2740.github.io/ProactiveAgent/story.html)**
+> ⚠️ GitHub `blob` pages are code viewers and do not execute HTML scripts — use the Pages link above for the interactive demo.
 
 | Scenario | Measured Result |
 |---|---|

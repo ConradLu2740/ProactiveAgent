@@ -16,7 +16,8 @@
 
 > 所有内容均为 2026-08-05 真实运行输出，不是演示动画：Claude Code 写入记忆 → Kimi Code 直接召回（100% 命中）；行为纠正 / 周期需求 → 主动建议命中并接受。
 
-**👉 打开交互式演示页：[docs/story.html](docs/story.html)**（浏览器直接打开即可）
+**👉 打开交互式演示页：[在线演示（GitHub Pages）](https://conradlu2740.github.io/ProactiveAgent/story.html)**（浏览器直接打开即可）
+> ⚠️ GitHub 的 `blob` 页面只是代码查看器、不会执行 HTML 脚本，请使用上方 Pages 链接查看交互演示。
 
 | 场景 | 实测结果 |
 |---|---|
