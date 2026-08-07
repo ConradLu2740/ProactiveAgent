@@ -58,6 +58,7 @@
   .nav-links { display:flex; gap:28px; font-size:16px; align-items:center; }
   .nav-links a { color:var(--text2); }
   .nav-links a:hover { color:var(--text); }
+  .nav-doc { font-weight:600; color:var(--blue) !important; }
   .lang-btn { font-family:var(--sans); font-size:15px; font-weight:600; padding:8px 16px; border:1px solid var(--line2); border-radius:999px; background:var(--bg-card); color:var(--text); cursor:pointer; transition:all 0.15s; }
   .lang-btn:hover { border-color:var(--blue); color:var(--blue); }
 
@@ -163,6 +164,7 @@
     <a href="#features" data-i18n="nav_features">功能</a>
     <a href="#install" data-i18n="nav_install">安装</a>
     <a href="#compat" data-i18n="nav_compat">兼容</a>
+    <a class="nav-doc" href="docs.html" data-i18n="nav_docs">📖 文档</a>
     <a href="https://github.com/ConradLu2740/ProactiveAgent" target="_blank" rel="noopener" data-i18n="nav_github">GitHub</a>
     <button class="lang-btn" id="langBtn" onclick="toggleLang()">EN</button>
   </div>
@@ -300,7 +302,7 @@
 <script>
 const I18N = {
   zh: {
-    nav_features: "功能", nav_install: "安装", nav_compat: "兼容", nav_github: "GitHub",
+    nav_features: "功能", nav_install: "安装", nav_compat: "兼容", nav_docs: "📖 文档", nav_github: "GitHub",
     hero_badge: "v0.5.4 · 零依赖 · 已上架 Smithery",
     hero_h1_1: "一个 MCP，", hero_h1_2: "让所有 AI 记住你。",
     hero_sub: "Claude Code、Kimi Code、Cline、Cursor 共享同一份主动记忆。它不但记住你教过的一切，还会在合适的时机主动提醒你。",
@@ -330,7 +332,7 @@ const I18N = {
     cta_docs: "查看文档", cta_star: "Star on GitHub",
   },
   en: {
-    nav_features: "Features", nav_install: "Install", nav_compat: "Compatibility", nav_github: "GitHub",
+    nav_features: "Features", nav_install: "Install", nav_compat: "Compatibility", nav_docs: "📖 Docs", nav_github: "GitHub",
     hero_badge: "v0.5.4 · Zero-dependency · Live on Smithery",
     hero_h1_1: "One MCP,", hero_h1_2: "every AI remembers you.",
     hero_sub: "Shared proactive memory for Claude Code, Kimi Code, Cline & Cursor. It remembers what you teach — and speaks up when it matters.",
