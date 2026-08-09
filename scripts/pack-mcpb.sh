@@ -22,7 +22,7 @@
 #   https://claude.com/docs/connectors/building/mcpb
 
 set -euo pipefail
-export PATH="$HOME/.bun/bin:$PATH"
+
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PUBLISH_DIR="$ROOT/dist-publish"
 MCPB_DIR="$PUBLISH_DIR/mcpb"
@@ -113,11 +113,11 @@ fi
 
 # ---- 校验 + 打包（基础包） ----
 echo "==> validate (base manifest)"
-bunx mcpb validate "$MCPB_DIR/manifest.json"
+npx mcpb validate "$MCPB_DIR/manifest.json"
 
 OUT="$PUBLISH_DIR/proactive-agent-$VERSION.mcpb"
 echo "==> pack (base bundle)"
-bunx mcpb pack "$MCPB_DIR" "$OUT"
+npx mcpb pack "$MCPB_DIR" "$OUT"
 
 # ---- 用运行时真实 tools/list schema 重建完整 manifest 并替换 zip 内 manifest.json ----
 echo "==> 提取运行时 tools/list 真实 schema"

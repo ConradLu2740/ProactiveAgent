@@ -8,12 +8,15 @@
   ],
   "scripts": {
     "build": "bash scripts/publish-proactive.sh --build-only",
-    "typecheck": "bun run --filter='@proactive-agent/core' typecheck; bun run --filter='@proactive-agent/mcp' typecheck; true",
-    "test": "bun test --parallel=1"
+    "typecheck": "npm run typecheck --workspace=@proactive-agent/core && npm run typecheck --workspace=@proactive-agent/mcp || true",
+    "test": "vitest run",
+    "start:mcp": "npm run build && node packages/proactive-mcp/dist/index.js",
+    "start:today": "npm run build && node packages/proactive-mcp/dist/index.js --today"
   },
   "devDependencies": {
     "@anthropic-ai/mcpb": "^2.1.2",
-    "@types/bun": "latest",
-    "typescript": "^5.0.0"
+    "@types/node": "^22.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^3.0.0"
   }
 }

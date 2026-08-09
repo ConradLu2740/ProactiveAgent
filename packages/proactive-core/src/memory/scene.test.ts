@@ -2,7 +2,7 @@
  * Memory Scene 单元测试 — L2 场景聚类与热度
  */
 
-import { describe, expect, test } from 'bun:test'
+import { describe, expect, test } from 'vitest'
 import type { MemoryAtom } from '../shared-types'
 import { atomTopicTerms, clusterAtomsToScenes, sceneHeat, SCENE_MERGE_MIN_SHARED } from '../memory/scene'
 

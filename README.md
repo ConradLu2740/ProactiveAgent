@@ -9,7 +9,7 @@
 </p>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Made with Bun](https://img.shields.io/badge/Bun-🟡-black?logo=bun)](https://bun.sh)
+[![Made with Node](https://img.shields.io/badge/Node-22-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org)
 [![GitHub](https://img.shields.io/badge/GitHub-ProactiveAgent-181717?logo=github)](https://github.com/ConradLu2740/ProactiveAgent)
 [![smithery badge](https://smithery.ai/badge/1797650355/proactive-agent)](https://smithery.ai/servers/1797650355/proactive-agent)
 
@@ -57,7 +57,7 @@
 
 ---
 
-## 快速开始（< 1 分钟，无需 clone / 无需 bun）
+## 快速开始（< 1 分钟，无需 clone ）
 
 > ✅ 已发布到 npm！一条命令搞定。
 
@@ -81,13 +81,13 @@ claude mcp add proactive-agent -- node <repo>/dist-publish/mcp/dist/index.js
 **方式 B：clone 仓库（开发 / 自定义）**
 ```bash
 git clone https://github.com/ConradLu2740/ProactiveAgent.git && cd ProactiveAgent
-bun install
-bun run packages/proactive-mcp/src/index.ts init
+npm install
+npm run start:mcp
 ```
 
 **方式 C：起一个本地主动中心面板**
 ```bash
-bun run packages/proactive-mcp/src/index.ts --today
+npm run start:today
 # 打开 http://127.0.0.1:8737/today —— 建议、场景、画像、统计一目了然
 ```
 
@@ -266,7 +266,7 @@ A：0.5.4 起 `memory_recall` 使用<b>倒排索引</b>（term → atoms，缓�
 
 ## 贡献
 
-欢迎 PR / Issue！开发环境：Bun + TypeScript。`bun install && bun test && bun run build`
+欢迎 PR / Issue！开发环境：Node 22 + TypeScript + Vitest + esbuild。`npm install && npm test && npm run build`
 
 ## License
 

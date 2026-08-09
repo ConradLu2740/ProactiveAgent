@@ -8,7 +8,8 @@
  * - suggest_now（无 LLM 也应有确定性输出或安全降级）
  */
 
-import { afterAll, beforeAll, describe, expect, it } from 'bun:test'
+import { rmSync, mkdirSync } from 'node:fs'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js'
 import { createServer } from './index'
@@ -34,11 +35,11 @@ beforeAll(() => {
   process.env.PROACTIVE_PROJECT = 'test'
   // 强制规则模式：memory_extract 走 corrections.json 通道（验证 correction 防投毒闭环）
   process.env.PROMA_MEMORY_LLM_DISABLED = '1'
-  Bun.spawnSync(['rm', '-rf', TEST_DIR])
-  Bun.spawnSync(['mkdir', '-p', TEST_DIR])
+  rmSync(TEST_DIR, { recursive: true, force: true })
+  mkdirSync(TEST_DIR, { recursive: true })
 })
 afterAll(() => {
-  Bun.spawnSync(['rm', '-rf', TEST_DIR])
+  rmSync(TEST_DIR, { recursive: true, force: true })
   delete process.env.PROACTIVE_DATA_DIR
   delete process.env.PROACTIVE_PROJECT
   delete process.env.PROMA_MEMORY_LLM_DISABLED

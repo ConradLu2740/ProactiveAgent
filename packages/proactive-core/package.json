@@ -19,7 +19,13 @@
   "engines": { "node": ">=18" },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "bun test src/memory src/suggest",
-    "build": "bun build src/index.ts --target=node --banner '#!/usr/bin/env node' --outfile=dist/index.js"
+    "test": "vitest run src/memory src/suggest",
+    "build": "esbuild src/index.ts --bundle --platform=node --format=esm --banner:js='#!/usr/bin/env node' --outfile=dist/index.js"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.0.0",
+    "vitest": "^3.0.0"
   }
 }

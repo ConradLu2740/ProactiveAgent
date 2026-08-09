@@ -1,4 +1,4 @@
-import { describe, expect, test, beforeEach, beforeAll, afterAll } from 'bun:test'
+import { describe, expect, test, beforeEach, beforeAll, afterAll } from 'vitest'
 import { mkdirSync, rmSync } from 'node:fs'
 import {
   resetSuggestionsCache,

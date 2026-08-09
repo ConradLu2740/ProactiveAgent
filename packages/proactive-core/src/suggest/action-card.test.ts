@@ -4,7 +4,7 @@
  * 覆盖：状态映射 / 优先级派生 / 目标映射 / 允许动作 / 正向转换全字段 / 批量转换
  */
 
-import { describe, expect, test } from 'bun:test'
+import { describe, expect, test } from 'vitest'
 import type { SuggestionRecord } from '../shared-types'
 import {
   toActionCard,

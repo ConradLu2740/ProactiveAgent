@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test'
+import { describe, expect, test } from 'vitest'
 import { applyRules, buildSkillCandidate, automationTitleFromRaw, SOP_CANDIDATE_THRESHOLD } from './rules'
 import type { RuleContext } from './types'
 

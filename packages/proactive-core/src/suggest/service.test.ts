@@ -6,7 +6,7 @@
  * 2. rule 保留否定词（"以后不要用 X" → "不要用 X"）
  */
 
-import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:test'
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest'
 import { mkdirSync, rmSync } from 'node:fs'
 
 const TEST_CONFIG_DIR = '/tmp/proma-suggest-service-test'

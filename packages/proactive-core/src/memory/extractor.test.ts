@@ -2,7 +2,7 @@
  * Memory Extractor 单元测试（纯逻辑，不依赖真实 LLM）
  */
 
-import { describe, expect, it } from 'bun:test'
+import { describe, expect, it } from 'vitest'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import * as os from 'node:os'
 import { join } from 'node:path'

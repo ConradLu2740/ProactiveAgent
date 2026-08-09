@@ -5,7 +5,7 @@
  * 磁盘相关集成测试见 integration.test.ts（PROMA_MEMORY_DIR 隔离）。
  */
 
-import { describe, expect, it } from 'bun:test'
+import { describe, expect, it } from 'vitest'
 import { ruleBoost, formatRecallContext, queryTerms, expandedQueryTerms, timeDecay } from '../memory/recall'
 
 describe('memory/recall 纯函数', () => {

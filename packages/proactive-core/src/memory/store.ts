@@ -41,8 +41,9 @@ import {
   getCorrectionsPath,
   getMemoryLogDir,
 } from '../paths'
-import { currentLayerKey, GLOBAL_KEY, isEscapeGlobal, isSingleLayerMode } from '../project'
+import { currentLayerKey, GLOBAL_KEY, isEscapeGlobal, isSingleLayerMode, getGlobalMemoryRootDir } from '../project'
 import { readJsonFileSafe, writeJsonFileAtomic, writeTextFileAtomic } from '../safe-file'
+import { readArchivedCount } from './ttl'
 import type {
   MemoryAtom,
   MemoryAtomType,
@@ -323,7 +324,6 @@ export function readAllAtoms(opts: { includeUnconfirmed?: boolean; scope?: 'proj
 
 /** global 层 atoms 目录 */
 function getGlobalAtomsDir(): string {
-  const { getGlobalMemoryRootDir } = require('../paths') as { getGlobalMemoryRootDir: () => string }
   return join(getGlobalMemoryRootDir(), 'atoms')
 }
 
@@ -540,7 +540,6 @@ export function readPersonaRaw(scope?: 'project' | 'global'): string | undefined
 
 /** global 层 persona 路径 */
 function globalPersonaPath(): string {
-  const { getGlobalMemoryRootDir } = require('../paths') as { getGlobalMemoryRootDir: () => string }
   return join(getGlobalMemoryRootDir(), 'profile.md')
 }
 
@@ -552,7 +551,6 @@ export function writePersona(markdown: string, scope?: 'project' | 'global'): vo
   const content = body.startsWith('<!-- persona-version:') ? body : header + body
   const filePath = scope === 'global' ? globalPersonaPath() : getPersonaPath()
   if (scope === 'global') {
-    const { getGlobalMemoryRootDir } = require('../paths') as { getGlobalMemoryRootDir: () => string }
     const dir = getGlobalMemoryRootDir()
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
   }
@@ -652,7 +650,6 @@ function readCorrections(scope?: 'project' | 'global'): CorrectionsIndex {
 /** corrections 路径按 scope 路由（global 层单独文件；默认当前层） */
 function correctionsPathForScope(scope?: 'project' | 'global'): string {
   if (scope === 'global') {
-    const { getGlobalMemoryRootDir } = require('../paths') as { getGlobalMemoryRootDir: () => string }
     return join(getGlobalMemoryRootDir(), 'corrections.json')
   }
   return getCorrectionsPath()
@@ -785,7 +782,6 @@ export function getMemoryStats(): MemoryStats {
     // M9：归档数（惰性 require 避免与 ttl 的循环依赖；跟随 getGlobalAtomsDir 模式）
     archivedCount: (() => {
       try {
-        const { readArchivedCount } = require('./ttl') as { readArchivedCount: () => number }
         return readArchivedCount()
       } catch {
         return 0

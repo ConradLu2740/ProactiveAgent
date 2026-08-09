@@ -12,7 +12,8 @@
  */
 
 import { execFileSync } from 'node:child_process'
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync } from 'node:fs'
 import { dirname, join, normalize, resolve } from 'node:path'
 import { realpathSync } from 'node:fs'
 import { homedir } from 'node:os'
@@ -126,7 +127,6 @@ export function sanitizeKeyPart(s: string): string {
 }
 
 function sha256Hex(input: string): string {
-  const { createHash } = require('node:crypto') as typeof import('node:crypto')
   return createHash('sha256').update(input).digest('hex')
 }
 
@@ -523,7 +523,6 @@ function mergeMemoryInto(fromDir: string, toDir: string): void {
 }
 
 function readdirSafe(dir: string): string[] {
-  const { readdirSync } = require('node:fs') as typeof import('node:fs')
   try {
     return readdirSync(dir, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name)
   } catch {
@@ -533,7 +532,6 @@ function readdirSafe(dir: string): string[] {
 
 /** 读取目录内所有文件名（含文件，不含子目录） */
 function readFilesSafe(dir: string): string[] {
-  const { readdirSync } = require('node:fs') as typeof import('node:fs')
   try {
     return readdirSync(dir, { withFileTypes: true }).filter((d) => d.isFile()).map((d) => d.name)
   } catch {

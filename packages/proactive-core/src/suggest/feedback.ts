@@ -12,7 +12,7 @@ import { randomUUID } from 'node:crypto'
 import { mkdirSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { readJsonFileSafe, writeJsonFileAtomic } from '../safe-file'
-import { getSuggestionsPath, getProjectKeyPublic } from '../paths'
+import { getSuggestionsPath, getProjectKeyPublic, getGlobalSuggestionsPath, getProjectSuggestionsPath } from '../paths'
 import { currentLayerKey, GLOBAL_KEY } from '../project'
 import type { SuggestionsIndex, SuggestionTypeWeights, SuggestionDndConfig, SuggestionAnalysisState } from './types'
 import { DEFAULT_DND_CONFIG } from './types'
@@ -224,13 +224,8 @@ export function recordFeedback(suggestionId: string, feedback: SuggestionFeedbac
 
 /** 在指定层内写反馈（跨层路由用） */
 function recordFeedbackInLayer(suggestionId: string, feedback: SuggestionFeedback, layer: 'project' | 'global'): SuggestionRecord | undefined {
-  const { getGlobalSuggestionsPath, getProjectSuggestionsPath } = require('../paths') as {
-    getGlobalSuggestionsPath: () => string
-    getProjectSuggestionsPath: (k?: string) => string
-  }
   const targetPath = layer === 'global' ? getGlobalSuggestionsPath() : getProjectSuggestionsPath()
-  const { readJsonFileSafe: _read, writeJsonFileAtomic: _write } = require('../safe-file') as typeof import('../safe-file')
-  const data = _read<SuggestionsIndex>(targetPath)
+  const data = readJsonFileSafe<SuggestionsIndex>(targetPath)
   if (!data) return undefined
   const record = data.records.find((r) => r.id === suggestionId)
   if (!record) return undefined
@@ -249,7 +244,7 @@ function recordFeedbackInLayer(suggestionId: string, feedback: SuggestionFeedbac
       break
   }
   mkdirSync(dirname(targetPath), { recursive: true })
-  _write(targetPath, data)
+  writeJsonFileAtomic(targetPath, data)
   return record
 }
 
@@ -308,13 +303,8 @@ function readIndexForLayer(key: string): SuggestionsIndex {
   if (suggestionsCache.has(key)) return suggestionsCache.get(key)!
   const savedPath = getSuggestionsPath()
   // 临时构造目标层路径
-  const { getGlobalSuggestionsPath, getProjectSuggestionsPath } = require('../paths') as {
-    getGlobalSuggestionsPath: () => string
-    getProjectSuggestionsPath: (k?: string) => string
-  }
   const targetPath = key === GLOBAL_KEY ? getGlobalSuggestionsPath() : getProjectSuggestionsPath(key)
-  const { readJsonFileSafe: _read, writeJsonFileAtomic: _write } = require('../safe-file') as typeof import('../safe-file')
-  const data = _read<SuggestionsIndex>(targetPath)
+  const data = readJsonFileSafe<SuggestionsIndex>(targetPath)
   const fresh: SuggestionsIndex =
     data ?? { version: INDEX_VERSION, records: [], typeWeights: defaultTypeWeights(), enabled: true }
   if (data) {

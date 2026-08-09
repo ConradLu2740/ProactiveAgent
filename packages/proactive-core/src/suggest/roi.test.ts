@@ -8,7 +8,7 @@
  * - 降预算后 evaluateNow 门槛提高（弱信号被抑制、强信号保留）
  */
 
-import { describe, expect, it, beforeEach } from 'bun:test'
+import { describe, expect, it, beforeEach } from 'vitest'
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import * as service from './service'
 import { suggestionRoiStats, resetSuggestionsCache } from './feedback'

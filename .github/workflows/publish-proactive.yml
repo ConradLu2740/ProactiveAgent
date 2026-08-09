@@ -18,20 +18,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v4
         with:
-          bun-version: latest
+          node-version: 22
+          cache: npm
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: npm ci
 
       - name: Run tests (gate)
-        run: bun test --parallel=1
+        run: npm test
 
       - name: Typecheck (gate)
         run: |
-          cd packages/proactive-core && bunx tsc --noEmit
-          cd ../proactive-mcp && bunx tsc --noEmit
+          cd packages/proactive-core && npx tsc --noEmit
+          cd ../proactive-mcp && npx tsc --noEmit
 
       - name: Build bundles
         run: bash scripts/publish-proactive.sh --build-only

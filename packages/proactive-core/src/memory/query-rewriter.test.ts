@@ -2,7 +2,7 @@
  * Memory Query Rewriter 单元测试（纯函数）
  */
 
-import { describe, expect, it } from 'bun:test'
+import { describe, expect, it } from 'vitest'
 import { parseRewriteResponse, ruleExpandQuery } from '../memory/query-rewriter'
 
 describe('memory/query-rewriter 纯函数', () => {

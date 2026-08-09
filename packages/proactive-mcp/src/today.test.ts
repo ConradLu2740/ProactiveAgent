@@ -2,7 +2,8 @@
  * /today Web 面板测试
  */
 
-import { afterAll, beforeAll, describe, expect, it } from 'bun:test'
+import { rmSync, mkdirSync } from 'node:fs'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { buildTodayHtml, buildTodayPayload } from './today'
 import { memoryService } from '@proactive-agent/core'
 
@@ -10,11 +11,11 @@ const TEST_DIR = '/tmp/proactive-today-test'
 beforeAll(() => {
   process.env.PROACTIVE_DATA_DIR = TEST_DIR
   process.env.PROMA_MEMORY_LLM_DISABLED = '1'
-  Bun.spawnSync(['rm', '-rf', TEST_DIR])
-  Bun.spawnSync(['mkdir', '-p', TEST_DIR])
+  rmSync(TEST_DIR, { recursive: true, force: true })
+  mkdirSync(TEST_DIR, { recursive: true })
 })
 afterAll(() => {
-  Bun.spawnSync(['rm', '-rf', TEST_DIR])
+  rmSync(TEST_DIR, { recursive: true, force: true })
   delete process.env.PROACTIVE_DATA_DIR
   delete process.env.PROMA_MEMORY_LLM_DISABLED
 })

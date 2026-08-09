@@ -2,7 +2,7 @@
  * P1 英文信号支持测试 — 中英文 correction/automation/followup 识别
  */
 
-import { describe, expect, it } from 'bun:test'
+import { describe, expect, it } from 'vitest'
 import { extractSignals, hasStrongSignal } from './signals'
 
 describe('英文信号（P1）', () => {

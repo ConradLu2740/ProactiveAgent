@@ -9,7 +9,7 @@
 </p>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Made with Bun](https://img.shields.io/badge/Bun-🟡-black?logo=bun)](https://bun.sh)
+[![Made with Node](https://img.shields.io/badge/Node-22-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org)
 [![GitHub](https://img.shields.io/badge/GitHub-ProactiveAgent-181717?logo=github)](https://github.com/ConradLu2740/ProactiveAgent)
 [![smithery badge](https://smithery.ai/badge/1797650355/proactive-agent)](https://smithery.ai/servers/1797650355/proactive-agent)
 
@@ -81,13 +81,13 @@ claude mcp add proactive-agent -- node <repo>/dist-publish/mcp/dist/index.js
 **Option B: clone the repo (development / customization)**
 ```bash
 git clone https://github.com/ConradLu2740/ProactiveAgent.git && cd ProactiveAgent
-bun install
-bun run packages/proactive-mcp/src/index.ts init
+npm install
+npm run start:mcp
 ```
 
 **Option C: start a local proactive center panel**
 ```bash
-bun run packages/proactive-mcp/src/index.ts --today
+npm run start:today
 # Open http://127.0.0.1:8737/today — suggestions, scenes, persona, stats at a glance
 ```
 
@@ -267,7 +267,7 @@ A: Since 0.5.4, `memory_recall` uses an <b>inverted index</b> (term → atoms, c
 
 ## Contributing
 
-PRs / Issues welcome! Dev environment: Bun + TypeScript. `bun install && bun test && bun run build`
+PRs / Issues welcome! Dev environment: Node 22 + TypeScript + Vitest + esbuild. `npm install && npm test && npm run build`
 
 ## License
 

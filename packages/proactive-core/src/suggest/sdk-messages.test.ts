@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test'
+import { describe, expect, test } from 'vitest'
 import { sdkBlockText, sdkMessageText, extractRecentConversationText } from './sdk-messages'
 import type { SDKMessage } from '../shared-types'
 

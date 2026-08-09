@@ -6,7 +6,7 @@
  * - suggest_accept MCP 返回执行结果
  */
 
-import { describe, expect, it, beforeEach } from 'bun:test'
+import { describe, expect, it, beforeEach } from 'vitest'
 import * as service from './service'
 import { executeSuggestionAction } from './actions'
 import { setActionExecutorProvider, type HostActionExecutor } from '../provider'

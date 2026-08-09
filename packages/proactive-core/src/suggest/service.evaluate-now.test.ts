@@ -9,7 +9,7 @@
  * - 防打扰：DND、会话预算、类型静默
  */
 
-import { describe, expect, it, beforeEach } from 'bun:test'
+import { describe, expect, it, beforeEach } from 'vitest'
 import * as service from './service'
 import * as feedback from './feedback'
 

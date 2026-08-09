@@ -2,7 +2,7 @@
  * Memory Embedding 单元测试（纯函数，不依赖 node-llama-cpp 加载）
  */
 
-import { describe, expect, it } from 'bun:test'
+import { describe, expect, it } from 'vitest'
 import { cosineSimilarity, getEmbeddingMode, isLocalEmbeddingReady } from '../memory/embedding'
 
 describe('memory/embedding 纯函数', () => {

@@ -2,7 +2,7 @@
  * P2 时间解析器测试 — 中英文时间/周期表达 → cron / dueAt
  */
 
-import { describe, expect, it } from 'bun:test'
+import { describe, expect, it } from 'vitest'
 import { parseTimeExpression, parseChineseTime, parseEnglishTime } from './time-parse'
 
 // 固定参考时间：2026-08-06 21:00（周四）

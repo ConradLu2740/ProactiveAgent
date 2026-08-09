@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test'
+import { describe, expect, test } from 'vitest'
 import { evaluateSuggestions, defaultTypeWeights, DEFAULT_SUGGEST_OPTIONS } from './engine'
 import type { SuggestionsIndex } from './types'
 

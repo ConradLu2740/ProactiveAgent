@@ -1,7 +1,7 @@
 /**
  * Memory 倒排索引测试（M9）
  */
-import { describe, expect, it } from 'bun:test'
+import { describe, expect, it } from 'vitest'
 import { buildInvertedIndex, getIndexFor, lookupCandidates, resetIndexCache, indexSignature } from './inverted-index'
 import { tokenize } from './tokens'
 import type { MemoryAtom } from '../shared-types'

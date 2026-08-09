@@ -2,7 +2,7 @@
  * Memory Persona 单元测试（纯逻辑，不依赖真实 LLM）
  */
 
-import { describe, expect, it } from 'bun:test'
+import { describe, expect, it } from 'vitest'
 import { cleanPersonaMarkdown, extractName, buildPersonaFromRules, extractPersonaSources } from '../memory/persona'
 import { parsePersonaProfile } from '../memory/store'
 

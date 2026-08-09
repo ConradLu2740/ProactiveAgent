@@ -12,16 +12,15 @@
 # 注意: 真实发布是外部公开操作，发布前确认 license 策略与包内容。
 
 set -euo pipefail
-export PATH="$HOME/.bun/bin:$PATH"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PUBLISH_DIR="$ROOT/dist-publish"
 VERSION="0.6.0"
 LICENSE="${LICENSE:-MIT}"
 
 echo "==> 构建 bundle"
-(cd "$ROOT/packages/proactive-core" && bun run build)
+(cd "$ROOT/packages/proactive-core" && npm run build)
 # mcp 构建时注入版本号（--define），保证 --version / serverInfo.version 与发布版本一致
-(cd "$ROOT/packages/proactive-mcp" && bun build src/index.ts --target=node --banner '#!/usr/bin/env node' --define "PROACTIVE_MCP_VERSION=\"$VERSION\"" --outfile=dist/index.js)
+(cd "$ROOT/packages/proactive-mcp" && npx esbuild src/index.ts --bundle --platform=node --format=esm --banner:js='#!/usr/bin/env node' --define:PROACTIVE_MCP_VERSION=\"$VERSION\" --outfile=dist/index.js)
 
 rm -rf "$PUBLISH_DIR"
 mkdir -p "$PUBLISH_DIR/core/dist" "$PUBLISH_DIR/mcp/dist"
@@ -43,7 +42,7 @@ cat > "$PUBLISH_DIR/core/package.json" <<EOF
 EOF
 cp "$ROOT/packages/proactive-core/dist/index.js" "$PUBLISH_DIR/core/dist/"
 # 生成类型声明（tsc 只输出 d.ts）
-(cd "$ROOT/packages/proactive-core" && bunx tsc --declaration --emitDeclarationOnly --module esnext --moduleResolution bundler --skipLibCheck --downlevelIteration --target es2022 --outDir "$PUBLISH_DIR/core/dist" src/index.ts 2>/dev/null || echo "  (d.ts 生成失败，可后续补)")
+(cd "$ROOT/packages/proactive-core" && npx tsc --declaration --emitDeclarationOnly --module esnext --moduleResolution bundler --skipLibCheck --downlevelIteration --target es2022 --outDir "$PUBLISH_DIR/core/dist" src/index.ts 2>/dev/null || echo "  (d.ts 生成失败，可后续补)")
 cp "$ROOT/packages/proactive-core/README.md" "$PUBLISH_DIR/core/" 2>/dev/null || true
 printf 'MIT License\n\nCopyright (c) 2026 ProactiveAgent contributors\n\nPermission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.\n' > "$PUBLISH_DIR/core/LICENSE"
 
@@ -66,12 +65,12 @@ EOF
 cp "$ROOT/packages/proactive-mcp/dist/index.js" "$PUBLISH_DIR/mcp/dist/"
 # hooks 编译进发布包（内联 core，node 直接运行；会话级主动推送无需 clone 源码）
 mkdir -p "$PUBLISH_DIR/mcp/dist/hooks"
-(cd "$ROOT/packages/proactive-mcp" && bun run build:hooks 2>/dev/null || echo "  (hooks 编译跳过)")
+(cd "$ROOT/packages/proactive-mcp" && npm run build:hooks 2>/dev/null || echo "  (hooks 编译跳过)")
 cp "$ROOT/packages/proactive-mcp/dist/hooks/today-push.js" "$PUBLISH_DIR/mcp/dist/hooks/" 2>/dev/null || true
 cp "$ROOT/packages/proactive-mcp/dist/hooks/session-end.js" "$PUBLISH_DIR/mcp/dist/hooks/" 2>/dev/null || true
 cp "$ROOT/packages/proactive-mcp/dist/hooks/user-prompt.js" "$PUBLISH_DIR/mcp/dist/hooks/" 2>/dev/null || true
 cp "$ROOT/packages/proactive-mcp/dist/hooks/kimi-user-prompt.js" "$PUBLISH_DIR/mcp/dist/hooks/" 2>/dev/null || true
-(cd "$ROOT/packages/proactive-mcp" && bunx tsc --declaration --emitDeclarationOnly --module esnext --moduleResolution bundler --skipLibCheck --downlevelIteration --target es2022 --outDir "$PUBLISH_DIR/mcp/dist" src/index.ts 2>/dev/null || true)
+(cd "$ROOT/packages/proactive-mcp" && npx tsc --declaration --emitDeclarationOnly --module esnext --moduleResolution bundler --skipLibCheck --downlevelIteration --target es2022 --outDir "$PUBLISH_DIR/mcp/dist" src/index.ts 2>/dev/null || true)
 cp "$ROOT/packages/proactive-mcp/README.md" "$PUBLISH_DIR/mcp/" 2>/dev/null || true
 cp "$ROOT/CHANGELOG.md" "$PUBLISH_DIR/mcp/" 2>/dev/null || true
 cp "$ROOT/CHANGELOG.md" "$PUBLISH_DIR/core/" 2>/dev/null || true

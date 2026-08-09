@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.7.0（开发中）
+
+「构建链迁移 Bun → Node.js」批次：运行时本就基于 Node（bundle 为 --target=node），本次将开发/构建/测试/CI 工具链整体迁到 Node 生态。
+
+### 迁移
+
+- **测试框架 bun:test → Vitest**：24 个测试文件改 import（API 兼容零改动）；`Bun.spawnSync` → `node:fs` rmSync/mkdirSync；vitest.config 保持串行（`fileParallelism: false`）避免 /tmp 与 env 污染。285 全绿。
+- **构建 bun build → esbuild**：core/mcp/hooks 全部迁移，`--format=esm` 修复 import.meta（cli-init 依赖）；`--define:PROACTIVE_MCP_VERSION` 注入保留；hooks 用 `scripts/build-hooks.sh` 批量构建。
+- **包管理 bun.lock → package-lock.json**：`@types/bun` → `@types/node`，tsconfig types 同步；`workspace:*` 协议在 npm 10 不兼容 → 显式版本 + npm workspaces 自动链接。
+- **CI setup-bun → setup-node@22**：`npm ci` + `npm test` + `npx tsc`。
+- **发布脚本**：publish-proactive.sh / pack-mcpb.sh 的 bun/bunx → npm/npx；去掉 `export PATH=~/.bun`。
+- **源码 ESM 化**：移除全部 CJS 动态 `require()`（store.ts 4 处 + feedback.ts 4 处 + project.ts 3 处），改为静态 import 或顶层 import（store↔ttl 循环依赖在函数内使用安全）。
+- **README/CHANGELOG**：开发环境 Node 22 + TypeScript + Vitest + esbuild，badge 同步。
+
 ## 0.6.0 (2026-08-09)
 
 「ActionCard 统一动作卡片协议」批次：对齐上游 Proma issue #1462 的跨来源行动卡片模型。
