@@ -227,6 +227,70 @@ export interface SuggestionEvaluationResult {
   suppressed: Array<{ candidate: SuggestionCandidate; reason: string }>
 }
 
+// ===== ActionCard（统一动作卡片协议） =====
+
+/**
+ * ActionCard：跨来源统一动作卡片协议（参考 Proma issue #1462）。
+ *
+ * 原则：卡片只保存「入口 + 状态 + 最小摘要」，原始内容仍归属各自来源系统，
+ * 避免复制出第二套数据系统。ProactiveAgent 当前主要产出 source='suggestion'
+ * 的卡片（由 SuggestionRecord 转换而来），未来 agent / automation / bridge
+ * 等来源可投递同协议卡片。
+ */
+
+/** 卡片来源 */
+export type ActionCardSource =
+  | 'suggestion' // ProactiveAgent 主动建议引擎（当前唯一实现来源）
+  | 'agent' // Agent 会话（权限/提问/审批/失败）
+  | 'automation' // 定时任务（异常/摘要/需确认结果）
+  | 'memory' // 待确认记忆/纠正
+  | 'planning' // 今日 Todo / 日程
+  | 'project' // 项目事件
+  | 'bridge' // 飞书/钉钉等渠道桥
+
+/** 卡片优先级 */
+export type ActionCardPriority = 'urgent' | 'normal' | 'low'
+
+/** 卡片允许的动作 */
+export type ActionCardAction = 'accept' | 'dismiss' | 'snooze' | 'open'
+
+/** 卡片隐私分级（远程呈现边界） */
+export type ActionCardPrivacy = 'local-only' | 'remote-summary'
+
+/** 卡片生命周期状态 */
+export type ActionCardStatus =
+  | 'pending' // 待处理
+  | 'accepted' // 已接受
+  | 'dismissed' // 已忽略/关闭
+  | 'resolved' // 已解决（含不再建议这类）
+
+/** 卡片目标：点开后跳转的上下文 */
+export interface ActionCardTarget {
+  kind: 'project' | 'session' | 'file' | 'settings' | 'automation' | 'todo' | 'memory' | 'skill'
+  id: string
+}
+
+/** 统一动作卡片 */
+export interface ActionCard {
+  id: string
+  source: ActionCardSource
+  projectId?: string
+  title: string
+  summary: string
+  priority: ActionCardPriority
+  expiresAt?: number
+  allowedActions: ActionCardAction[]
+  target?: ActionCardTarget
+  privacy: ActionCardPrivacy
+  status: ActionCardStatus
+  /** 稳定去重键（kind + 核心实体），跨运行/跨会话去重 */
+  duplicateKey: string
+  /** 触发证据（哪条消息/哪个信号触发的），可审计基石 */
+  evidence?: string
+  createdAt: number
+  feedbackAt?: number
+}
+
 // ===== SDK 会话消息（宽松结构，供外部读取 JSONL） =====
 
 /**

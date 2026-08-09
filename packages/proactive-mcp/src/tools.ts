@@ -5,6 +5,7 @@
  * - memory_capture / memory_recall / memory_extract / memory_pending / memory_confirm / memory_reject
  * - persona_get / scene_summary / memory_stats
  * - suggest_now / suggest_list / suggest_accept / suggest_ignore
+ * - card_list / card_get（统一 ActionCard 协议视图）
  *
  * 所有 handler 返回 MCP CallToolResult（text 内容）。
  */
@@ -26,14 +27,16 @@ function displayScope(scope?: string): string {
   return scope ?? 'project'
 }
 
-function text(msg: string): { content: Array<{ type: 'text'; text: string }> } {
-  return { content: [{ type: 'text', text: msg }] }
+function text(msg: string): {
+  content: Array<{ type: 'text'; text: string }>
+  structuredContent: { text: string }
+} {
+  return { content: [{ type: 'text', text: msg }], structuredContent: { text: msg } }
 }
-
 
 /** 所有工具统一返回的 text 结果 schema（供 outputSchema 声明，提升目录质量分） */
 const textResultSchema = z.object({
-  content: z.array(z.object({ type: z.literal('text'), text: z.string() })),
+  text: z.string(),
 })
 
 function safeJson(v: unknown): string {
@@ -425,6 +428,62 @@ export function registerTools(server: McpServer): void {
     async ({ id }) => {
       const result = await suggestService.handleSuggestionFeedback(id, 'ignored')
       return result.ok ? text(`已忽略建议 ${id}。`) : text(`忽略失败：${result.error ?? '未知错误'}`)
+    },
+  )
+
+  server.registerTool(
+    'card_list',
+    {
+      title: 'List action cards',
+      description:
+        'List unified ActionCards (cross-source action inbox). Current source is suggestion engine; future agent / automation / bridge sources land here. ' +
+        'Card status uses unified semantics: pending / accepted / dismissed / resolved.',
+      inputSchema: { status: z.enum(['pending', 'accepted', 'dismissed', 'resolved']).optional().describe('Card status filter') },
+      outputSchema: textResultSchema,
+      annotations: { readOnlyHint: true, idempotentHint: true },
+    },
+    async ({ status }) => {
+      const cards = suggestService.listActionCards(status)
+      if (cards.length === 0) return text('暂无待处理卡片。')
+      const shown = cards.slice(0, 50)
+      const lines = shown.map(
+        (c) =>
+          `- [${c.status}] [${c.priority}] ${c.id} (${c.source}) ${c.title} — ${c.summary}${c.expiresAt ? ` (过期: ${new Date(c.expiresAt).toLocaleString()})` : ''}`,
+      )
+      const suffix = cards.length > shown.length ? `（仅显示前 50 条，共 ${cards.length} 条）` : ''
+      return text(`ActionCards（${cards.length} 条）：\n` + lines.join('\n') + suffix)
+    },
+  )
+
+  server.registerTool(
+    'card_get',
+    {
+      title: 'Get action card detail',
+      description: 'Get a single ActionCard by id with full fields (source / priority / target / privacy / duplicateKey / evidence).',
+      inputSchema: { id: z.string().describe('ActionCard id (from card_list)') },
+      outputSchema: textResultSchema,
+      annotations: { readOnlyHint: true, idempotentHint: true },
+    },
+    async ({ id }) => {
+      const card = suggestService.getActionCardById(id)
+      if (!card) return text(`未找到卡片 ${id}`)
+      const lines = [
+        `卡片 ${card.id}`,
+        `- source: ${card.source}`,
+        `- title: ${card.title}`,
+        `- summary: ${card.summary}`,
+        `- priority: ${card.priority}`,
+        `- status: ${card.status}`,
+        `- privacy: ${card.privacy}`,
+        `- allowedActions: ${card.allowedActions.join(', ') || '无'}`,
+        `- target: ${card.target ? `${card.target.kind}:${card.target.id}` : '无'}`,
+        `- duplicateKey: ${card.duplicateKey}`,
+        `- evidence: ${card.evidence ?? '无'}`,
+        `- expiresAt: ${card.expiresAt ? new Date(card.expiresAt).toLocaleString() : '无'}`,
+        `- feedbackAt: ${card.feedbackAt ? new Date(card.feedbackAt).toLocaleString() : '无'}`,
+        `- createdAt: ${new Date(card.createdAt).toLocaleString()}`,
+      ]
+      return text(lines.join('\n'))
     },
   )
 

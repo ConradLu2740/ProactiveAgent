@@ -9,7 +9,7 @@
   "scripts": {
     "build": "bash scripts/publish-proactive.sh --build-only",
     "typecheck": "bun run --filter='@proactive-agent/core' typecheck; bun run --filter='@proactive-agent/mcp' typecheck; true",
-    "test": "bun test --parallel 1"
+    "test": "bun test --parallel=1"
   },
   "devDependencies": {
     "@anthropic-ai/mcpb": "^2.1.2",

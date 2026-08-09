@@ -36,8 +36,10 @@ import {
 import { evaluateSuggestions, DEFAULT_SUGGEST_OPTIONS } from './engine'
 import { getAutomationTitles, notifySuggestionsChangedProvider } from '../provider'
 import { executeSuggestionAction, type ActionResult } from './actions'
+import { toActionCard, toActionCards } from './action-card'
 import { corrections as memoryCorrections, recentAtoms, proposeCorrection, confirmCorrection } from '../memory/service'
 import type {
+  ActionCard,
   SuggestionRecord,
   SuggestionStats,
   SuggestionRoiStats,
@@ -178,6 +180,25 @@ export function listSuggestionsForUI(status?: 'suggested' | 'accepted' | 'ignore
 
 export function getSuggestionById(id: string): SuggestionRecord | undefined {
   return getSuggestion(id)
+}
+
+// ===== ActionCard 统一协议视图 =====
+
+/**
+ * 以统一 ActionCard 协议列出待处理卡片（呈现层入口）。
+ * MVP 阶段来源仅 suggestion；未来 agent / automation / bridge 投递卡片时
+ * 在此聚合。status 过滤采用卡片语义（pending / accepted / dismissed / resolved）。
+ */
+export function listActionCards(status?: 'pending' | 'accepted' | 'dismissed' | 'resolved'): ActionCard[] {
+  const records = listSuggestions()
+  const cards = toActionCards(records)
+  return status ? cards.filter((c) => c.status === status) : cards
+}
+
+/** 按 id 获取单张 ActionCard（跨层） */
+export function getActionCardById(id: string): ActionCard | undefined {
+  const record = getSuggestion(id) ?? getSuggestionAcrossLayers(id)?.record
+  return record ? toActionCard(record) : undefined
 }
 
 /**

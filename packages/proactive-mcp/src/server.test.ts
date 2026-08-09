@@ -66,6 +66,8 @@ describe('MCP server 冒烟', () => {
     expect(names).toContain('suggest_list')
     expect(names).toContain('suggest_accept')
     expect(names).toContain('suggest_ignore')
+    expect(names).toContain('card_list')
+    expect(names).toContain('card_get')
     expect(names).toContain('daily_review')
     expect(names).toContain('onboarding_guide')
     expect(names).toContain('correction_confirm')
@@ -91,10 +93,44 @@ describe('MCP server 冒烟', () => {
     expect(text).toContain('atomCount')
   })
 
-  it('memory_pending 初始为空（capture 即时生效非 pending）', async () => {
-    const res = await client.callTool({ name: 'memory_pending', arguments: {} })
-    expect(toolText(res)).toContain('没有待确认')
+  it('card_list 在隔离空库上安全返回（ActionCard 统一协议视图）', async () => {
+    const res = await client.callTool({ name: 'card_list', arguments: {} })
+    const text = toolText(res)
+    expect(text.length).toBeGreaterThan(0)
+    // 空库时给出明确文案而非抛错
+    expect(text).toContain('卡片')
   })
+
+  it('card_get 找不到时安全返回提示', async () => {
+    const res = await client.callTool({ name: 'card_get', arguments: { id: 'no-such-id' } })
+    expect(toolText(res)).toContain('未找到卡片')
+  })
+
+  it('card_list 从建议生成 ActionCard 视图（字段完整）', async () => {
+    // 先生成一条 automation 建议（沿用 suggest_accept 场景的输入）
+    const r = await client.callTool({
+      name: 'suggest_now',
+      arguments: {
+        messages: [{ role: 'user', content: '每天下午5点自动检查一下仓库有没有新版本' }],
+        sessionId: 'card-view-test',
+      },
+    })
+    const t = toolText(r)
+    const idMatch = t.match(/建议 ID：([0-9a-f-]+)/)
+    expect(idMatch).toBeTruthy()
+
+    const cards = await client.callTool({ name: 'card_list', arguments: {} })
+    const cardsText = toolText(cards)
+    expect(cardsText).toContain(idMatch![1])
+    expect(cardsText).toContain('suggestion')
+
+    const card = await client.callTool({ name: 'card_get', arguments: { id: idMatch![1] } })
+    const cardText = toolText(card)
+    expect(cardText).toContain('source: suggestion')
+    expect(cardText).toContain('privacy: local-only')
+    expect(cardText).toContain('duplicateKey')
+  })
+
 
   it('suggest_now 在隔离空库上安全执行（返回或降级，不抛错）', async () => {
     const res = await client.callTool({

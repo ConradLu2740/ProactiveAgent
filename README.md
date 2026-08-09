@@ -107,7 +107,7 @@ agent: 我偏好用 TypeScript 和 Bun
 
 ## 能力总览
 
-### Tools（18 个，任何宿主可用）
+### Tools（20 个，任何宿主可用）
 
 | 类别 | 工具 | 干什么 |
 |---|---|---|
@@ -119,6 +119,7 @@ agent: 我偏好用 TypeScript 和 Bun
 | 🔥 场景 | `scene_summary` | 近期热点场景（"你最近在忙什么"） |
 | 📊 统计 | `memory_stats` | 记忆系统统计 |
 | 💡 建议 | `suggest_now` / `list` / `accept` / `ignore` | 主动建议评估 + 反馈闭环（频率学习） |
+| 🃏 统一卡片 | `card_list` / `card_get` | 跨来源 ActionCard 统一协议视图（当前来源 suggestion，未来 agent/automation/bridge 投递） |
 | 📋 模板 | `daily_review` / `onboarding_guide` | 每日复盘 / 使用说明 |
 
 ### Resources & Prompts

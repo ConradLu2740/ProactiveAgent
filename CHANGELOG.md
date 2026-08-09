@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.6.0 (2026-08-09)
+
+「ActionCard 统一动作卡片协议」批次：对齐上游 Proma issue #1462 的跨来源行动卡片模型。
+
+### 新增
+
+- **ActionCard 协议类型（`shared-types.ts`）**：新增 `ActionCard` 接口——`source`（suggestion/agent/automation/memory/planning/project/bridge）/ `priority`（urgent/normal/low）/ `expiresAt` / `allowedActions` / `target` / `privacy`（local-only/remote-summary）/ `status`（pending/accepted/dismissed/resolved）+ `duplicateKey`/`evidence` 可审计基石字段。
+- **转换层（`suggest/action-card.ts`）**：`SuggestionRecord → ActionCard` 纯函数转换——`toCardStatus`（suggested→pending / accepted→accepted / ignored→dismissed / never→resolved）、`confidenceToPriority`（≥0.8 urgent / ≥0.5 normal / <0.5 low）、`actionToTarget`（动作→可点击目标）、`allowedActionsFor`、`toActionCard`/`toActionCards`。
+- **视图 API（`suggest/service.ts`）**：`listActionCards(status?)` / `getActionCardById(id)`——以统一卡片协议列出待处理事项，供呈现层（Today/Island/移动端）消费。
+- **MCP 工具 `card_list` / `card_get`**：任何宿主可通过 MCP 读取统一 ActionCard 视图（当前来源 suggestion，未来 agent/automation/bridge 投递同协议卡片）。
+- **零迁移设计**：ActionCard 为运行时派生视图，`suggestions.json` 保持 version 1，现有 0.5.x 用户数据零破坏；旧 API（`listSuggestions` 等）不变。
+
+### 修复
+
+- **MCP SDK 1.30.0 兼容（P0）**：SDK 升级后 `validateToolOutput` 要求有 outputSchema 的工具返回必须带 `structuredContent`，否则抛 `Output validation error`——此前**所有 20 个工具在 1.30.0 下全部不可用**。修复：`text()` 补 `structuredContent`，`textResultSchema` 改为 `z.object({ text })`。基线 10 个失败全部转绿。
+- **发布脚本版本号硬编码漂移**：`publish-proactive.sh` 的 `VERSION` 与已发布版本脱钩风险，本次 0.6.0 已同步。
+- **root `test` script 语法错误**：`bun test --parallel 1` 中 `1` 被当作 filter 导致 0 测试运行；改为 `--parallel=1`（CI 同步，保持串行防 env 污染）
+- **`actionToTarget` 脏数据防御**：磁盘数据 `action` 缺失时返回 undefined 而非抛错，防 `card_list` 整体崩溃。
+
+### 测试
+
+- 282 全绿（新增 25：ActionCard 转换层 + 3 MCP 端到端），core + mcp typecheck 干净
+
 ## 0.5.4 (2026-08-07)
 
 「性能与记忆治理」批次：Roadmap 仅剩的两个纯代码项落地（M9）。

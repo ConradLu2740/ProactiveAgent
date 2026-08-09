@@ -109,7 +109,7 @@ agent: I prefer TypeScript and Bun
 
 ## Capabilities
 
-### Tools (18, available on any host)
+### Tools (20, available on any host)
 
 | Category | Tool | What it does |
 |---|---|---|
@@ -121,6 +121,7 @@ agent: I prefer TypeScript and Bun
 | 🔥 Scenes | `scene_summary` | Recent hot scenes ("what you've been busy with") |
 | 📊 Stats | `memory_stats` | Memory system statistics |
 | 💡 Suggestions | `suggest_now` / `list` / `accept` / `ignore` | Proactive suggestion evaluation + feedback loop (frequency learning) |
+| 🃏 ActionCards | `card_list` / `card_get` | Unified cross-source ActionCard protocol view (current source: suggestion; future: agent/automation/bridge) |
 | 📋 Templates | `daily_review` / `onboarding_guide` | Daily review / getting-started guide |
 
 ### Resources & Prompts
