@@ -36,17 +36,10 @@ jobs:
       - name: Build bundles
         run: bash scripts/publish-proactive.sh --build-only
 
-      - name: Check trusted publisher ready
-        id: check
-        run: |
-          if npm view @proactive-agent/core version >/dev/null 2>&1; then
-            echo "ready=true"
-          else
-            echo "ready=false"
-          fi
-
+      # 注意：原 workflow 的 ready gate 用 `echo "ready=true"` 未写入 GITHUB_OUTPUT，
+      # steps.check.outputs.ready 永远为空导致 publish 永远 skipped。此处移除 gate，
+      # 由 publish 步骤自身幂等（版本已存在则跳过）保证可重复运行。
       - name: Publish @proactive-agent/core
-        if: steps.check.outputs.ready == 'true'
         working-directory: dist-publish/core
         run: |
           PKG_VERSION=$(node -p "require('./package.json').version")
@@ -57,7 +50,6 @@ jobs:
           fi
 
       - name: Publish @proactive-agent/mcp
-        if: steps.check.outputs.ready == 'true'
         working-directory: dist-publish/mcp
         run: |
           PKG_VERSION=$(node -p "require('./package.json').version")
@@ -68,7 +60,6 @@ jobs:
           fi
 
       - name: Verify published
-        if: steps.check.outputs.ready == 'true'
         run: |
           npm view @proactive-agent/core version
           npm view @proactive-agent/mcp version
