@@ -48,12 +48,24 @@ jobs:
       - name: Publish @proactive-agent/core
         if: steps.check.outputs.ready == 'true'
         working-directory: dist-publish/core
-        run: npm publish --provenance --access public
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          if npm view @proactive-agent/core@$PKG_VERSION version >/dev/null 2>&1; then
+            echo "Version $PKG_VERSION already published, skipping (idempotent)"
+          else
+            npm publish --provenance --access public
+          fi
 
       - name: Publish @proactive-agent/mcp
         if: steps.check.outputs.ready == 'true'
         working-directory: dist-publish/mcp
-        run: npm publish --provenance --access public
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          if npm view @proactive-agent/mcp@$PKG_VERSION version >/dev/null 2>&1; then
+            echo "Version $PKG_VERSION already published, skipping (idempotent)"
+          else
+            npm publish --provenance --access public
+          fi
 
       - name: Verify published
         if: steps.check.outputs.ready == 'true'
