@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.7.0（开发中）
+## 0.7.0 (2026-08-10)
 
 「构建链迁移 Bun → Node.js」批次：运行时本就基于 Node（bundle 为 --target=node），本次将开发/构建/测试/CI 工具链整体迁到 Node 生态。
 
