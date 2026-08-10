@@ -3,7 +3,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { cleanPersonaMarkdown, extractName, buildPersonaFromRules, extractPersonaSources } from '../memory/persona'
+import { cleanPersonaMarkdown, extractName, buildPersonaFromRules, extractPersonaSources, detectPersonaOverload } from '../memory/persona'
 import { parsePersonaProfile } from '../memory/store'
 
 describe('memory/persona 纯函数', () => {
@@ -81,5 +81,39 @@ Conrad
     expect(noSrc?.sources).toEqual([])
     // text 应剔除 src 标注
     expect(ts?.text).not.toContain('src:')
+  })
+
+  it('detectPersonaOverload 正常画像不超载', () => {
+    const normal = `# 用户画像
+
+## 用户
+Conrad
+
+## 一句话定位
+独立开发者
+
+## 长期偏好
+- 喜欢 TypeScript（src: atom_aaa）`
+    const r = detectPersonaOverload(normal)
+    expect(r.overloaded).toBe(false)
+    expect(r.hint).toBe('')
+  })
+
+  it('detectPersonaOverload 行数过多触发超载并给出重整提示', () => {
+    const lines = ['# 用户画像', '', '## 长期偏好']
+    for (let i = 0; i < 50; i += 1) lines.push(`- 偏好条目 ${i}（src: atom_x${i}）`)
+    const r = detectPersonaOverload(lines.join('\n'))
+    expect(r.overloaded).toBe(true)
+    expect(r.lineCount).toBeGreaterThan(45)
+    expect(r.hint).toContain('超载')
+    expect(r.hint).toContain('合并重复')
+  })
+
+  it('detectPersonaOverload 章节数过多触发超载', () => {
+    const sections = ['# 用户画像']
+    for (let i = 0; i < 8; i += 1) sections.push(`## 章节 ${i}`, '- 内容')
+    const r = detectPersonaOverload(sections.join('\n'))
+    expect(r.overloaded).toBe(true)
+    expect(r.sectionCount).toBeGreaterThan(6)
   })
 })

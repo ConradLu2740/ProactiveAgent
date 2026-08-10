@@ -32,6 +32,10 @@ import {
   deletePersona,
   clearAllMemory,
   appendMemoryLog,
+  getMemoryActivity,
+  readMemoryLogRecent,
+  MemoryActivitySummary,
+  MemoryLogEntry,
   markExtractionCompleted,
 } from './store'
 import { hotScenes as computeHotScenes } from './scene'
@@ -43,7 +47,7 @@ import {
   DEFAULT_RECALL_LIMIT,
 } from './recall'
 import { extractFromMessages, isMemoryLlmConfigured, callLlm } from './extractor'
-import { generatePersona, buildPersonaFromRules, extractPersonaSources } from './persona'
+import { generatePersona, buildPersonaFromRules, extractPersonaSources, detectPersonaOverload } from './persona'
 import type {
   MemoryAtom,
   MemoryAtomType,
@@ -103,6 +107,36 @@ export function setEnabled(enabled: boolean): void {
 
 export function stats(): MemoryStats {
   return getMemoryStats()
+}
+
+// ===== 记忆动态 + 复查邀请（v0.8.0：对标 Proma v0.17.0 watcher 可视化 + refresh service） =====
+
+/** 记忆活动摘要：今天更新条数、最近更新距今天数、最近 3 条日志 */
+export function memoryActivity(): MemoryActivitySummary {
+  return getMemoryActivity()
+}
+
+/** 距上次记忆更新的天数（0 = 今天有更新或从未更新） */
+export function daysSinceLastMemoryUpdate(): number {
+  return getMemoryActivity().daysSinceLastUpdate
+}
+
+/**
+ * 记忆复查邀请（对标 v0.17.0 agent-memory-refresh-service 的 3 天节奏）：
+ * 距上次记忆更新超过 reviewIntervalDays（默认 3 天）返回邀请对象，否则 undefined。
+ * 只做提示，不自动扫描。
+ */
+export function memoryReviewOpportunity(reviewIntervalDays = 3):
+  | { daysSince: number; reviewDue: boolean; message: string }
+  | undefined {
+  const activity = getMemoryActivity()
+  if (activity.lastUpdatedAt === 0) return undefined
+  if (activity.daysSinceLastUpdate < reviewIntervalDays) return undefined
+  return {
+    daysSince: activity.daysSinceLastUpdate,
+    reviewDue: true,
+    message: `记忆已有 ${activity.daysSinceLastUpdate} 天没有更新了——建议做一次主动复查：确认近期行为规则、清理过时记忆、必要时更新画像（persona）。`,
+  }
 }
 
 // ===== 主动回忆 =====
@@ -190,6 +224,9 @@ export function captureCandidates(
     } catch (error) {
       console.warn('[Memory] 写入候选失败:', candidate.content.slice(0, 40), error)
     }
+  }
+  if (storedCount > 0 || deduplicatedCount > 0) {
+    appendMemoryLog(`自动提取: 新增 ${storedCount} 条，合并去重 ${deduplicatedCount} 条${opts.confirmed ? '' : '（待确认）'}`)
   }
   return { storedCount, deduplicatedCount, atoms }
 }
@@ -363,6 +400,11 @@ export function personaSources(): Array<{ text: string; sources: string[] }> {
 /** persona 是否溯源版本（旧版需重生成） */
 export function personaTraceable(): boolean {
   return isPersonaTraceable()
+}
+
+/** persona 超载检测（v0.8.0）：返回是否需要重整的提示，供 persona_get / today 展示 */
+export function personaOverloadHint(): { overloaded: boolean; lineCount: number; sectionCount: number; hint: string } {
+  return detectPersonaOverload(personaRaw('auto'))
 }
 
 /** 手动重新生成 persona（用户控制，B3） */

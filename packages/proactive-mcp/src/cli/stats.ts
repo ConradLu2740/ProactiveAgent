@@ -53,6 +53,12 @@ export function runStats(): number {
   console.log(`    场景:       ${mem.sceneCount} 个`)
   console.log(`    待确认:     ${mem.pendingAtoms + mem.pendingCorrections}（记忆 ${mem.pendingAtoms} + 纠正 ${mem.pendingCorrections}）`)
   console.log(`    画像:       ${mem.personaExists ? '已生成' : '未生成'}`)
+  const activity = memoryService.memoryActivity()
+  const review = memoryService.memoryReviewOpportunity()
+  console.log(`    记忆动态:   今日 ${activity.todayEntries} 条 · 距上次更新 ${activity.daysSinceLastUpdate} 天`)
+  const overload = memoryService.personaOverloadHint()
+  if (overload.overloaded) console.log(`    ⚠️ 画像超载:  ${overload.lineCount} 行 / ${overload.sectionCount} 章节，建议精简重整`)
+  if (review) console.log(`    💡 ${review.message}`)
   if (mem.lastExtractionAt) {
     console.log(`    上次提取:   ${new Date(mem.lastExtractionAt).toLocaleString('zh-CN')}`)
   }

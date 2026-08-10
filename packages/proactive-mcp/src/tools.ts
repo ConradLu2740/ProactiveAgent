@@ -243,7 +243,12 @@ export function registerTools(server: McpServer): void {
     },
     async ({ scope }) => {
       const persona = memoryService.personaRaw(normalizeReadScope(scope) as 'auto' | 'project' | 'global')
-      return persona ? text(persona) : text('尚未生成用户画像。')
+      if (!persona) return text('尚未生成用户画像。')
+      const overload = memoryService.personaOverloadHint()
+      const body = overload.overloaded
+        ? `${persona}\n\n⚠️ 画像已超载（${overload.lineCount} 行 / ${overload.sectionCount} 个章节），建议用 persona_save 精简重整。${overload.hint}`
+        : persona
+      return text(body)
     },
   )
 
@@ -308,6 +313,8 @@ export function registerTools(server: McpServer): void {
     },
     async () => {
       const s = memoryService.stats()
+      const activity = memoryService.memoryActivity()
+      const review = memoryService.memoryReviewOpportunity()
       const parts: string[] = [`共 ${s.atomCount} 条记忆`]
       const byType = s.byType as Record<string, number>
       const typeLabels: Record<string, string> = {
@@ -326,8 +333,10 @@ export function registerTools(server: McpServer): void {
       const pendingTotal = (s.pendingAtoms ?? 0) + (s.pendingCorrections ?? 0)
       parts.push(pendingTotal > 0 ? `待确认 ${pendingTotal} 条` : '无待确认')
       parts.push(s.personaExists ? '画像已生成' : '画像未生成')
+      parts.push(`记忆${activity.daysSinceLastUpdate === 0 ? '今天有更新' : `${activity.daysSinceLastUpdate} 天未更新（今日 ${activity.todayEntries} 条动态）`}`)
       const oneLine = parts.join(' · ')
-      return text(`${oneLine}\n详情（JSON）：${safeJson(s)}`)
+      const jsonDetail = { ...s, activity, review }
+      return text(`${oneLine}${review ? '\n' + review.message : ''}\n详情（JSON）：${safeJson(jsonDetail)}`)
     },
   )
 

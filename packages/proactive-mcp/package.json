@@ -16,7 +16,7 @@
   "engines": { "node": ">=18" },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "@proactive-agent/core": "^0.6.0",
+    "@proactive-agent/core": "file:../proactive-core",
     "zod": "^4.3.6"
   },
   "scripts": {

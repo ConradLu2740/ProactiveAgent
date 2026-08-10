@@ -24,6 +24,9 @@ export function buildTodayPayload(): {
   hotScenes: Array<{ title: string; heat: number; atomCount: number }>
   persona: { exists: boolean; summary: string }
   stats: { atomCount: number; byType: Record<string, number>; pendingAtoms: number; pendingCorrections: number }
+  activity: { lastUpdatedAt: number; daysSinceLastUpdate: number; todayEntries: number; recentEntries: Array<{ at: string; text: string; date: string }> }
+  review: { daysSince: number; reviewDue: boolean; message: string } | undefined
+  personaOverload: { overloaded: boolean; lineCount: number; sectionCount: number; hint: string }
   tasks: { pending: number; done: number; items: Array<{ id: string; kind: string; title: string; status: string }> }
   roi: {
     funnel: { suggested: number; accepted: number; ignored: number; never: number }
@@ -47,6 +50,9 @@ export function buildTodayPayload(): {
   const personaRaw = memoryService.personaRaw()
   const persona = memoryService.persona()
   const stats = memoryService.stats()
+  const activity = memoryService.memoryActivity()
+  const review = memoryService.memoryReviewOpportunity()
+  const personaOverload = memoryService.personaOverloadHint()
   const tasks = listTasks()
   const ts = taskStats()
   const roi = suggestService.getSuggestionRoiStats()
@@ -65,6 +71,14 @@ export function buildTodayPayload(): {
       pendingAtoms: stats.pendingAtoms ?? 0,
       pendingCorrections: stats.pendingCorrections ?? 0,
     },
+    activity: {
+      lastUpdatedAt: activity.lastUpdatedAt,
+      daysSinceLastUpdate: activity.daysSinceLastUpdate,
+      todayEntries: activity.todayEntries,
+      recentEntries: activity.recentEntries.map((e) => ({ at: e.at, text: e.text, date: e.date })),
+    },
+    review,
+    personaOverload,
     tasks: {
       pending: ts.pending,
       done: ts.done,
@@ -183,6 +197,18 @@ export function buildTodayHtml(): string {
     ${taskItems}
   </div>
 
+  <h2>记忆动态</h2>
+  <div id="review-box" class="card" style="border-color:#ffa94d55;color:#ffa94d;font-size:13px;${p.review ? '' : 'display:none;'}">${p.review ? esc(p.review.message) : ''}</div>
+  <div class="card">
+    <div class="sug-kind">今日 ${p.activity.todayEntries} 条动态 · 距上次更新 ${p.activity.daysSinceLastUpdate} 天</div>
+    ${p.personaOverload.overloaded ? `<div class="sub" style="margin-top:6px;color:#ffa94d;">⚠️ 画像已超载（${p.personaOverload.lineCount} 行 / ${p.personaOverload.sectionCount} 章节），建议精简重整。</div>` : ''}
+    ${p.activity.recentEntries.length
+      ? `<div id="activity-list">${p.activity.recentEntries
+          .map((e) => `<div class="scene-meta" style="margin-top:4px;">[${esc(e.date)}] ${esc(e.text)}</div>`)
+          .join('')}</div>`
+      : '<div class="empty">暂无记忆动态——沉淀记忆后这里会显示变更记录。</div>'}
+  </div>
+
   <h2>记忆统计</h2>
   <div class="grid">
     <div class="stat"><div class="stat-n" id="stats-count">${p.stats.atomCount}</div><div class="stat-l">原子记忆</div></div>
@@ -238,6 +264,9 @@ function render(p){
   document.getElementById('stats-bytype').textContent = bt;
   document.getElementById('stats-count').textContent = p.stats.atomCount;
   document.getElementById('stats-pending').textContent = (p.stats.pendingAtoms||0) + (p.stats.pendingCorrections||0);
+  // 记忆动态 + 复查（v0.8.0）
+  const reviewBox = document.getElementById('review-box');
+  if (reviewBox) { reviewBox.textContent = p.review ? p.review.message : ''; reviewBox.style.display = p.review ? '' : 'none'; }
   document.getElementById('persona').textContent = p.persona.exists ? (p.persona.summary || '（已生成，无摘要）') : '尚未生成用户画像。';
   // ROI 区（M8）
   const roi = p.roi||{};

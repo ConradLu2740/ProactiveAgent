@@ -49,6 +49,25 @@ const PERSONA_SYSTEM_PROMPT = `你是用户画像构建器。基于「长期记�
    不要把 src 当成画像内容本身，它是用于溯源的行内标注。
 6. 只输出 Markdown 本身，不要额外解释。`
 
+// ===== 超载重整（v0.8.0：对标 Proma v0.17.0 knowledge-maintenance 主动重整） =====
+
+/**
+ * persona 超载检测：单文件累积过多主题/行数时需要精简或拆分。
+ * 阈值：超过 45 行或超过 6 个二级章节即视为超载（v0.17.0 的“3 个主题”原则换算到 persona 的原子画像）。
+ */
+export function detectPersonaOverload(markdown: string | undefined): { overloaded: boolean; lineCount: number; sectionCount: number; hint: string } {
+  const text = markdown?.trim()
+  if (!text) return { overloaded: false, lineCount: 0, sectionCount: 0, hint: '' }
+  const lines = text.split('\n')
+  const sectionCount = lines.filter((l) => /^##\s+/.test(l.trim())).length
+  const lineCount = lines.length
+  const overloaded = lineCount > 45 || sectionCount > 6
+  const hint = overloaded
+    ? `画像已超载（${lineCount} 行 / ${sectionCount} 个章节）。建议在本次更新中：1) 合并重复结论；2) 把同语义条目合并为一条；3) 过时内容删除或标注待确认；4) 若出现多个独立主题，按「演进轨迹/长期偏好/交互协议」分节归档，避免无限追加。`
+    : ''
+  return { overloaded, lineCount, sectionCount, hint }
+}
+
 /** 从 atoms 构造 persona 生成的输入文本 */
 function formatAtomsForPersona(atoms: MemoryAtom[], maxAtoms = 40): string {
   const lines = atoms.slice(0, maxAtoms).map((a, i) => {
@@ -72,8 +91,10 @@ export async function generatePersona(opts: { existing?: string; maxAtoms?: numb
 
   const atomText = formatAtomsForPersona(atoms, opts.maxAtoms)
   const existingText = opts.existing?.trim()
+  const overload = detectPersonaOverload(existingText)
+  const overloadInstruction = overload.overloaded ? `\n\n⚠️ 现有画像已超载（${overload.lineCount} 行 / ${overload.sectionCount} 个章节）。请在合并时主动精简：合并重复条目、删除过时内容、控制总行数在 45 行以内。` : ''
   const userText = existingText
-    ? `已有 persona：\n---\n${existingText}\n---\n\n新记忆条目：\n${atomText}\n\n请合并更新 persona，保留稳定内容，只更新有证据的变化。`
+    ? `已有 persona：\n---\n${existingText}\n---\n\n新记忆条目：\n${atomText}\n\n请合并更新 persona，保留稳定内容，只更新有证据的变化。${overloadInstruction}`
     : `记忆条目：\n${atomText}\n\n请生成初始 persona。`
 
   const raw = await callLlm(PERSONA_SYSTEM_PROMPT, userText, { temperature: 0.3, maxTokens: 4096 })

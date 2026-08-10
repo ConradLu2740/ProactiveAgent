@@ -117,7 +117,7 @@ agent: 我偏好用 TypeScript 和 Bun
 | ✅ 记忆闭环 | `memory_pending` / `confirm` / `reject` | 待确认记忆 + 行为纠正的确认/拒绝 |
 | 👤 画像 | `persona_get` / `persona_save` | 读取合并画像（global base + 项目覆盖）/ 手动保存画像 |
 | 🔥 场景 | `scene_summary` | 近期热点场景（"你最近在忙什么"） |
-| 📊 统计 | `memory_stats` | 记忆系统统计 |
+| 📊 统计 | `memory_stats` | 记忆系统统计（含记忆动态：今日变更 / 距上次更新天数 / 3 天复查邀请） |
 | 💡 建议 | `suggest_now` / `list` / `accept` / `ignore` | 主动建议评估 + 反馈闭环（频率学习） |
 | 🃏 统一卡片 | `card_list` / `card_get` | 跨来源 ActionCard 统一协议视图（当前来源 suggestion，未来 agent/automation/bridge 投递） |
 | 📋 模板 | `daily_review` / `onboarding_guide` | 每日复盘 / 使用说明 |
@@ -130,6 +130,7 @@ agent: 我偏好用 TypeScript 和 Bun
 
 ### 附加能力
 
+- **记忆维护（0.8.0，对齐 Proma v0.17.0 记忆治理）**：`memory_stats` 展示「今日 X 条动态 · 距上次更新 N 天」；记忆超过 3 天未更新时返回复查邀请（清理过时记忆、确认待确认项、必要时重整画像）；`persona_get` 在画像超载（>45 行 / >6 章节）时提示精简重整；`onboarding_guide` 提供「先建画像 → 再补证据」两阶段引导。
 - **/today Web 面板**：本地主动中心（15s 自动刷新），任何宿主都能开浏览器看；`POST /api/evaluate` 支持宿主把最近消息推过来触发会话中评估
 - **Claude Code hooks（三层）**：
   - `SessionStart`（today-push）：会话开始推送待处理建议 + 热点场景

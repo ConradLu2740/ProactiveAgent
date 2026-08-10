@@ -1,6 +1,6 @@
 {
   "name": "@proactive-agent/core",
-  "version": "0.1.0",
+  "version": "0.7.0",
   "license": "MIT",
   "description": "ProactiveAgent headless engine: proactive memory (capture/recall/persona/scene) + proactive suggestions. Host-agnostic, zero-dependency bundle.",
   "type": "module",

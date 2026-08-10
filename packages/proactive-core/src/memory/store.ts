@@ -26,6 +26,7 @@ import {
   readdirSync,
   renameSync,
   rmSync,
+  statSync,
   unlinkSync,
   writeFileSync,
 } from 'node:fs'
@@ -797,4 +798,73 @@ export function appendMemoryLog(entry: string): void {
   const line = `- ${new Date().toISOString()} ${entry}\n`
   const content = (existsSync(filePath) ? readFileSync(filePath, 'utf-8') : '') + line
   writeFileSync(filePath, content, 'utf-8')
+}
+
+// ===== 记忆动态（v0.8.0：对标 Proma v0.17.0 memory watcher 可视化） =====
+
+/** 单条记忆日志条目 */
+export interface MemoryLogEntry {
+  /** 日志时间（ISO） */
+  at: string
+  /** 日志文本（去前缀） */
+  text: string
+  /** 所在日志日期 YYYY-MM-DD */
+  date: string
+}
+
+/** 记忆活动摘要（today 面板 / CLI stats / memory_stats 用） */
+export interface MemoryActivitySummary {
+  /** 最近一次记忆更新时间（epoch ms，0 = 无记忆） */
+  lastUpdatedAt: number
+  /** 距今天数（不足 1 天记 0） */
+  daysSinceLastUpdate: number
+  /** 今天新增/变更条数（memory_log 当日条目数） */
+  todayEntries: number
+  /** 最近 3 条日志条目（跨天，最新在前） */
+  recentEntries: MemoryLogEntry[]
+}
+
+/** 读取最近 N 天记忆日志（默认 7 天） */
+export function readMemoryLogRecent(days = 7, maxEntries = 50): MemoryLogEntry[] {
+  const entries: MemoryLogEntry[] = []
+  const logDir = getMemoryLogDir()
+  if (!existsSync(logDir)) return entries
+  const todayKey = localDateKey()
+  for (let i = 0; i < days; i += 1) {
+    const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000)
+    const dateKey = localDateKey(d.getTime())
+    const filePath = join(logDir, `${dateKey}.md`)
+    if (!existsSync(filePath)) continue
+    let content = ''
+    try { content = readFileSync(filePath, 'utf-8') } catch { continue }
+    for (const line of content.split('\n')) {
+      const match = line.match(/^\s*-\s+(\S+)\s+(.+)$/)
+      if (!match) continue
+      entries.push({ at: match[1], text: match[2].trim(), date: dateKey })
+      if (entries.length >= maxEntries) return entries
+    }
+  }
+  return entries
+}
+
+/** 记忆活动摘要：最近更新时间取「最新日志时间 ∨ 最近 atom 写入时间」中较晚者 */
+export function getMemoryActivity(): MemoryActivitySummary {
+  const entries = readMemoryLogRecent(30, 200)
+  const latestLogAt = entries[0] ? new Date(entries[0].at).getTime() : 0
+  // 最近 atom 写入时间（按天文件 mtime 取最大）
+  let latestAtomAt = 0
+  const atomsDir = getMemoryAtomsDir()
+  if (existsSync(atomsDir)) {
+    try {
+      for (const name of readdirSync(atomsDir)) {
+        if (!name.endsWith('.jsonl')) continue
+        try { latestAtomAt = Math.max(latestAtomAt, statSync(join(atomsDir, name)).mtimeMs) } catch { /* ignore */ }
+      }
+    } catch { /* ignore */ }
+  }
+  const lastUpdatedAt = Math.max(latestLogAt, latestAtomAt)
+  const daysSinceLastUpdate = lastUpdatedAt > 0 ? Math.max(0, Math.floor((Date.now() - lastUpdatedAt) / (24 * 60 * 60 * 1000))) : 0
+  const todayKey = localDateKey()
+  const todayEntries = entries.filter((e) => e.date === todayKey).length
+  return { lastUpdatedAt, daysSinceLastUpdate, todayEntries, recentEntries: entries.slice(0, 3) }
 }

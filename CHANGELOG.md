@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.8.0 (2026-08-10)
+
+「信任体验」批次：融合 Proma v0.17.0 记忆治理能力到外挂引擎（对齐上游 watcher 可视化 + refresh 复查邀请 + knowledge-maintenance 主动重整）。
+
+### 新增
+
+- **记忆动态可视化（对标 v0.17.0 memory watcher）**：`memoryActivity()` 读取最近记忆变更（今日动态数 / 距上次更新天数 / 最近 3 条日志）；`memory_log` 补自动提取批量写入；today 面板新增「记忆动态」卡片（Dock 风格）。
+- **记忆复查邀请（对标 v0.17.0 agent-memory-refresh-service）**：`memoryReviewOpportunity()` 距上次更新超 3 天返回邀请；today 面板顶部提示条 + `memory_stats` 附 review 字段 + CLI stats 展示「记忆距上次更新 N 天」。
+- **persona 超载重整（对标 v0.17.0 knowledge-maintenance 主动重整）**：`detectPersonaOverload()` 检测行数 >45 / 章节 >6 触发超载提示；LLM 增量更新时注入精简指令；`persona_get` 附 reorganizationHint；CLI stats 展示超载告警。
+- **onboarding 两阶段引导**：先建画像 → 再补证据；记忆维护纪律（3 天复查 + 画像超载精简）写入引导文案。
+
+### 修复
+
+- **开发期 workspace 链接失效（P0 开发体验）**：mcp 依赖 core 从 `^0.6.0`（npm registry）改为 `file:../proactive-core` + core version 对齐 0.7.0，本地引擎源码改动即时生效，不再需要先发布才能开发 mcp。
+
+### 测试
+
+- 295 全绿（新增 10：memory-activity 7 + persona-overload 3），core + mcp typecheck 干净。
+
 ## 0.7.0 (2026-08-10)
 
 「构建链迁移 Bun → Node.js」批次：运行时本就基于 Node（bundle 为 --target=node），本次将开发/构建/测试/CI 工具链整体迁到 Node 生态。
