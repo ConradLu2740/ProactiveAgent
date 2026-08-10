@@ -8,6 +8,7 @@ import { join } from 'node:path'
 import { captureCandidate, memoryActivity, memoryReviewOpportunity, daysSinceLastMemoryUpdate } from '../memory/service'
 import { appendMemoryLog, getMemoryActivity, readMemoryLogRecent } from '../memory/store'
 import { getMemoryLogDir } from '../paths'
+import { detectPersonaOverloadByLayer } from '../memory/persona'
 
 let dir: string
 let oldDataDir: string | undefined
@@ -60,6 +61,22 @@ describe('memory/activity 记忆动态', () => {
     appendMemoryLog('第二条')
     const entries = readMemoryLogRecent(7, 1)
     expect(entries.length).toBeLessThanOrEqual(1)
+  })
+
+  it('todayEntries 独立统计当日行数，不受 recentEntries 截断影响（P2-5）', () => {
+    // 写入超过 recentEntries 截断上限的当日日志，todayEntries 应统计完整
+    for (let i = 0; i < 10; i += 1) appendMemoryLog(`批量日志 ${i}`)
+    const a = getMemoryActivity()
+    expect(a.todayEntries).toBe(10)
+    expect(a.recentEntries.length).toBeLessThanOrEqual(3)
+  })
+
+  it('detectPersonaOverloadByLayer 双层章节超载可识别（P2-2）', () => {
+    const g = '# 用户画像\n\n## 用户\nConrad'
+    const p = '# 用户画像\n\n' + Array.from({ length: 8 }, (_, i) => `## 章节 ${i}\n- 内容`).join('\n')
+    const r = detectPersonaOverloadByLayer(g, p)
+    expect(r.overloaded).toBe(true)
+    expect(r.sectionCount).toBeGreaterThan(6)
   })
 })
 

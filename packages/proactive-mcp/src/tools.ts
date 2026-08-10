@@ -244,11 +244,15 @@ export function registerTools(server: McpServer): void {
     async ({ scope }) => {
       const persona = memoryService.personaRaw(normalizeReadScope(scope) as 'auto' | 'project' | 'global')
       if (!persona) return text('尚未生成用户画像。')
+      // P2-4：超载提示与 persona 原文分离，避免污染注入内容；提示只出现在详情 JSON
       const overload = memoryService.personaOverloadHint()
-      const body = overload.overloaded
-        ? `${persona}\n\n⚠️ 画像已超载（${overload.lineCount} 行 / ${overload.sectionCount} 个章节），建议用 persona_save 精简重整。${overload.hint}`
-        : persona
-      return text(body)
+      const detail = overload.overloaded
+        ? `\n⚠️ 画像已超载（${overload.lineCount} 行 / ${overload.sectionCount} 章节），建议用 persona_save 精简重整。${overload.hint}`
+        : ''
+      return {
+        content: [{ type: 'text', text: persona }],
+        structuredContent: { text: persona, overloaded: overload.overloaded, reorganizationHint: detail.trim() },
+      }
     },
   )
 

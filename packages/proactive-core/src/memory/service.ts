@@ -47,7 +47,7 @@ import {
   DEFAULT_RECALL_LIMIT,
 } from './recall'
 import { extractFromMessages, isMemoryLlmConfigured, callLlm } from './extractor'
-import { generatePersona, buildPersonaFromRules, extractPersonaSources, detectPersonaOverload } from './persona'
+import { generatePersona, buildPersonaFromRules, extractPersonaSources, detectPersonaOverload, detectPersonaOverloadByLayer } from './persona'
 import type {
   MemoryAtom,
   MemoryAtomType,
@@ -404,7 +404,8 @@ export function personaTraceable(): boolean {
 
 /** persona 超载检测（v0.8.0）：返回是否需要重整的提示，供 persona_get / today 展示 */
 export function personaOverloadHint(): { overloaded: boolean; lineCount: number; sectionCount: number; hint: string } {
-  return detectPersonaOverload(personaRaw('auto'))
+  // P2-2：按层检测（merge 视图丢 heading，单层统计会失效）；global/project 分开算取最差
+  return detectPersonaOverloadByLayer(readPersonaRaw('global'), readPersonaRaw('project'))
 }
 
 /** 手动重新生成 persona（用户控制，B3） */

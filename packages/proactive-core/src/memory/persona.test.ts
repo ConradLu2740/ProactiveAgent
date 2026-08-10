@@ -3,7 +3,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { cleanPersonaMarkdown, extractName, buildPersonaFromRules, extractPersonaSources, detectPersonaOverload } from '../memory/persona'
+import { cleanPersonaMarkdown, extractName, buildPersonaFromRules, extractPersonaSources, detectPersonaOverload, detectPersonaOverloadByLayer } from '../memory/persona'
 import { parsePersonaProfile } from '../memory/store'
 
 describe('memory/persona 纯函数', () => {
@@ -115,5 +115,26 @@ Conrad
     const r = detectPersonaOverload(sections.join('\n'))
     expect(r.overloaded).toBe(true)
     expect(r.sectionCount).toBeGreaterThan(6)
+  })
+
+  it('detectPersonaOverload 剥离溯源 header 后不误报 45 行画像（P2-3）', () => {
+    // writePersona 会加 2 行 header（注释 + 空行），剥离后应与用户实际编辑行数一致
+    const body = ['# 用户画像', '', '## 长期偏好']
+    for (let i = 0; i < 42; i += 1) body.push(`- 条目 ${i}`)
+    const withHeader = `<!-- persona-version: 2 (src traceability) -->\n\n${body.join('\n')}`
+    const r = detectPersonaOverload(withHeader)
+    // 剥离 header + 空行后 body 44 行（# 用户画像 + ## 长期偏好 + 42 条目，空行不计）不算超载；若不剥离会数到 47 行误报
+    expect(r.lineCount).toBe(44)
+    expect(r.overloaded).toBe(false)
+  })
+
+  it('detectPersonaOverloadByLayer 双层场景按层统计取最差（P2-2）', () => {
+    const globalOk = '# 用户画像\n\n## 用户\nConrad\n\n## 长期偏好\n- 喜欢 TS'
+    const projectOverloaded = '# 用户画像\n\n' + Array.from({ length: 8 }, (_, i) => `## 章节 ${i}\n- 内容 ${i}`).join('\n')
+    const r = detectPersonaOverloadByLayer(globalOk, projectOverloaded)
+    expect(r.overloaded).toBe(true)
+    expect(r.sectionCount).toBeGreaterThan(6)
+    // 按层检测取最差层，章节数应等于超载层（project 8）
+    expect(r.sectionCount).toBe(8)
   })
 })

@@ -200,13 +200,13 @@ export function buildTodayHtml(): string {
   <h2>记忆动态</h2>
   <div id="review-box" class="card" style="border-color:#ffa94d55;color:#ffa94d;font-size:13px;${p.review ? '' : 'display:none;'}">${p.review ? esc(p.review.message) : ''}</div>
   <div class="card">
-    <div class="sug-kind">今日 ${p.activity.todayEntries} 条动态 · 距上次更新 ${p.activity.daysSinceLastUpdate} 天</div>
-    ${p.personaOverload.overloaded ? `<div class="sub" style="margin-top:6px;color:#ffa94d;">⚠️ 画像已超载（${p.personaOverload.lineCount} 行 / ${p.personaOverload.sectionCount} 章节），建议精简重整。</div>` : ''}
-    ${p.activity.recentEntries.length
-      ? `<div id="activity-list">${p.activity.recentEntries
+    <div class="sug-kind" id="activity-summary">今日 ${p.activity.todayEntries} 条动态 · 距上次更新 ${p.activity.daysSinceLastUpdate} 天</div>
+    <div id="activity-overload" style="margin-top:6px;">${p.personaOverload.overloaded ? `<div class="sub" style="color:#ffa94d;">⚠️ 画像已超载（${p.personaOverload.lineCount} 行 / ${p.personaOverload.sectionCount} 章节），建议精简重整。</div>` : ''}</div>
+    <div id="activity-list">${p.activity.recentEntries.length
+      ? p.activity.recentEntries
           .map((e) => `<div class="scene-meta" style="margin-top:4px;">[${esc(e.date)}] ${esc(e.text)}</div>`)
-          .join('')}</div>`
-      : '<div class="empty">暂无记忆动态——沉淀记忆后这里会显示变更记录。</div>'}
+          .join('')
+      : '<div class="empty">暂无记忆动态——沉淀记忆后这里会显示变更记录。</div>'}</div>
   </div>
 
   <h2>记忆统计</h2>
@@ -267,6 +267,20 @@ function render(p){
   // 记忆动态 + 复查（v0.8.0）
   const reviewBox = document.getElementById('review-box');
   if (reviewBox) { reviewBox.textContent = p.review ? p.review.message : ''; reviewBox.style.display = p.review ? '' : 'none'; }
+  const actSummary = document.getElementById('activity-summary');
+  if (actSummary && p.activity) actSummary.textContent = '今日 ' + p.activity.todayEntries + ' 条动态 · 距上次更新 ' + p.activity.daysSinceLastUpdate + ' 天';
+  const actOverload = document.getElementById('activity-overload');
+  if (actOverload && p.personaOverload) {
+    actOverload.innerHTML = p.personaOverload.overloaded
+      ? '<div class="sub" style="color:#ffa94d;">⚠️ 画像已超载（' + p.personaOverload.lineCount + ' 行 / ' + p.personaOverload.sectionCount + ' 章节），建议精简重整。</div>'
+      : '';
+  }
+  const actList = document.getElementById('activity-list');
+  if (actList && p.activity) {
+    actList.innerHTML = (p.activity.recentEntries && p.activity.recentEntries.length)
+      ? p.activity.recentEntries.map(e => '<div class="scene-meta" style="margin-top:4px;">[' + esc(e.date) + '] ' + esc(e.text) + '</div>').join('')
+      : '<div class="empty">暂无记忆动态——沉淀记忆后这里会显示变更记录。</div>';
+  }
   document.getElementById('persona').textContent = p.persona.exists ? (p.persona.summary || '（已生成，无摘要）') : '尚未生成用户画像。';
   // ROI 区（M8）
   const roi = p.roi||{};

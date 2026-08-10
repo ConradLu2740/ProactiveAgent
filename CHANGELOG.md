@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.8.1 (2026-08-10)
+
+「0.8.0 独立验证修复」批次：依据协作子代理真实运行验证报告（浏览器实测 + 双层 persona 边界）修复 5 个 P2。
+
+### 修复
+
+- **today 面板 15s 自动刷新后「记忆动态」卡片不更新（P2-1）**：`render()` 只更新 review-box，今日条数/最近条目/超载提示保持旧值。为 activity-summary / activity-overload / activity-list 补 id，随刷新重写。
+- **双层 persona（global+project merge）章节超载检测失效（P2-2）**：mergePersonaRaw 输出丢弃 heading，`personaOverloadHint` 改为按 global/project 层分别统计取最差（`detectPersonaOverloadByLayer`）。
+- **45 行画像误报超载（P2-3）**：writePersona 注入的 `<!-- persona-version: 2 -->` header 计入行数导致阈值偏移 2 行。`detectPersonaOverload` 统计前剥离 header 注释行与空行。
+- **persona_get 超载提示污染 persona 原文（P2-4）**：提示文本不再拼入正文，正文保持纯 markdown，超载信息移入 structuredContent（overloaded/reorganizationHint）。
+- **todayEntries 被 recentEntries 截断（P2-5）**：todayEntries 独立统计当日 `memory_log/{today}.md` 行数，与 maxEntries=200 截断解耦。
+
+### 测试
+
+- 299 全绿（新增 4：P2-2 按层检测 2 + P2-3 header 剥离 1 + P2-5 独立统计 1），core + mcp typecheck 干净。
+- 浏览器实测：写入日志 → 15s 自动刷新 → 记忆动态卡片正确更新（今日 0→1 条）。
+
 ## 0.8.0 (2026-08-10)
 
 「信任体验」批次：融合 Proma v0.17.0 记忆治理能力到外挂引擎（对齐上游 watcher 可视化 + refresh 复查邀请 + knowledge-maintenance 主动重整）。

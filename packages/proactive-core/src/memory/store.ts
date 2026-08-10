@@ -865,6 +865,14 @@ export function getMemoryActivity(): MemoryActivitySummary {
   const lastUpdatedAt = Math.max(latestLogAt, latestAtomAt)
   const daysSinceLastUpdate = lastUpdatedAt > 0 ? Math.max(0, Math.floor((Date.now() - lastUpdatedAt) / (24 * 60 * 60 * 1000))) : 0
   const todayKey = localDateKey()
-  const todayEntries = entries.filter((e) => e.date === todayKey).length
+  // P2-5：todayEntries 独立统计当日日志文件行数，与 recentEntries（maxEntries=200 截断）解耦，避免超长日志被截断
+  let todayEntries = 0
+  const todayLogPath = join(getMemoryLogDir(), `${todayKey}.md`)
+  if (existsSync(todayLogPath)) {
+    try {
+      const content = readFileSync(todayLogPath, 'utf-8')
+      todayEntries = content.split('\n').filter((l) => /^\s*-\s+\S+\s+/.test(l)).length
+    } catch { /* ignore */ }
+  }
   return { lastUpdatedAt, daysSinceLastUpdate, todayEntries, recentEntries: entries.slice(0, 3) }
 }

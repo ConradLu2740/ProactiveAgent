@@ -58,14 +58,37 @@ const PERSONA_SYSTEM_PROMPT = `你是用户画像构建器。基于「长期记�
 export function detectPersonaOverload(markdown: string | undefined): { overloaded: boolean; lineCount: number; sectionCount: number; hint: string } {
   const text = markdown?.trim()
   if (!text) return { overloaded: false, lineCount: 0, sectionCount: 0, hint: '' }
-  const lines = text.split('\n')
-  const sectionCount = lines.filter((l) => /^##\s+/.test(l.trim())).length
-  const lineCount = lines.length
+  // P2-3：剥离引擎注入的溯源 header 注释行与首空行，让阈值口径与用户实际编辑内容一致（避免 45 行误报）
+  const bodyLines = text
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l !== '' && !l.startsWith('<!-- persona-version:'))
+  const sectionCount = bodyLines.filter((l) => /^##\s+/.test(l)).length
+  const lineCount = bodyLines.length
   const overloaded = lineCount > 45 || sectionCount > 6
   const hint = overloaded
     ? `画像已超载（${lineCount} 行 / ${sectionCount} 个章节）。建议在本次更新中：1) 合并重复结论；2) 把同语义条目合并为一条；3) 过时内容删除或标注待确认；4) 若出现多个独立主题，按「演进轨迹/长期偏好/交互协议」分节归档，避免无限追加。`
     : ''
   return { overloaded, lineCount, sectionCount, hint }
+}
+
+/**
+ * 逐层检测 persona 超载（P2-2）：merge 视图会丢失 heading（mergePersonaRaw 只输出条目行），
+ * 导致双层用户章节检测失效。这里分别对 global/project 原始层统计后取最差，
+ * 保证章节超载在任何层结构下都能被识别。
+ */
+export function detectPersonaOverloadByLayer(globalRaw: string | undefined, projectRaw: string | undefined): { overloaded: boolean; lineCount: number; sectionCount: number; hint: string } {
+  const layers = [detectPersonaOverload(globalRaw), detectPersonaOverload(projectRaw)]
+  const merged = layers.reduce(
+    (acc, cur) => ({
+      overloaded: acc.overloaded || cur.overloaded,
+      lineCount: Math.max(acc.lineCount, cur.lineCount),
+      sectionCount: Math.max(acc.sectionCount, cur.sectionCount),
+      hint: cur.hint || acc.hint,
+    }),
+    { overloaded: false, lineCount: 0, sectionCount: 0, hint: '' },
+  )
+  return merged
 }
 
 /** 从 atoms 构造 persona 生成的输入文本 */

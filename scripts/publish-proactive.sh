@@ -14,7 +14,7 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PUBLISH_DIR="$ROOT/dist-publish"
-VERSION="0.8.0"
+VERSION="0.8.1"
 LICENSE="${LICENSE:-MIT}"
 
 echo "==> 构建 bundle"
