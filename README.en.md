@@ -27,6 +27,9 @@
 | Cross-tool sharing | Claude Code `memory_capture` writes → Kimi Code `memory_recall` hits (100% relevance, zero config) |
 | Proactive suggestion: correction | "Always write unit tests before committing" → `suggest_now` detects correction → `suggest_accept` → feedback loops back |
 | Proactive suggestion: automation | "Check project progress at 5pm daily" → `suggest_now` detects automation → accepted → scheduled |
+| **Kimi one-command install (2026-08-12)** | `/plugins install .../kimi-plugin.zip` → plain `kimi` sessions get proactive memory automatically (model proactively captures per plugin instructions → recall hits in new sessions, no `--agent` needed) |
+| **Kimi three-way proactivity (2026-08-12)** | Full hooks chain after 0.35 restored: session-start injection (today-push) → mid-session `<notification>` relay (kimi-user-prompt) → session-end memory settle (kimi-session-end, pending by default) |
+| **UMP interop (2026-08-12)** | `ump-export` → official `@universalmemoryprotocol/core` loads 5/5 + recall (scope.owner) hits — memory is never locked to any tool |
 
 ---
 
@@ -40,10 +43,19 @@ Preferences you teach Claude Code **automatically work** in Kimi Code, Cline, et
 
 ### 💡 Proactive suggestions: silent when it should be silent
 
-Not a noisy pusher — it speaks only when there's a signal:
+Not a noisy pusher — it speaks only when there's a signal, with **restraint that has parameters**:
 - You corrected the agent → suggest persisting the rule into long-term memory (prevent recurrence)
 - You keep repeating the same task → suggest automation / SOP
 - Small talk, rejections, quiet hours → **silent** (that's the skill)
+- **Restraint is tunable**: 6 notifications/day cap, 15-min cooldown, DND hours (suggestions are kept, not dropped), persona-level "don't bother me" → auto down-rate
+
+### 🔔 It speaks even with the terminal closed: daemon + desktop notifications
+
+`proactive-mcp daemon --install` runs persistently (launchd/systemd): even with no agent open, it **reviews pending suggestions and speaks up via desktop notification** (macOS Notification Center / Windows tray / Linux notify-send); clicking the notification opens the proactive center, one-click accept lands the task.
+
+### 🔄 Memory is not locked in: UMP interop
+
+`proactive-mcp ump-export` exports memory as a standard Universal Memory Protocol file — **loadable and recallable by the official UMP SDK**. Your memory is your asset; take it anywhere UMP goes.
 
 ### 🛡️ Poisoning-resistant design, memory safety as a baseline
 
@@ -53,7 +65,7 @@ Not a noisy pusher — it speaks only when there's a signal:
 
 ### 🔌 Plug-and-play, one MCP for all
 
-Standard MCP protocol (stdio), **zero code change** to mount on any MCP-capable agent. Already validated on **three different hosts: Claude Code, Kimi Code, Proma**.
+Standard MCP protocol (stdio), **zero code change** to mount on any MCP-capable agent. Already validated on **three different hosts: Claude Code, Kimi Code, Proma** (8/12: Kimi additionally gets a one-command plugin); also on Smithery: `npx -y smithery mcp add 1797650355/proactive-agent`.
 
 ---
 
@@ -78,14 +90,22 @@ npx proactive-mcp init
 claude mcp add proactive-agent -- node <repo>/dist-publish/mcp/dist/index.js
 ```
 
-**Option B: clone the repo (development / customization)**
+**Option B (Kimi Code users, one command):**
+```text
+/plugins install https://github.com/ConradLu2740/ProactiveAgent/releases/download/v0.9.2/kimi-plugin.zip
+/reload
+```
+Plain `kimi` sessions get proactive memory automatically (no `--agent` needed); optionally `kimi --agent proactive` for the aggressive mode.
+```
+
+**Option C: clone the repo (development / customization)**
 ```bash
 git clone https://github.com/ConradLu2740/ProactiveAgent.git && cd ProactiveAgent
 npm install
 npm run start:mcp
 ```
 
-**Option C: start a local proactive center panel**
+**Option D: start a local proactive center panel**
 ```bash
 npm run start:today
 # Open http://127.0.0.1:8737/today — suggestions, scenes, persona, stats at a glance

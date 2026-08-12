@@ -27,6 +27,9 @@
 | 跨工具共享 | Claude Code `memory_capture` 写入 → Kimi Code `memory_recall` 检索命中（相关度 100%，零配置） |
 | 主动建议：纠正 | 「以后提交前先写单元测试」→ `suggest_now` 识别 correction 建议 → `suggest_accept` 接受 → 反馈回流 |
 | 主动建议：自动化 | 「每天下午 5 点检查项目进展」→ `suggest_now` 识别 automation 建议 → 接受进入调度 |
+| **Kimi 一条命令接入（8/12 实测）** | `/plugins install .../kimi-plugin.zip` → 普通 `kimi` 会话自动主动记忆（模型按插件指令主动 capture → 新会话 recall 命中，无需 `--agent`） |
+| **Kimi 三路主动（8/12 实测）** | hooks 恢复后全链路：会话开始注入建议/画像（today-push）→ 过程强信号 `<notification>` 转述（kimi-user-prompt）→ 收尾自动沉淀记忆（kimi-session-end，默认待确认） |
+| **UMP 互操作（8/12 实测）** | `ump-export` 导出 → 官方 `@universalmemoryprotocol/core` 加载 5/5 + recall（scope.owner）全命中——记忆不被任何工具锁死 |
 
 ---
 
@@ -38,12 +41,21 @@
 
 > 告别「每个工具都要重新教一遍」：教一次 TypeScript 偏好，所有 agent 都记得。
 
-### 💡 主动建议：该沉默时沉默
+### 💡 主动开口：该沉默时沉默
 
-不是话痨推送，而是**有信号才开口**：
+不是话痨推送，而是**有信号才开口、有参数地克制**：
 - 你纠正了 agent → 建议把规则写进长期记忆（防重犯）
 - 你重复做同一件事 → 建议自动化 / 沉淀为流程
 - 闲聊、拒绝、打扰时段 → **安静**（这就是能力）
+- **克制是有参数的**：每日通知上限 6 条、冷却 15 分钟、DND 时段不打扰（建议保留不吞）、画像里说过「不想被打扰」自动降频——防疲劳，也防「记仇」
+
+### 🔔 关掉终端也会开口：守护进程 + 桌面通知
+
+`proactive-mcp daemon --install` 一键常驻（launchd/systemd 自启）：即使你没有打开任何 agent，它也会**巡检待处理建议并通过桌面通知主动开口**（macOS 通知中心 / Windows 托盘 / Linux notify-send）；点击通知直达主动中心面板，一键接受即落地任务。
+
+### 🔄 记忆不锁死：UMP 互操作
+
+`proactive-mcp ump-export` 导出为标准 Universal Memory Protocol 文件，**官方 UMP SDK 可加载、可 recall**——记忆是你的资产，想迁移到任何 UMP 生态随时可以带走。
 
 ### 🛡️ 防投毒设计，记忆安全有底线
 
@@ -53,7 +65,7 @@
 
 ### 🔌 即插即用，一个 MCP 挂所有
 
-标准 MCP 协议（stdio），**零代码改动**挂载到任何支持 MCP 的 agent。已在 **Claude Code、Kimi Code、Proma 三个完全不同的宿主**真实验证。
+标准 MCP 协议（stdio），**零代码改动**挂载到任何支持 MCP 的 agent。已在 **Claude Code、Kimi Code、Proma 三个完全不同的宿主**真实验证（8/12：Kimi 另提供一条命令插件安装）；Smithery 已上架：`npx -y smithery mcp add 1797650355/proactive-agent`。
 
 ---
 
@@ -78,14 +90,22 @@ npx proactive-mcp init
 claude mcp add proactive-agent -- node <repo>/dist-publish/mcp/dist/index.js
 ```
 
-**方式 B：clone 仓库（开发 / 自定义）**
+**方式 B（Kimi Code 用户，一条命令）**：
+```text
+/plugins install https://github.com/ConradLu2740/ProactiveAgent/releases/download/v0.9.2/kimi-plugin.zip
+/reload
+```
+装完普通 `kimi` 会话即自动获得主动记忆（无需 `--agent`）；另可 `kimi --agent proactive` 启用激进模式。详见 [Kimi Code 使用指南](../.context/pa-kimi-code-guide.md)。
+```
+
+**方式 C：clone 仓库（开发 / 自定义）**
 ```bash
 git clone https://github.com/ConradLu2740/ProactiveAgent.git && cd ProactiveAgent
 npm install
 npm run start:mcp
 ```
 
-**方式 C：起一个本地主动中心面板**
+**方式 D：起一个本地主动中心面板**
 ```bash
 npm run start:today
 # 打开 http://127.0.0.1:8737/today —— 建议、场景、画像、统计一目了然
