@@ -3,7 +3,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { registerAdapter, getAdapter, listAdapters, detectHostId, claudeAdapter, kimiAdapter } from './index'
+import { registerAdapter, getAdapter, listAdapters, detectHostId, claudeAdapter, kimiAdapter, cursorAdapter, looksLikeCursorInput, readCursorSession } from './index'
 import { renderTextSuggestion, renderTodayInjection, extractTranscriptMessages } from './claude'
 import { renderKimiNotification, extractWireMessages } from './kimi'
 
@@ -12,11 +12,12 @@ const SUG: Array<{ id: string; kind: string; title: string; reason: string }> = 
 ]
 
 describe('注册表', () => {
-  it('内置注册 claude + kimi，可获取', () => {
-    expect(listAdapters().map((a) => a.id).sort()).toEqual(['claude', 'kimi'])
+  it('内置注册 claude + kimi + cursor，可获取', () => {
+    expect(listAdapters().map((a) => a.id).sort()).toEqual(['claude', 'cursor', 'kimi'])
     expect(getAdapter('claude')).toBe(claudeAdapter)
     expect(getAdapter('kimi')).toBe(kimiAdapter)
-    expect(getAdapter('cursor')).toBeUndefined() // M2 未实现
+    expect(getAdapter('cursor')).toBe(cursorAdapter)
+    expect(getAdapter('cline')).toBeUndefined() // M3 未实现
   })
 
   it('重复注册 fail loud（参考 harnery registry）', () => {
@@ -41,6 +42,28 @@ describe('能力矩阵（判断用能力而非宿主名）', () => {
   it('Claude：全能力支持，会话中注入为 stdout-text', () => {
     expect(claudeAdapter.capabilities.resources).toBe(true)
     expect(claudeAdapter.capabilities.midSessionInjection).toBe('stdout-text')
+  })
+
+  it('M2 Cursor：Claude Code hooks 兼容声明（partial 带 note，诚实不伪造）', () => {
+    expect(cursorAdapter.id).toBe('cursor')
+    const h = cursorAdapter.capabilities.hooks
+    expect(typeof h).toBe('object')
+    expect((h as { partial: string }).partial).toContain('待实测')
+    // 事件映射：Claude Code 兼容名
+    expect(cursorAdapter.hooks.eventMap.sessionStart).toBe('start')
+    expect(cursorAdapter.hooks.eventMap.beforeSubmitPrompt).toBe('msg')
+    expect(cursorAdapter.hooks.eventMap.stop).toBe('end')
+    // 会话读取诚实声明：未调研 → partial
+    const sr = cursorAdapter.capabilities.sessionRead
+    expect(typeof sr).toBe('object')
+    expect(readCursorSession({ sessionId: 'x' }).messages).toEqual([])
+  })
+
+  it('M2 cursor 宿主识别：camelCase 字段（looksLikeCursorInput / detectHostId）', () => {
+    const input = { sessionId: 's1', hookEventName: 'beforeSubmitPrompt' }
+    expect(looksLikeCursorInput(input)).toBe(true)
+    expect(detectHostId(input)).toBe('cursor')
+    expect(looksLikeCursorInput({ session_id: 's1' })).toBe(false)
   })
 })
 

@@ -8,6 +8,7 @@
 import type { HostAdapter, HostId } from './types'
 import { claudeAdapter } from './claude'
 import { kimiAdapter } from './kimi'
+import { cursorAdapter } from './cursor'
 
 const registry = new Map<HostId, HostAdapter>()
 
@@ -29,11 +30,12 @@ export function listAdapters(): HostAdapter[] {
   return [...registry.values()]
 }
 
-/** 内置适配器注册（claude / kimi；cursor/cline/codex 为 M2/M3） */
+/** 内置适配器注册（claude / kimi / cursor；cline/codex 为 M3） */
 export function registerBuiltinAdapters(): void {
   if (registry.size === 0) {
     registerAdapter(claudeAdapter)
     registerAdapter(kimiAdapter)
+    registerAdapter(cursorAdapter)
   }
 }
 
@@ -43,3 +45,4 @@ export type { HostAdapter, HostCapabilities, Capability, HostId, HostMessage, Ho
 export { detectHostId } from './types'
 export { claudeAdapter, renderTextSuggestion, renderTodayInjection, extractTranscriptMessages } from './claude'
 export { kimiAdapter, renderKimiNotification, extractWireMessages, locateWireFile } from './kimi'
+export { cursorAdapter, readCursorSession, looksLikeCursorInput } from './cursor'
