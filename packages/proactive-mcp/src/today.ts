@@ -12,8 +12,12 @@
  */
 
 import { createServer, type Server } from 'node:http'
-import { memoryService, suggestService, getConfigDir, getProjectIdentity } from '@proactive-agent/core'
+import { randomBytes } from 'node:crypto'
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs'
+import { join } from 'node:path'
+import { memoryService, suggestService, getConfigDir, getProjectIdentity, getActionExecutor } from '@proactive-agent/core'
 import { listTasks, taskStats } from './task-store'
+import { registerLocalTaskExecutor } from './host-executor'
 
 /** 构建 /api/today 数据负载 */
 export function buildTodayPayload(): {
@@ -88,6 +92,34 @@ export function buildTodayPayload(): {
   }
 }
 
+/** 面板写接口鉴权 token（P1-4）：启动时生成随机 token 存 PROACTIVE_DATA_DIR/today.token */
+export function ensureTodayToken(): string {
+  const p = join(getConfigDir(), 'today.token')
+  try {
+    if (existsSync(p)) {
+      const existing = readFileSync(p, 'utf-8').trim()
+      if (existing.length >= 16) return existing
+    }
+    const token = randomBytes(24).toString('hex')
+    mkdirSync(getConfigDir(), { recursive: true })
+    writeFileSync(p, token, 'utf-8')
+    return token
+  } catch {
+    // token 读写失败：返回空（后续写接口会被拒绝，只读不受影响）
+    return ''
+  }
+}
+
+/** 读取当前 token（无 token 文件返回空字符串） */
+export function readTodayToken(): string {
+  try {
+    const p = join(getConfigDir(), 'today.token')
+    return existsSync(p) ? readFileSync(p, 'utf-8').trim() : ''
+  } catch {
+    return ''
+  }
+}
+
 const KIND_LABEL: Record<string, string> = {
   correction: '纠正建议',
   followup: '跟进建议',
@@ -114,6 +146,10 @@ export function buildTodayHtml(): string {
           <div class="sug-title">${esc(s.title)}</div>
           <div class="sug-reason">${esc(s.reason)}</div>
           <div class="sug-id">${esc(s.id)}</div>
+          <div class="sug-actions">
+            <button class="act accept" data-id="${esc(s.id)}" data-action="accept">✓ 接受</button>
+            <button class="act ignore" data-id="${esc(s.id)}" data-action="ignore">✕ 忽略</button>
+          </div>
         </div>`,
         )
         .join('')
@@ -166,6 +202,12 @@ export function buildTodayHtml(): string {
   .sug-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
   .sug-reason { font-size: 13px; color: #aab2c0; line-height: 1.5; }
   .sug-id { font-size: 11px; color: #5c6470; margin-top: 8px; font-family: ui-monospace, monospace; }
+  .sug-actions { margin-top: 8px; display: flex; gap: 8px; }
+  .act { font-size: 12px; padding: 4px 12px; border-radius: 6px; border: 1px solid #2a3140; background: #1d232e; color: #aab2c0; cursor: pointer; transition: border-color .15s, color .15s; }
+  .act:hover { border-color: #4dabf7; color: #4dabf7; }
+  .act.accept:hover { border-color: #51cf66; color: #51cf66; }
+  .act.ignore:hover { border-color: #ff6b6b; color: #ff6b6b; }
+  .act:disabled { opacity: .5; cursor: default; }
   .scene-title { font-size: 14px; font-weight: 600; }
   .scene-meta { font-size: 12px; color: #8b93a1; margin-top: 4px; }
   .empty { color: #5c6470; font-size: 13px; padding: 12px 2px; }
@@ -243,13 +285,15 @@ export function buildTodayHtml(): string {
   <div class="sub" style="margin-top:24px;">API: <a href="/api/today">/api/today</a> · 每 15 秒自动刷新 · 由 @proactive-agent/mcp 提供</div>
 <script>
 const KIND = { correction:'纠正建议', followup:'跟进建议', automation:'自动化建议', skill:'技能建议', todo:'待办建议' };
+// 0.5：写接口鉴权 token（同源注入；外部 POST 无此 token 将被服务端拒绝）
+const PA_TOKEN = '${esc(readTodayToken())}';
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function render(p){
   document.getElementById('meta-time').textContent = new Date().toLocaleString('zh-CN') + ' · 数据目录 ' + p.dataDir;
   document.getElementById('meta-project').textContent = '项目 ' + p.project.displayName + '（key=' + p.project.key + ' · ' + p.project.identitySource + '）';
   const sug = document.getElementById('suggestions');
   sug.innerHTML = p.suggestions.length
-    ? p.suggestions.map(s=>'<div class="card sug"><div class="sug-kind">'+esc(KIND[s.kind]||s.kind)+'</div><div class="sug-title">'+esc(s.title)+'</div><div class="sug-reason">'+esc(s.reason)+'</div><div class="sug-id">'+esc(s.id)+'</div></div>').join('')
+    ? p.suggestions.map(s=>'<div class="card sug"><div class="sug-kind">'+esc(KIND[s.kind]||s.kind)+'</div><div class="sug-title">'+esc(s.title)+'</div><div class="sug-reason">'+esc(s.reason)+'</div><div class="sug-id">'+esc(s.id)+'</div><div class="sug-actions"><button class="act accept" data-id="'+esc(s.id)+'" data-action="accept">✓ 接受</button><button class="act ignore" data-id="'+esc(s.id)+'" data-action="ignore">✕ 忽略</button></div></div>').join('')
     : '<div class="empty">暂无待处理建议 —— 该沉默时沉默。</div>';
   document.getElementById('sug-count').textContent = p.suggestions.length;
   document.getElementById('scenes').innerHTML = p.hotScenes.length
@@ -309,6 +353,16 @@ async function refresh(){
   try { const r = await fetch('/api/today'); render(await r.json()); }
   catch(e){ console.error('[today] refresh failed', e); }
 }
+// 0.5：ActionCard 闭环 —— 接受/忽略按钮（事件委托，避免每次重绘重复绑定）
+document.getElementById('suggestions').addEventListener('click', async function(e){
+  const btn = (e.target).closest && (e.target).closest('button[data-action]');
+  if (!btn) return;
+  btn.disabled = true;
+  const id = btn.dataset.id, action = btn.dataset.action;
+  try { await fetch('/api/suggestions/' + encodeURIComponent(id) + '/' + action, { method: 'POST', headers: { 'x-pa-token': PA_TOKEN } }); }
+  catch(err){ console.error('[today] feedback failed', err); }
+  refresh();
+});
 setInterval(refresh, 15000);
 refresh();
 </script>
@@ -318,6 +372,8 @@ refresh();
 
 /** 启动本地主动中心 server（默认端口 8737） */
 export function startTodayServer(port = 8737): Server {
+  // P1-4：写接口鉴权 token（启动时确保生成；面板同源读取后随请求带回）
+  ensureTodayToken()
   const server = createServer((req, res) => {
     try {
       if (req.url === '/api/today') {
@@ -348,6 +404,60 @@ export function startTodayServer(port = 8737): Server {
             res.end(JSON.stringify({ ok: false, error: '请求体不是合法 JSON' }))
           }
         })
+        return
+      }
+      // POST /api/suggestions/:id/accept|ignore — 面板 ActionCard 闭环（0.5）
+      // 接受/忽略建议 → 复用 handleSuggestionFeedback（反馈回流 + Action Executor 落地任务）
+      // 安全（P1-4）：写接口要求 x-pa-token 与 today.token 一致（面板同源自动携带，外部 POST 被拒）
+      const feedbackMatch = (req.url ?? '').match(/^\/api\/suggestions\/([^/]+)\/(accept|ignore)$/)
+      if (feedbackMatch && req.method === 'POST') {
+        const expected = readTodayToken()
+        const supplied = req.headers['x-pa-token']
+        if (!expected || supplied !== expected) {
+          res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' })
+          res.end(JSON.stringify({ ok: false, error: '未授权：缺少或错误的面板 token' }))
+          return
+        }
+        let id: string
+        try {
+          id = decodeURIComponent(feedbackMatch[1])
+        } catch {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' })
+          res.end(JSON.stringify({ ok: false, error: '建议 ID 编码非法' }))
+          return
+        }
+        const action = feedbackMatch[2]
+        // P1-6：服务端幂等预检——已处理（非 suggested）的建议直接拒绝，防止重放重复建任务
+        const existing = suggestService.getSuggestionById(id)
+        if (existing && existing.status !== 'suggested') {
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' })
+          res.end(JSON.stringify({ ok: false, error: '建议已处理，不能重复操作' }))
+          return
+        }
+        // P1-5：仅当宿主未注入真实执行器时才注册本地默认执行器（避免覆盖宿主 Provider）
+        if (getActionExecutor() === null) registerLocalTaskExecutor()
+        void suggestService
+          .handleSuggestionFeedback(id, action === 'accept' ? 'accepted' : 'ignored', { host: 'today-panel' })
+          .then((fb) => {
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' })
+            res.end(
+              JSON.stringify(
+                {
+                  ok: fb.ok,
+                  error: fb.error ?? undefined,
+                  result: fb.result
+                    ? { ok: fb.result.ok, executed: fb.result.executed, message: fb.result.message }
+                    : undefined,
+                },
+                null,
+                2,
+              ),
+            )
+          })
+          .catch((error) => {
+            res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' })
+            res.end(JSON.stringify({ ok: false, error: error instanceof Error ? error.message : String(error) }))
+          })
         return
       }
       // /today 或 / → HTML

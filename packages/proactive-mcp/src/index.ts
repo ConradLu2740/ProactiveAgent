@@ -24,6 +24,8 @@ import { runDemo } from './cli/demo'
 import { runMigrate } from './cli/migrate'
 import { runExtract } from './cli/extract'
 import { runArchive } from './cli/archive'
+import { runDaemonCli } from './cli/daemon'
+import { runUmpCli } from './cli/ump'
 
 /**
  * 包版本。发布时由 scripts/publish-proactive.sh 通过 bun build
@@ -59,6 +61,9 @@ async function main(): Promise<void> {
   proactive-mcp demo           # 教程式示例（隔离数据，--clean 清理）
   proactive-mcp migrate        # 0.3.0 数据迁移 / 反向收敛（--merge-to-global / --status / --preview）
   proactive-mcp extract        # 对已有项目提取记忆（冷启动引导；--dry-run 预览 / --global 写共享层）
+  proactive-mcp daemon         # 常驻守护进程（--install 自启 / --status 状态 / --stop 停止）
+  proactive-mcp ump-export     # 导出记忆为 UMP 互操作文件（--path 指定输出 / --confirmed 仅确认项）
+  proactive-mcp ump-import     # 从 UMP 文件导入记忆（默认待确认，--confirm 即时生效）
   proactive-mcp --today        # 启动本地主动中心 Web 面板（端口 PROACTIVE_TODAY_PORT，默认 8737）
 
 数据目录: 默认 ~/.proma-proactive/（0.3.0 起按项目隔离，显式共享用 global）
@@ -106,6 +111,18 @@ async function main(): Promise<void> {
     runArchive(argv)
     return
   }
+  // daemon：常驻守护进程（主动出口；--install/--uninstall/--status/--stop）
+  if (argv.includes('daemon')) {
+    const code = await runDaemonCli(argv.slice(argv.indexOf('daemon')))
+    process.exitCode = code
+    return
+  }
+  // ump-export / ump-import：UMP 互操作（0.7 L0）
+  if (argv[0] === 'ump-export' || argv[0] === 'ump-import') {
+    const code = runUmpCli(argv)
+    process.exitCode = code
+    return
+  }
   // --today：启动本地主动中心 Web 面板（不进入 stdio MCP）
   if (argv.includes('--today')) {
     const port = Number(process.env.PROACTIVE_TODAY_PORT ?? 8737)
@@ -118,11 +135,11 @@ async function main(): Promise<void> {
   }
 
   // 未知首参数：友好提示而非静默进入 stdio（避免用户手滑后进程永久挂起）
-  const KNOWN = new Set(['init', 'doctor', 'stats', 'demo', 'migrate', 'extract', 'archive', '--today', '--help', '-h', '--version', '-v'])
+  const KNOWN = new Set(['init', 'doctor', 'stats', 'demo', 'migrate', 'extract', 'archive', 'daemon', 'ump-export', 'ump-import', '--today', '--help', '-h', '--version', '-v'])
   const first = argv[0]
   if (first && !first.startsWith('-') && !KNOWN.has(first)) {
     console.error(`未知子命令: ${first}`)
-    console.error('可用命令: init · doctor · stats · demo · migrate · extract · archive · --today · --help · --version')
+    console.error('可用命令: init · doctor · stats · demo · migrate · extract · archive · daemon · ump-export · ump-import · --today · --help · --version')
     process.exit(1)
   }
   const server = createServer()

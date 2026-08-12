@@ -18,6 +18,8 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { memoryService, suggestService, getConfigDir } from '@proactive-agent/core'
+import { recordLifecycle, currentProjectKey } from '../src/event-store'
+import { readStdinInput, detectTool } from './common'
 
 /** 去重记录文件：记录已注入过的建议 ID（放在配置目录下，随数据走） */
 function lastInjectedPath(): string {
@@ -47,6 +49,13 @@ function writeInjected(ids: string[]): void {
 
 function main(): void {
   try {
+    // 0.6：跨工具事件感知——会话开始事件（daemon 定时评估上下文来源；工具自适应）
+    try {
+      const input = readStdinInput()
+      recordLifecycle(detectTool(input), 'start', { sid: input.session_id ?? input.sessionId, pk: currentProjectKey() })
+    } catch {
+      // 事件写入失败不阻断
+    }
     // 待处理建议（去重：只注入未注入过的）
     const injected = readInjected()
     const allSuggestions = suggestService.listSuggestionsForUI('suggested').slice(0, 10)

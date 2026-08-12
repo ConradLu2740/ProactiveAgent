@@ -131,7 +131,11 @@ agent: 我偏好用 TypeScript 和 Bun
 ### 附加能力
 
 - **记忆维护（0.8.0，对齐 Proma v0.17.0 记忆治理）**：`memory_stats` 展示「今日 X 条动态 · 距上次更新 N 天」；记忆超过 3 天未更新时返回复查邀请（清理过时记忆、确认待确认项、必要时重整画像）；`persona_get` 在画像超载（>45 行 / >6 章节）时提示精简重整；`onboarding_guide` 提供「先建画像 → 再补证据」两阶段引导。
-- **/today Web 面板**：本地主动中心（15s 自动刷新），任何宿主都能开浏览器看；`POST /api/evaluate` 支持宿主把最近消息推过来触发会话中评估
+- **/today Web 面板**：本地主动中心（15s 自动刷新），任何宿主都能开浏览器看；`POST /api/evaluate` 支持宿主把最近消息推过来触发会话中评估；建议卡片支持「接受 / 忽略」一键反馈（ActionCard 闭环，接受即落地本地任务）
+- **守护进程（0.5.0 主动出口）**：`proactive-mcp daemon` 常驻后台，**巡检待处理建议**并通过**桌面通知**主动开口（macOS 通知中心 / Windows 托盘气泡 / Linux notify-send）；点击通知打开主动中心面板；`--install` 一键配置登录自启（launchd / systemd）；`--status` / `--stop` 管理；`doctor` 包含 daemon 健康检查与**今日疲劳状态**（已通知/上限）。巡检间隔 `PROACTIVE_DAEMON_INTERVAL_MIN`（默认 60 分钟），每次最多通知 1 条、同条不重复打扰、DND 时段不打扰且不吞建议（克制信条）。
+- **通知疲劳控制（0.8.0）**：**每日通知上限**（默认 6 条/天，`PROACTIVE_DAEMON_DAILY_LIMIT` 覆盖，跨天自动重置）+ **冷却窗口**（默认 15 分钟，`PROACTIVE_DAEMON_COOLDOWN_MIN` 覆盖）+ **画像驱动打扰系数**——画像含「不要打扰/静默」等规则时上限减半、冷却翻倍（尊重用户「不想被打扰」的表达）；达上限/冷却时建议**保留不吞**，次日继续
+- **跨工具感知网（0.6.0）**：统一事件协议——各工具 hooks 把会话/消息/commit 事件归一化写入 `~/.proma-proactive/events/`（仅当前用户可读写），daemon 巡检时读取最近事件构造 messages 做**真定时评估**（完成 0.5 P0-1 遗留）；Claude Code / Kimi Code hooks 已内联写事件，Cursor 官方支持加载 Claude Code hooks 自动接入，Codex/Cline 可用 `dist/hooks/event-capture.js` 通用入口接入；`init` 打印跨工具接入指引；第三方接入指南见 `docs/developers/adapter-guide.md`
+- **UMP 互操作（0.7.0 L0）**：`proactive-mcp ump-export` 导出记忆为 Universal Memory Protocol 文件（`.ump/memory.ump.json`），`ump-import` 从 UMP 文件导入（默认待确认防投毒）——任何 UMP 客户端可读写 ProactiveAgent 记忆；兼容评估见 .context 文档，L2 MCP store 桥接待生态成熟
 - **Claude Code hooks（三层）**：
   - `SessionStart`（today-push）：会话开始推送待处理建议 + 热点场景
   - `UserPromptSubmit`（user-prompt）：**会话中实时评估**——你说"以后都用 pnpm"，立即收到纠正建议；弱信号自动沉默
@@ -179,6 +183,15 @@ agent: 我偏好用 TypeScript 和 Bun
 你说："每天下午5点帮我检查发布状态"
 → 时间解析器识别周期 → cron: 0 17 * * *
 → 建议预填真实 cron，接受后直接建好定时任务
+```
+
+### 场景 5：无人值守的主动守护进程（0.5.0）
+```
+proactive-mcp daemon --install   # 安装登录自启（macOS/Linux）
+→ 每隔 60 分钟巡检待处理建议
+→ 有值得开口的建议时，桌面通知弹出来（点击打开主动中心）
+→ 在面板点「接受」→ automation/todo 建议直接落地为本地任务
+→ 该沉默时沉默：无新建议 / DND 时段（建议保留不吞） / 同条建议不重复打扰
 ```
 
 ---
@@ -246,6 +259,14 @@ A：0.5.4 起 `memory_recall` 使用<b>倒排索引</b>（term → atoms，缓�
 
 ## Roadmap
 
+- [x] 守护进程 + 桌面通知主动出口（0.5.0：常驻评估 + 三端通知 + 通知点击打开面板 + launchd/systemd 自启 + ActionCard 闭环按钮）
+- [x] 跨工具感知网（0.6.0：统一事件协议 + 事件落盘 + Claude/Kimi 内联写事件 + Cursor 官方兼容 + event-capture 通用入口 + daemon 真定时评估）
+- [x] UMP 互操作 L0（0.7.0：ump-export/ump-import + 兼容评估文档 + adapter 接入指南与模板）
+- [x] 通知疲劳控制（0.8.0：每日上限 + 冷却窗口 + 画像驱动打扰系数 + doctor 疲劳状态）
+- [ ] 生态分发收尾（0.7.1：Smithery 描述更新 + mcp.so 手动提交 + UMP L2 桥接评估）
+- [ ] 通知内反馈回流增强（0.8.1：通知点击统计 → ROI 回流）
+- [ ] 通知疲劳控制与个性化（0.8.x：频控 + 画像驱动打扰 + 通知内反馈回流）
+- [ ] 事件按项目隔离评估（0.6.1：daemon 按 pk 分组 + core projectHint 路由生效）
 - [x] 核心引擎（记忆 + 建议 + 场景 + 画像）
 - [x] MCP Server + 面板 + hooks
 - [x] Proma / Claude Code / Kimi Code 真实验证

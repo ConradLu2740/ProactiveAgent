@@ -20,6 +20,7 @@ export * from './paths'
 export * from './provider'
 export * from './memory/repo-extract'
 export * from './memory/ttl'
+export * from './shared-types'
 export type { ProactiveCoreOptions } from './types'
 
 export { memoryService, suggestService }

@@ -59,18 +59,19 @@ function buildServerConfig(local: boolean): { config: Record<string, unknown>; e
 
 /**
  * 推断 hooks 绝对路径。
- * dist bundle 自身位置 → dist/hooks/{today-push,session-end,user-prompt}.js。
+ * dist bundle 自身位置 → dist/hooks/{today-push,session-end,user-prompt,event-capture}.js。
  * 返回 undefined 表示无法推断（源码 dev 模式），调用方据此跳过 hooks 配置。
  */
-function inferHooksPaths(): { todayPush: string; sessionEnd: string; userPrompt: string } | undefined {
+function inferHooksPaths(): { todayPush: string; sessionEnd: string; userPrompt: string; eventCapture: string } | undefined {
   const self = fileURLToPath(import.meta.url)
   const distDir = dirname(self)
   const hooksDir = join(distDir, 'hooks')
   const todayPush = join(hooksDir, 'today-push.js')
   const sessionEnd = join(hooksDir, 'session-end.js')
   const userPrompt = join(hooksDir, 'user-prompt.js')
-  if (existsSync(todayPush) && existsSync(sessionEnd) && existsSync(userPrompt)) {
-    return { todayPush, sessionEnd, userPrompt }
+  const eventCapture = join(hooksDir, 'event-capture.js')
+  if (existsSync(todayPush) && existsSync(sessionEnd) && existsSync(userPrompt) && existsSync(eventCapture)) {
+    return { todayPush, sessionEnd, userPrompt, eventCapture }
   }
   return undefined
 }
@@ -95,6 +96,24 @@ function readJsonSafe(path: string): Record<string, unknown> | null {
     return null
   }
 }
+
+/**
+ * 打印跨工具接入指引（0.6 感知网）。
+ * 注意：Cursor 官方原生支持加载 .claude/settings.json 的 Claude Code hooks 并自动映射
+ * （SessionStart→sessionStart、UserPromptSubmit→beforeSubmitPrompt、Stop→stop），
+ * 因此**不再**生成 .cursor/hooks.json（避免双写与 tool 标签失真），依赖官方兼容即可。
+ */
+function printToolGuide(): void {
+  console.log('跨工具感知网（0.6）：')
+  console.log('  • Claude Code / Kimi Code：hooks 已配置（会话事件写入统一事件流）')
+  console.log('  • Cursor：官方支持加载 Claude Code hooks（.claude/settings.json 自动映射），开启第三方钩子兼容后自动接入，无需额外配置')
+  console.log('  • Continue：官方 hooks 配置兼容 Claude Code 的 settings.json 位置与格式（事件名映射可能需按官方文档核对）')
+  console.log('  • Codex：生命周期 hooks 需手动接入（Codex 官方 config 文档，命令指向 dist/hooks/event-capture.js）')
+  console.log('  • Cline：hooks 走 SDK Plugins 机制（详见 cline 官方文档；或用任意支持命令回调的工具指向 event-capture.js）')
+  console.log('  • 事件统一落盘：~/.proma-proactive/events/（仅当前用户可读写），daemon 定时评估自动消费（0.6）')
+  console.log()
+}
+
 
 /**
  * 生成项目级 .mcp.json。
@@ -279,6 +298,8 @@ export function runInit(args: string[]): void {
     console.log(`ℹ️  ${hooks.path} 已存在 proactive-agent hooks（用 --force 更新）`)
     console.log()
   }
+
+  printToolGuide()
 
   console.log('下一步：')
   console.log('  1. 在支持 MCP 的 agent（Claude Code / Kimi Code / Cline / Cursor）中启动会话')

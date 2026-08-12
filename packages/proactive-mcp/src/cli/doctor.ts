@@ -11,6 +11,7 @@ import { dirname, join } from 'node:path'
 import os from 'node:os'
 import { createConnection } from 'node:net'
 import { memoryService, suggestService, getConfigDir, getMemoryRootDir, getProjectIdentity, isEscapeGlobal, readTopIndex } from '@proactive-agent/core'
+import { isProcessAlive, dailyNotifiedCount, dailyNotifyLimit, personaDisturbCoefficient } from '../daemon'
 
 interface CheckResult {
   status: 'ok' | 'warn' | 'error'
@@ -140,11 +141,49 @@ function checkTodayPort(): Promise<CheckResult> {
   })
 }
 
+/** 检查 daemon 守护进程状态（0.5 主动出口） */
+function checkDaemon(): CheckResult {
+  const p = join(getConfigDir(), 'daemon.json')
+  try {
+    if (!existsSync(p)) {
+      return { status: 'ok', label: 'daemon 状态', detail: '未运行（proactive-mcp daemon 启动；--install 登录自启）' }
+    }
+    const state = JSON.parse(readFileSync(p, 'utf-8')) as {
+      pid?: number
+      startedAt?: number
+      lastRunAt?: number
+      lastNotifyAt?: number
+      notifiedIds?: string[]
+      dailyNotified?: number
+      dailyNotifiedDate?: string
+    }
+    const alive = typeof state.pid === 'number' && isProcessAlive(state.pid)
+    if (!alive) {
+      return { status: 'warn', label: 'daemon 状态', detail: `pid=${state.pid} 不存活（陈旧状态；重启 daemon 会覆盖，或 daemon --status 查看）` }
+    }
+    const parts = [`pid=${state.pid}`]
+    if (state.lastRunAt) parts.push(`上次评估 ${new Date(state.lastRunAt).toLocaleTimeString()}`)
+    if (state.lastNotifyAt) parts.push(`上次通知 ${new Date(state.lastNotifyAt).toLocaleTimeString()}`)
+    if (Array.isArray(state.notifiedIds)) parts.push(`已通知 ${state.notifiedIds.length} 条`)
+    // 0.8：今日疲劳状态（跨天自动重置）
+    const used = dailyNotifiedCount({ dailyNotified: state.dailyNotified ?? 0, dailyNotifiedDate: state.dailyNotifiedDate ?? '' })
+    const coeff = personaDisturbCoefficient()
+    const limit = dailyNotifyLimit()
+    parts.push(`今日 ${used}/${limit} 条${coeff < 1 ? '（画像少打扰 ×' + coeff + '）' : ''}`)
+    if (used >= limit) {
+      return { status: 'warn', label: 'daemon 状态', detail: parts.join(' · ') + '（已达今日通知上限，建议保留至明日）' }
+    }
+    return { status: 'ok', label: 'daemon 状态', detail: parts.join(' · ') }
+  } catch {
+    return { status: 'warn', label: 'daemon 状态', detail: '状态文件异常（首次使用可能为空）' }
+  }
+}
+
 /** 运行全部检查并输出报告 */
 export async function runDoctor(): Promise<number> {
   const dataDir = expandHome(getConfigDir())
   const memRoot = expandHome(getMemoryRootDir())
-  const checks = [checkDataDir(), checkLlm(), checkHooks(), checkProjectHooks(), checkMemory(), checkSuggest(), await checkTodayPort()]
+  const checks = [checkDataDir(), checkLlm(), checkHooks(), checkProjectHooks(), checkMemory(), checkSuggest(), await checkTodayPort(), checkDaemon()]
 
   console.log('ProactiveAgent 健康检查')
   console.log(`  数据根目录: ${dataDir}`)

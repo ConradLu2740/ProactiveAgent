@@ -1,5 +1,91 @@
 # Changelog
 
+## 0.9.0 (2026-08-12)「守护进程 + 感知网 + UMP + 疲劳控制」
+
+### 通知疲劳控制
+
+「插件化主动 Agent」第四站：让守护进程更克制、更懂你。
+
+### 新增
+
+- **每日通知上限**：默认 6 条/天（`PROACTIVE_DAEMON_DAILY_LIMIT` 覆盖），跨天自动重置；达上限当日不再打扰，建议**保留不吞**（次日继续）。
+- **通知冷却窗口**：默认 15 分钟（`PROACTIVE_DAEMON_COOLDOWN_MIN` 覆盖），避免短时间内连弹。
+- **画像驱动打扰系数**：画像含「减少打扰/勿扰/免打扰/quiet mode」等**全局**表达时系数 0.5（上限减半 + 冷却翻倍）；技术词（--quiet/静默安装/silent mode）与单事项提醒（别提醒我收快递）**不误伤**；词表边界有回归测试。
+- **doctor 疲劳状态**：展示「今日 已通知/上限」，达上限 warn，画像命中时标注 ×0.5。
+
+### 修复（子代理对抗审查后）
+
+- **P1 画像词表误报/漏报**：去掉裸技术词（quiet/静默/silent mode），改组合形态；补全局语境词（勿扰/免打扰/dnd/不想被打扰）；单事项提醒不触发全局降档。
+- **P2 防御**：dailyNotified 字符串类型防御、时钟回拨不触发永久冷却、cooldown 显式乘法语义、doctor 标注 limit 来源、测试 env 卫生。
+
+### 测试
+
+- 368/368（新增 0.8 用例 10：词表边界 10 场景、limit=1、COOLDOWN=0、时钟回拨、老版本状态兼容）；core + mcp typecheck 干净。
+
+### 生态与分发
+
+「插件化主动 Agent」第三站：UMP 互操作 + adapter 开放。
+
+### 新增
+
+- **UMP 互操作（L0）**：`proactive-mcp ump-export` 导出记忆为 Universal Memory Protocol 文件（`.ump/memory.ump.json`，`{ump:'0.1',records:[...]}`，kind/scope/time/lifecycle/provenance 映射）；`ump-import` 从 UMP 文件导入（默认 pending 防投毒，`--confirm` 即时生效，text 截断 4000 / 单文件上限 10000）；`--confirmed` 仅导出已确认项。
+- **UMP 兼容评估文档**：.context/pa-ump-compat-eval.md（协议解读 + PA↔UMP 对照矩阵 + L0/L2 策略，L2 MCP store 桥接待生态成熟）。
+- **adapter 开放**：docs/developers/adapter-guide.md（第三方工具接入指南：事件协议 + 三种接入方式 + 隐私说明）+ hooks/adapter-template.ts（脚手架）。
+- **core 公共类型导出**：`export * from './shared-types'`（MemoryAtom 等类型进入公共 API 表面）。
+
+### 修复（子代理对抗审查后，均实证复现）
+
+- **P0-1 导出分页截断**：pageSize=200 被 core clamp 到 100 导致 >100 条只导出第一页——终止条件改用 totalPages + 截断警告；120 条回归测试。
+- **P0-2 CLI argv 错位**：ump-export/ump-import 从 CLI 完全不可用——sub 改用 argv[0]，CLI 冒烟测试。
+- **P0-3 畸形记录崩溃**：records 含 null/非对象导致整批导入崩溃——跳过计数 + 单条容错。
+- **P1-1 导入无上限**：text 截断 4000 + 单文件 10000 上限。
+- **P1-2 adapter 模板忽略 cwd**：resolvePk 与 event-capture 一致。
+- **P1-3 记忆关闭时误导**：跳过计数 + CLI 提示。
+
+### 测试
+
+- 356/356（新增 ump 10：分页/畸形/超长/CLI 冒烟）；core + mcp typecheck 干净。
+- 已知限制（0.7.1）：UMP L2 桥接（spec v0.1 未稳定）、Smithery 描述更新需后台手动、mcp.so 手动提交、UMP 官方客户端互操作实测。
+
+### 跨工具感知网
+
+「插件化主动 Agent」第二站：统一事件协议 + daemon 真定时评估（完成 0.5 P0-1 遗留）。
+
+### 新增
+
+- **跨工具统一事件协议**：各工具 hooks 把会话/消息/commit 事件归一化写入 `PROACTIVE_DATA_DIR/events/{date}.jsonl`（短字段 schema、按天落盘、1MB 单文件裁剪、7 天保留、仅当前用户可读写 0700/0600）；并发安全（锁 + 原子替换，多 hook 同机不丢事件不损坏）。
+- **daemon 真定时评估**：巡检时读最近事件构造 messages → `evaluateNow({trigger:'timer'})`（sessionId 取最近 msg 事件）；无事件降级纯巡检开口通道。
+- **event-capture 通用入口**：`dist/hooks/event-capture.js` 任意工具 hook 传入 JSON 即接入（Cursor camelCase / Claude snake_case 字段自适应、工具白名单、stdin cwd 解析项目身份）。
+- **hooks 内联写事件**：Claude Code（SessionStart/UserPromptSubmit/Stop）与 Kimi Code hooks 自动写事件，工具自适应（Kimi is_steer / Cursor camelCase / Claude）。
+- **Cursor 接入**：官方支持加载 Claude Code hooks 自动映射，无需额外配置（init 打印跨工具接入指引；不再生成 .cursor/hooks.json 避免双写）。
+
+### 修复（子代理对抗审查后）
+
+- **P0-1 并发写竞态**：锁内完成「裁剪 + 追加」，临时文件 + rename 原子替换（原实现多进程并发丢事件 + 文件损坏，已实证复现并回归）。
+- **P1-1 工具标签失真**：hooks 从 stdin 自适应工具（Cursor/Kimi/Claude），不再全部标记 claude。
+- **P1-3 sessionId 不可靠**：daemon 从最近 msg 事件取 sid；session-end 传真实 session_id。
+- **P1-5 cwd 项目身份**：event-capture 用 stdin cwd 解析 pk。
+- **P1-6 事件明文权限**：目录 0700 / 文件 0600。
+
+### 测试
+
+- 66/66（新增 event-store 7 + event-capture 7 + daemon 事件用例；含 4 进程并发写回归）。
+- 已知限制（0.6.1 候选）：事件按项目隔离评估（pk 分组 + core projectHint 路由）、Codex/Cline hooks 真机验证、Continue 事件映射核验。
+
+### 守护进程
+
+「插件化主动 Agent」第一站：daemon + 桌面通知主动出口。
+
+### 新增
+
+- **守护进程（daemon）主动出口**：`proactive-mcp daemon` 常驻后台，**巡检待处理建议**并通过桌面通知主动开口（macOS 通知中心 / Windows 托盘气泡 / Linux notify-send，点击打开主动中心面板）；`--install` 一键登录自启（macOS launchd / Linux systemd user）、`--status` / `--stop` 管理（stop 前校验命令行防 pid 复用误杀）；单实例锁（pid + 进程存活探测 + 写入后重读校验，释放仅限本进程）、通知去重（同条不重复打扰）、通知失败下轮重试、DND 门控（免打扰时段不通知且**保留建议不吞**）；巡检间隔 `PROACTIVE_DAEMON_INTERVAL_MIN`（默认 60 分钟）。建议生成来源：hooks（UserPromptSubmit/Stop）与宿主 push（`/api/evaluate`）；真·定时评估随 0.6 感知网接入（0.5 巡检语义，避免无消息空转）。
+- **通知内 ActionCard 闭环**：/today 面板建议卡片新增「接受 / 忽略」按钮（`POST /api/suggestions/:id/accept|ignore`，带 `x-pa-token` 面板 token 鉴权防本机恶意 POST），接受 automation/todo 建议经 Action Executor 真实落地为本地任务队列（tasks.json）；服务端幂等预检（已处理建议拒绝重放）；仅当宿主未注入执行器时才注册本地默认执行器。
+- **doctor 增加 daemon 健康检查**：进程存活 / 上次巡检 / 上次通知 / 已通知条数。
+
+### 测试
+
+- notifier 10 + daemon 16 + today ActionCard 2（mock 平台命令与引擎，不弹真实通知）；core + mcp typecheck 干净。
+
 ## 0.8.1 (2026-08-10)
 
 「0.8.0 独立验证修复」批次：依据协作子代理真实运行验证报告（浏览器实测 + 双层 persona 边界）修复 5 个 P2。

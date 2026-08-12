@@ -4,7 +4,7 @@
 
 import { rmSync, mkdirSync } from 'node:fs'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { buildTodayHtml, buildTodayPayload } from './today'
+import { buildTodayHtml, buildTodayPayload, startTodayServer, ensureTodayToken } from './today'
 import { memoryService } from '@proactive-agent/core'
 
 const TEST_DIR = '/tmp/proactive-today-test'
@@ -63,5 +63,71 @@ describe('/today 面板', () => {
     expect(html).toContain('id="scenes"')
     expect(html).toContain('id="stats-count"')
     expect(html).toContain('id="persona"')
+  })
+})
+
+describe('ActionCard 闭环 API（0.5）', () => {
+  it('accept/ignore 路由存在，带 token 对不存在建议返回 ok:false', async () => {
+    const token = ensureTodayToken()
+    const server = startTodayServer(0)
+    await new Promise<void>((resolve) => server.once('listening', () => resolve()))
+    const addr = server.address()
+    const port = typeof addr === 'object' && addr ? addr.port : 0
+    try {
+      for (const action of ['accept', 'ignore']) {
+        const res = await fetch(`http://127.0.0.1:${port}/api/suggestions/nonexistent-id/${action}`, {
+          method: 'POST',
+          headers: { 'x-pa-token': token },
+        })
+        expect(res.status).toBe(200)
+        const body = (await res.json()) as { ok: boolean }
+        expect(body.ok).toBe(false)
+      }
+    } finally {
+      server.close()
+    }
+  })
+
+  it('写接口无 token 被拒（401，P1-4）', async () => {
+    ensureTodayToken()
+    const server = startTodayServer(0)
+    await new Promise<void>((resolve) => server.once('listening', () => resolve()))
+    const addr = server.address()
+    const port = typeof addr === 'object' && addr ? addr.port : 0
+    try {
+      const res = await fetch(`http://127.0.0.1:${port}/api/suggestions/x/accept`, { method: 'POST' })
+      expect(res.status).toBe(401)
+      const wrong = await fetch(`http://127.0.0.1:${port}/api/suggestions/x/accept`, {
+        method: 'POST',
+        headers: { 'x-pa-token': 'wrong-token' },
+      })
+      expect(wrong.status).toBe(401)
+    } finally {
+      server.close()
+    }
+  })
+
+  it('畸形 URL 编码返回 400 而非 500（P2-5）', async () => {
+    const token = ensureTodayToken()
+    const server = startTodayServer(0)
+    await new Promise<void>((resolve) => server.once('listening', () => resolve()))
+    const addr = server.address()
+    const port = typeof addr === 'object' && addr ? addr.port : 0
+    try {
+      const res = await fetch(`http://127.0.0.1:${port}/api/suggestions/%zz/accept`, {
+        method: 'POST',
+        headers: { 'x-pa-token': token },
+      })
+      expect(res.status).toBe(400)
+    } finally {
+      server.close()
+    }
+  })
+
+  it('HTML 面板包含接受/忽略按钮与 token 注入', () => {
+    const html = buildTodayHtml()
+    expect(html).toContain('data-action="accept"')
+    expect(html).toContain('data-action="ignore"')
+    expect(html).toContain('const PA_TOKEN = ')
   })
 })

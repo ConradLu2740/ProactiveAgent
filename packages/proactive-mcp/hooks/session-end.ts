@@ -18,6 +18,14 @@
 
 import { readFileSync } from 'node:fs'
 import { memoryService, suggestService } from '@proactive-agent/core'
+import { recordLifecycle, currentProjectKey } from '../src/event-store'
+import { detectTool } from './common'
+
+interface StopInput {
+  transcript_path?: string
+  session_id?: string
+  sessionId?: string
+}
 
 interface TranscriptMessage {
   role: 'user' | 'assistant'
@@ -58,9 +66,10 @@ function extractMessages(transcriptPath: string, maxMessages = 20): TranscriptMe
 async function main(): Promise<void> {
   try {
     let transcriptPath = ''
+    let stopInput: StopInput = {}
     try {
-      const input = JSON.parse(readFileSync(0, 'utf-8')) as { transcript_path?: string }
-      transcriptPath = input.transcript_path ?? ''
+      stopInput = JSON.parse(readFileSync(0, 'utf-8')) as StopInput
+      transcriptPath = stopInput.transcript_path ?? ''
     } catch {
       // stdin 不是 JSON 或为空：Claude Code Stop hook 会传入 transcript_path，取不到就跳过
     }
@@ -68,6 +77,15 @@ async function main(): Promise<void> {
       // 注意：CLAUDE_PROJECT_DIR 是项目目录不是 transcript 文件路径，不能作为兜底
       console.error('[session-end] 未找到 transcript_path，跳过')
       return
+    }
+    // 0.6：跨工具事件感知——会话结束事件（工具自适应 + 真实 session_id）
+    try {
+      recordLifecycle(detectTool(stopInput), 'end', {
+        sid: stopInput.session_id ?? stopInput.sessionId,
+        pk: currentProjectKey(),
+      })
+    } catch {
+      // 事件写入失败不阻断
     }
     const messages = extractMessages(transcriptPath)
     if (messages.length === 0) {

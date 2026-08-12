@@ -16,6 +16,7 @@
 
 import { readFileSync } from 'node:fs'
 import { suggestService } from '@proactive-agent/core'
+import { recordMessage, currentProjectKey } from '../src/event-store'
 
 interface TranscriptMessage {
   role: 'user' | 'assistant'
@@ -66,6 +67,21 @@ export interface UserPromptInput {
   /** Kimi 注入的会话事实（snake_case：is_steer 存在 = Kimi externalHooks） */
   is_steer?: boolean
   session_title?: string
+  /** Cursor 加载 Claude Code 兼容 hooks 时传入（camelCase） */
+  sessionId?: string
+  hookEventName?: string
+}
+
+/**
+ * 从 stdin 判断宿主工具（P1-1：Cursor 兼容 Claude Code hooks 时避免全部标记为 claude）
+ * - Kimi：is_steer 字段存在
+ * - Cursor：camelCase 字段（sessionId/hookEventName）
+ * - 其他：Claude Code（snake_case）
+ */
+export function detectTool(input: UserPromptInput): 'claude' | 'kimi' | 'cursor' {
+  if (input.is_steer !== undefined) return 'kimi'
+  if (input.sessionId !== undefined || input.hookEventName !== undefined) return 'cursor'
+  return 'claude'
 }
 
 /** 从 stdin 读取 UserPromptSubmit 输入（容错：不是 JSON 或为空时返回空） */
@@ -121,6 +137,13 @@ export async function evaluateAndEmit(projectHint?: string): Promise<void> {
   if (!prompt) {
     console.log('')
     return
+  }
+
+  // 0.6：跨工具事件感知——记录用户消息（daemon 定时评估消费；工具自适应）
+  try {
+    recordMessage(detectTool(input), 'u', prompt, { sid: input.session_id ?? input.sessionId, pk: currentProjectKey() })
+  } catch {
+    // 事件写入失败不阻断建议评估
   }
 
   try {
