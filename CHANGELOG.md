@@ -6,6 +6,8 @@
 - **demo-data --clean 误删防护**：无 .demo-data-marker 时拒绝清理（实测误删真实数据目录后修复；clean 必须隔离目录或确认 marker）。
 - **Kimi SessionEnd 收尾沉淀（kimi-session-end.js）**：读 ~/.kimi-code/sessions wire.jsonl（context.append_message）提取消息 → memory_extract（默认待确认）+ 建议评估。
 - **detectTool 识别 Kimi client_type**（0.35 事件基座，跨工具事件统计修正）。
+- **0.6.1 事件按 pk 隔离**：daemon 评估按事件 pk 分组，各组分别 evaluateNow(projectHint) 写入对应项目建议（多项目不串味）；core persistSuggestion 支持指定层写入。
+- **0.8.1 通知→处理 ROI 漏斗**：daemon 通知成功写 notify 事件、accept/ignore 写 handle 事件；面板新增「通知→处理」卡（近 7 天转化率，实时刷新）；转化口径 = 被通知且被处理（会话内直接反馈不计入）。
 
 ## 0.9.2 (2026-08-12)
 
