@@ -57,3 +57,21 @@ PROACTIVE_DAEMON_INTERVAL_MIN=1 PROACTIVE_TODAY_PORT=8737 npx proactive-mcp daem
 - [ ] 面板 PNG 截图（用户手动：打开 today-panel.html → ⌘⇧4）
 - [ ] 30s GIF（用户录屏，按本脚本）
 - [ ] daemon 通知截图（可选，GIF 内自然出现）
+
+## Kimi Code 真实 MCP 演示（已实测，2026-08-12）
+
+> 效果：在真实 Kimi Code CLI 里，模型调用 ProactiveAgent MCP 工具完成「教一次 → 处处用」记忆闭环。
+> 素材：docs/demo/kimi-mcp-demo.png
+
+```bash
+# 1. mcp.json 挂载（~/.kimi-code/mcp.json，已配好）
+# 2. 启动 kimi（隔离目录）
+cd /tmp/kimi-demo && kimi
+# 3. 发消息 1（教一次）：请用 proactive-agent 的 memory_capture 工具记住这条偏好：用户偏好用 TypeScript 和 pnpm 管理依赖
+#    → 模型调用 memory_capture → "已记住：[preference] 用户偏好用 TypeScript 和 pnpm 管理依赖"
+# 4. 发消息 2（处处用）：用 proactive-agent 的 memory_recall 工具查询：我的项目技术栈偏好是什么
+#    → 模型调用 memory_recall → 命中（[shared] 标注，相关度 80%）
+```
+
+已知：Kimi 0.34 的 UserPromptSubmit hook 运行时未触发（PA 主动建议转述不可用，待查）；
+MCP 工具链路完全正常。mcp.json 原 kimi-cu 配置备份在 ~/.kimi-code/mcp.json.bak-kimicu。
