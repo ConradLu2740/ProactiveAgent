@@ -6,7 +6,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 MCP_DIR="$ROOT/packages/proactive-mcp"
 cd "$MCP_DIR"
 
-for hook in today-push session-end user-prompt kimi-user-prompt event-capture; do
+for hook in today-push session-end user-prompt kimi-user-prompt kimi-session-end event-capture; do
   npx esbuild "hooks/$hook.ts" \
     --bundle \
     --platform=node \
