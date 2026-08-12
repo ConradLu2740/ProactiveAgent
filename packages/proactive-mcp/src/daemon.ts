@@ -22,7 +22,7 @@ import { join } from 'node:path'
 import { suggestService, memoryService, getConfigDir } from '@proactive-agent/core'
 import { startTodayServer } from './today'
 import { notifier, createNotifier, type Notifier } from './notifier'
-import { readRecentAgentEvents, eventsToMessages, type AgentEvent } from './event-store'
+import { readRecentAgentEvents, eventsToMessages, recordNotification, type AgentEvent } from './event-store'
 
 export const DAEMON_INTERVAL_DEFAULT_MIN = 60
 export const NOTIFIED_HISTORY_LIMIT = 200
@@ -328,6 +328,12 @@ export async function runEvaluationCycle(
   state.lastNotifyAt = Date.now()
   bumpDailyNotified(state)
   markNotified(state, candidate.id)
+  // 0.8.1 ROI：通知成功事件（面板通知→处理漏斗）
+  try {
+    recordNotification(candidate.id)
+  } catch {
+    // 事件写入失败不阻断
+  }
   console.error(`[daemon] 已通知建议: ${candidate.title}`)
   return { notified: true, evaluated: true }
 }

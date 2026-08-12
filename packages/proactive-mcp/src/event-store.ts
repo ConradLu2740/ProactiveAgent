@@ -49,8 +49,8 @@ function withEventLock<T>(dir: string, fn: () => T): T {
   return fn()
 }
 
-export type AgentTool = 'claude' | 'cursor' | 'codex' | 'kimi' | 'cline' | 'continue'
-export type AgentEventType = 'start' | 'msg' | 'end' | 'commit'
+export type AgentTool = 'claude' | 'cursor' | 'codex' | 'kimi' | 'cline' | 'continue' | 'daemon'
+export type AgentEventType = 'start' | 'msg' | 'end' | 'commit' | 'notify' | 'handle'
 
 export interface AgentEvent {
   v: 1
@@ -62,8 +62,10 @@ export interface AgentEvent {
   pk?: string
   /** msg 事件：u=user / a=assistant */
   role?: 'u' | 'a'
-  /** msg 事件：消息文本 */
+  /** msg 事件：消息文本；notify/handle 事件：suggestionId */
   text?: string
+  /** handle 事件：accept / ignore */
+  action?: 'accept' | 'ignore'
   /** commit 事件：提交信息 */
   msg?: string
 }
@@ -202,6 +204,57 @@ export function eventsToMessages(events: AgentEvent[]): Array<{ role: 'user' | '
 export function recordMessage(tool: AgentTool, role: 'u' | 'a', text: string, opts: { sid?: string; pk?: string } = {}): void {
   if (!text?.trim()) return
   writeAgentEvent({ t: 'msg', tool, role, text: text.trim().slice(0, 4000), sid: opts.sid, pk: opts.pk })
+}
+
+/** 便捷：写入通知事件（0.8.1 ROI：daemon 通知成功时调用，text=suggestionId） */
+export function recordNotification(suggestionId: string, opts: { pk?: string } = {}): void {
+  if (!suggestionId) return
+  writeAgentEvent({ t: 'notify', tool: 'daemon', text: suggestionId, pk: opts.pk })
+}
+
+/** 便捷：写入建议处理事件（0.8.1 ROI：accept/ignore 时调用，text=suggestionId） */
+export function recordSuggestionHandled(suggestionId: string, action: 'accept' | 'ignore', opts: { pk?: string } = {}): void {
+  if (!suggestionId || !action) return
+  writeAgentEvent({ t: 'handle', tool: 'daemon', action, text: suggestionId, pk: opts.pk })
+}
+
+/**
+ * 通知→处理漏斗（0.8.1）：统计最近 N 天通知的建议中，有多少被 accept/ignore 处理。
+ * 返回：notified（通知条数）、handled（被处理条数）、rate（处理率）。
+ */
+export function readNotificationRoi(days = 7): { notified: number; handled: number; rate: number } {
+  try {
+    const dir = eventsDir()
+    if (!existsSync(dir)) return { notified: 0, handled: 0, rate: 0 }
+    const files = readdirSync(dir)
+      .filter((name) => name.endsWith('.jsonl'))
+      .sort()
+      .slice(-Math.max(1, days))
+    const notified = new Set<string>()
+    const handled = new Set<string>()
+    for (const name of files) {
+      try {
+        for (const line of readFileSync(join(dir, name), 'utf-8').split('\n').filter(Boolean)) {
+          try {
+            const e = JSON.parse(line) as AgentEvent
+            if (e?.v !== 1) continue
+            if (e.t === 'notify' && e.text) notified.add(e.text)
+            else if (e.t === 'handle' && e.text) handled.add(e.text)
+          } catch {
+            // 跳过损坏行
+          }
+        }
+      } catch {
+        // 跳过损坏文件
+      }
+    }
+    // 转化 = 被通知过且被处理（会话内直接 accept/ignore 不经过通知，不计入漏斗）
+    const handledIntersection = new Set([...handled].filter((id) => notified.has(id)))
+    const rate = notified.size > 0 ? handledIntersection.size / notified.size : 0
+    return { notified: notified.size, handled: handledIntersection.size, rate }
+  } catch {
+    return { notified: 0, handled: 0, rate: 0 }
+  }
 }
 
 /** 便捷：写入会话生命周期事件 */

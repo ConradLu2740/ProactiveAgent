@@ -18,6 +18,7 @@ import { join } from 'node:path'
 import { memoryService, suggestService, getConfigDir, getProjectIdentity, getActionExecutor } from '@proactive-agent/core'
 import { listTasks, taskStats } from './task-store'
 import { registerLocalTaskExecutor } from './host-executor'
+import { recordSuggestionHandled, readNotificationRoi } from './event-store'
 
 /** 构建 /api/today 数据负载 */
 export function buildTodayPayload(): {
@@ -40,6 +41,8 @@ export function buildTodayPayload(): {
     sufficient: boolean
     shouldReduceBudget: boolean
     days: number
+    /** 0.8.1：通知→处理漏斗（通知 N 条中 M 条被处理） */
+    notification: { notified: number; handled: number; rate: number }
   }
 } {
   const suggestions = suggestService
@@ -60,6 +63,7 @@ export function buildTodayPayload(): {
   const tasks = listTasks()
   const ts = taskStats()
   const roi = suggestService.getSuggestionRoiStats()
+  const notificationRoi = readNotificationRoi(7)
   const identity = getProjectIdentity()
   return {
     generatedAt: new Date().toISOString(),
@@ -88,7 +92,7 @@ export function buildTodayPayload(): {
       done: ts.done,
       items: tasks.slice(0, 10).map((t) => ({ id: t.id, kind: t.kind, title: t.title, status: t.status })),
     },
-    roi,
+    roi: { ...roi, notification: notificationRoi },
   }
 }
 
@@ -267,6 +271,10 @@ export function buildTodayHtml(): string {
     <div class="stat"><div class="stat-n" style="color:#ffa94d">${p.roi.funnel.ignored}</div><div class="stat-l">忽略</div></div>
     <div class="stat"><div class="stat-n" style="color:#ff6b6b">${p.roi.funnel.never}</div><div class="stat-l">永不建议</div></div>
   </div>
+  <div class="card" id="roi-notification" style="margin-top:10px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;border-color:#4dabf755;">
+    <span style="font-size:13px;color:#8b93a1;">🔔 通知 → 处理（近 7 天）</span>
+    <span style="font-size:13px;">${p.roi.notification.notified} 条通知中 ${p.roi.notification.handled} 条被处理 · <b style="color:${p.roi.notification.notified > 0 ? (p.roi.notification.rate >= 0.5 ? '#51cf66' : '#ffa94d') : '#8b93a1'}">${Math.round(p.roi.notification.rate * 100)}%</b> 转化</span>
+  </div>
   <div id="roi-types" style="margin-top:10px;">
     ${p.roi.byType
       .map(
@@ -341,6 +349,14 @@ function render(p){
   const rt = document.getElementById('roi-types');
   if (rt && roi.byType) {
     rt.innerHTML = roi.byType.map(t=>'<div class="card" style="padding:10px 14px;display:flex;justify-content:space-between;align-items:center;"><span>'+esc(KIND[t.kind]||t.kind)+'</span><span style="font-size:12px;color:#8b93a1">'+t.accepted+'/'+t.suggested+' 接受 · '+Math.round(t.rate*100)+'%</span></div>').join('');
+  }
+  // 0.8.1：通知→处理漏斗实时刷新
+  const ntf = roi.notification||{notified:0,handled:0,rate:0};
+  const ntfEl = document.getElementById('roi-notification');
+  if (ntfEl) {
+    const nRate = ntf.notified > 0 ? Math.round(ntf.rate * 100) : 0;
+    const nColor = ntf.notified > 0 ? (ntf.rate >= 0.5 ? '#51cf66' : '#ffa94d') : '#8b93a1';
+    ntfEl.innerHTML = '<span style="font-size:13px;color:#8b93a1;">🔔 通知 → 处理（近 7 天）</span><span style="font-size:13px;">'+ntf.notified+' 条通知中 '+ntf.handled+' 条被处理 · <b style="color:'+nColor+'">'+nRate+'%</b> 转化</span>';
   }
   const ra = document.getElementById('roi-alert');
   if (ra) {
@@ -444,6 +460,12 @@ export function startTodayServer(port = 8737): Server {
         }
         // P1-5：仅当宿主未注入真实执行器时才注册本地默认执行器（避免覆盖宿主 Provider）
         if (getActionExecutor() === null) registerLocalTaskExecutor()
+        // 0.8.1 ROI：处理事件（通知→处理漏斗）
+        try {
+          recordSuggestionHandled(id, action === 'accept' ? 'accept' : 'ignore')
+        } catch {
+          // 事件写入失败不阻断
+        }
         void suggestService
           .handleSuggestionFeedback(id, action === 'accept' ? 'accepted' : 'ignored', { host: 'today-panel' })
           .then((fb) => {

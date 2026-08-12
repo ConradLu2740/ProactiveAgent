@@ -15,6 +15,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { memoryService, suggestService, isEscapeGlobal } from '@proactive-agent/core'
 import { buildDailyReviewText, buildOnboardingText } from './prompts'
 import { normalizeWriteScope, normalizeReadScope } from './scope'
+import { recordSuggestionHandled } from './event-store'
 
 const MEMORY_TYPES = ['fact', 'preference', 'correction', 'sop', 'todo_context', 'event'] as const
 const SUGGEST_STATUS = ['suggested', 'accepted', 'ignored', 'never'] as const
@@ -427,6 +428,12 @@ export function registerTools(server: McpServer): void {
     async ({ id, host }) => {
       const result = await suggestService.handleSuggestionFeedback(id, 'accepted', { host: host ?? 'mcp' })
       if (!result.ok) return text(`接受失败：${result.error ?? '未知错误'}`)
+      // 0.8.1 ROI：处理事件（通知→处理漏斗）
+      try {
+        recordSuggestionHandled(id, 'accept')
+      } catch {
+        // 事件写入失败不阻断
+      }
       // M6：返回动作执行结果（"已创建定时任务 #xxx" / 降级指令），不再只是"已记录"
       const execMsg = result.result?.message ? `\n${result.result.message}` : ''
       return text(`已接受建议 ${id}。${execMsg}`)
@@ -444,6 +451,12 @@ export function registerTools(server: McpServer): void {
     },
     async ({ id }) => {
       const result = await suggestService.handleSuggestionFeedback(id, 'ignored')
+      // 0.8.1 ROI：处理事件（通知→处理漏斗）
+      try {
+        recordSuggestionHandled(id, 'ignore')
+      } catch {
+        // 事件写入失败不阻断
+      }
       return result.ok ? text(`已忽略建议 ${id}。`) : text(`忽略失败：${result.error ?? '未知错误'}`)
     },
   )

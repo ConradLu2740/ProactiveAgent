@@ -10,6 +10,9 @@ import {
   eventsToMessages,
   recordMessage,
   recordLifecycle,
+  recordNotification,
+  recordSuggestionHandled,
+  readNotificationRoi,
   eventsDir,
 } from './event-store'
 
@@ -144,5 +147,29 @@ describe('事件写入与读取', () => {
       const mode = statSync(pjoin(dir, files[0])).mode & 0o777
       expect(mode & 0o077).toBe(0) // 组/其他用户不可读写
     }
+  })
+
+  it('0.8.1：通知→处理漏斗（recordNotification / recordSuggestionHandled / readNotificationRoi）', () => {
+    // 3 条通知，其中 2 条被处理
+    recordNotification('sug-1')
+    recordNotification('sug-2')
+    recordNotification('sug-3')
+    recordSuggestionHandled('sug-1', 'accept')
+    recordSuggestionHandled('sug-3', 'ignore')
+    // 未通知就处理的（来自会话内建议）不计入漏斗
+    recordSuggestionHandled('sug-x', 'accept')
+
+    const roi = readNotificationRoi(7)
+    expect(roi.notified).toBe(3)
+    expect(roi.handled).toBe(2)
+    expect(roi.rate).toBeCloseTo(2 / 3, 5)
+  })
+
+  it('0.8.1：空 suggestionId 不写事件', () => {
+    recordNotification('')
+    recordSuggestionHandled('', 'accept')
+    const roi = readNotificationRoi(7)
+    expect(roi.notified).toBe(0)
+    expect(roi.handled).toBe(0)
   })
 })
