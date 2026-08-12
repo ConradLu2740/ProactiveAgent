@@ -24,7 +24,7 @@ import { readFileSync } from 'node:fs'
 import { memoryService, suggestService } from '@proactive-agent/core'
 import { recordLifecycle, currentProjectKey } from '../src/event-store'
 import { detectTool } from './common'
-import { locateWireFile, extractWireMessages } from '../src/adapter/kimi'
+import { locateWireFile, extractWireMessages } from '@proactive-agent/adapters'
 
 type SessionEndInput = Parameters<typeof locateWireFile>[0]
 type WireMessage = ReturnType<typeof extractWireMessages>[number]

@@ -1,0 +1,28 @@
+{
+  "name": "@proactive-agent/adapters",
+  "version": "0.1.0",
+  "license": "MIT",
+  "description": "ProactiveAgent host adapters: unified harness adapter layer for proactive memory & suggestions across agent hosts (Claude Code, Kimi Code, Cursor, Cline, Codex). Zero-runtime-dependency.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "esbuild src/index.ts --bundle --platform=node --format=esm --outfile=dist/index.js && tsc --declaration --emitDeclarationOnly --module esnext --moduleResolution bundler --skipLibCheck --downlevelIteration --target es2022 --outDir dist src/index.ts",
+    "test": "vitest run src/"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.0.0",
+    "vitest": "^3.0.0"
+  }
+}

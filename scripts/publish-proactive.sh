@@ -118,6 +118,31 @@ else
   echo "==> ⚠️ 未找到 kimi.plugin.json（${PLUGIN_MANIFEST}），跳过 plugin 版本同步"
 fi
 
+# ---- @proactive-agent/adapters（M4：host 适配层独立包） ----
+ADAPTERS_VERSION="0.1.0"
+(cd "$ROOT/packages/proactive-adapters" && npm run build >/dev/null 2>&1 && echo "==> adapters build OK")
+mkdir -p "$PUBLISH_DIR/adapters/dist"
+cat > "$PUBLISH_DIR/adapters/package.json" <<EOF
+{
+  "name": "@proactive-agent/adapters",
+  "version": "$ADAPTERS_VERSION",
+  "license": "MIT",
+  "description": "ProactiveAgent host adapters: unified harness adapter layer for proactive memory & suggestions across agent hosts (Claude Code, Kimi Code, Cursor, Cline, Codex). Zero-runtime-dependency.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": { ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" } },
+  "files": ["dist", "README.md", "LICENSE"],
+  "engines": { "node": ">=18" }
+}
+EOF
+cp "$ROOT/packages/proactive-adapters/dist/index.js" "$PUBLISH_DIR/adapters/dist/"
+cp "$ROOT/packages/proactive-adapters/dist/index.d.ts" "$PUBLISH_DIR/adapters/dist/"
+for f in "$ROOT/packages/proactive-adapters/dist/"*.d.ts; do cp "$f" "$PUBLISH_DIR/adapters/dist/" 2>/dev/null || true; done
+cp "$ROOT/packages/proactive-adapters/README.md" "$PUBLISH_DIR/adapters/" 2>/dev/null || true
+printf 'MIT License\n\nCopyright (c) 2026 ProactiveAgent contributors\n' > "$PUBLISH_DIR/adapters/LICENSE"
+echo "==> adapters 组装完成（$ADAPTERS_VERSION，零依赖）"
+
 # ---- @proactive-agent/mcp - NOTICE（第三方组件声明） ----
 cat > "$PUBLISH_DIR/mcp/NOTICE" <<'EOF'
 This package bundles the following third-party MIT-licensed components:
@@ -137,12 +162,13 @@ EOF
 printf 'MIT License\n\nCopyright (c) 2026 ProactiveAgent contributors\n\nPermission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.\n' > "$PUBLISH_DIR/mcp/LICENSE"
 
 echo "==> 发布目录已就绪: $PUBLISH_DIR"
-ls -lh "$PUBLISH_DIR/core/dist/index.js" "$PUBLISH_DIR/mcp/dist/index.js"
+ls -lh "$PUBLISH_DIR/core/dist/index.js" "$PUBLISH_DIR/mcp/dist/index.js" "$PUBLISH_DIR/adapters/dist/index.js"
 
 if [ "${1:-}" = "--publish" ]; then
   echo "==> npm login 检查"
   npm whoami >/dev/null 2>&1 || { echo "需要先 npm login"; exit 1; }
   (cd "$PUBLISH_DIR/core" && npm publish --access public)
+  (cd "$PUBLISH_DIR/adapters" && npm publish --access public)
   (cd "$PUBLISH_DIR/mcp" && npm publish --access public)
   echo "==> 发布完成"
 elif [ "${1:-}" = "--build-only" ]; then

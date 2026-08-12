@@ -17,10 +17,7 @@
 import { readFileSync } from 'node:fs'
 import { suggestService } from '@proactive-agent/core'
 import { recordMessage, currentProjectKey } from '../src/event-store'
-import { extractTranscriptMessages } from '../src/adapter/claude'
-import { renderTextSuggestion } from '../src/adapter/claude'
-import { renderKimiNotification } from '../src/adapter/kimi'
-import { detectHostId, type HostHookInput as UserPromptInput, type HostMessage as TranscriptMessage } from '../src/adapter'
+import { extractTranscriptMessages, renderTextSuggestion, renderKimiNotification, detectHostId, type HostHookInput as UserPromptInput, type HostMessage as TranscriptMessage } from '@proactive-agent/adapters'
 
 /** 从 Claude Code transcript JSONL 提取最近 N 条消息（SDKMessage 风格容错；M1 收编至 claude adapter） */
 function extractMessages(transcriptPath: string, maxMessages = 20): TranscriptMessage[] {

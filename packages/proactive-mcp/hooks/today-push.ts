@@ -20,7 +20,7 @@ import { join } from 'node:path'
 import { memoryService, suggestService, getConfigDir } from '@proactive-agent/core'
 import { recordLifecycle, currentProjectKey } from '../src/event-store'
 import { readStdinInput, detectTool } from './common'
-import { renderTodayInjection } from '../src/adapter/claude'
+import { renderTodayInjection } from '@proactive-agent/adapters'
 
 /** 去重记录文件：记录已注入过的建议 ID（放在配置目录下，随数据走） */
 function lastInjectedPath(): string {
