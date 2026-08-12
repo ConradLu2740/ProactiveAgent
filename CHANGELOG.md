@@ -10,6 +10,7 @@
 - **0.8.1 通知→处理 ROI 漏斗**：daemon 通知成功写 notify 事件、accept/ignore 写 handle 事件；面板新增「通知→处理」卡（近 7 天转化率，实时刷新）；转化口径 = 被通知且被处理（会话内直接反馈不计入）。
 - **M1 HostAdapter 接口（harness 适配层）**：`src/adapter/`（types/claude/kimi/index）：5 维度接口 + capabilities 能力矩阵（Kimi resources/prompts=false、hooks partial 带 0.34→0.35 note；参考 jido_harness/harnery/agent-harness）；claude/kimi adapter 收编 hooks 纯函数（transcript/wire 提取、文本/notification 渲染、注入渲染），hooks 脚本薄化行为不变（401/401 测试 + Kimi 真实闭环不回归）。
 - **M2 cursor adapter**：cursor.ts 按 Claude Code hooks 兼容声明实现（sessionStart/beforeSubmitPrompt/stop 事件映射 + camelCase 宿主识别）；能力矩阵诚实标注（本机无 Cursor，hooks/sessionRead 待实测）；403/403 测试。
+- **M3 cline/codex adapter**：感知经 event-capture 通用入口接入（start/message/end/commit 事件映射）；能力诚实标注（hooks partial 带接入指引、会话读取未调研、表达降级 daemon 通知）；404/404 测试。
 
 ## 0.9.2 (2026-08-12)
 
