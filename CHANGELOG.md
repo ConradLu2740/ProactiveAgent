@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased（0.9.2 之后修复批次）
+
+- **UMP 导出格式对齐官方 SDK（互操作实测修复）**：官方 @universalmemoryprotocol/core JsonFileStore 只认记录数组（每条自带 ump 字段），旧 {ump,records} 包装被直接拒绝。导出改为官方格式 + 版本 1.0；导入兼容两种输入。实测：官方 SDK 加载 5/5、recall（带 scope.owner）全命中。
+- **demo-data --clean 误删防护**：无 .demo-data-marker 时拒绝清理（实测误删真实数据目录后修复；clean 必须隔离目录或确认 marker）。
+- **Kimi SessionEnd 收尾沉淀（kimi-session-end.js）**：读 ~/.kimi-code/sessions wire.jsonl（context.append_message）提取消息 → memory_extract（默认待确认）+ 建议评估。
+- **detectTool 识别 Kimi client_type**（0.35 事件基座，跨工具事件统计修正）。
+
 ## 0.9.2 (2026-08-12)
 
 「Kimi Code 深度使用」批次：让 ProactiveAgent 在 Kimi Code CLI 里真正"更好用"（调研 + 实测驱动）。
