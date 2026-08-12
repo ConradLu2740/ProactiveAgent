@@ -117,6 +117,10 @@ describe('isProcessAlive', () => {
   it('不存在的 pid 判定为不存活', () => {
     expect(isProcessAlive(999999999)).toBe(false)
   })
+  it('非正 pid 判定为不存活（P：kill(-1) POSIX 语义会探测所有进程）', () => {
+    expect(isProcessAlive(-1)).toBe(false)
+    expect(isProcessAlive(0)).toBe(false)
+  })
 })
 
 describe('0.8 通知疲劳控制', () => {

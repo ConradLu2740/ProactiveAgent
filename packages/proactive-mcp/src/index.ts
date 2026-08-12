@@ -26,6 +26,7 @@ import { runExtract } from './cli/extract'
 import { runArchive } from './cli/archive'
 import { runDaemonCli } from './cli/daemon'
 import { runUmpCli } from './cli/ump'
+import { runDemoData } from './cli/demo-data'
 
 /**
  * 包版本。发布时由 scripts/publish-proactive.sh 通过 bun build
@@ -59,6 +60,7 @@ async function main(): Promise<void> {
   proactive-mcp doctor         # 健康检查（配置/数据/hooks/端口/项目身份）
   proactive-mcp stats          # 记忆与建议统计
   proactive-mcp demo           # 教程式示例（隔离数据，--clean 清理）
+  proactive-mcp demo-data      # 生成演示数据（记忆/建议/任务/画像/疲劳；--clean 清理 / --force 重建）
   proactive-mcp migrate        # 0.3.0 数据迁移 / 反向收敛（--merge-to-global / --status / --preview）
   proactive-mcp extract        # 对已有项目提取记忆（冷启动引导；--dry-run 预览 / --global 写共享层）
   proactive-mcp daemon         # 常驻守护进程（--install 自启 / --status 状态 / --stop 停止）
@@ -93,6 +95,12 @@ async function main(): Promise<void> {
   // demo：教程式示例（--clean 清理演示数据）
   if (argv.includes('demo')) {
     await runDemo(argv.includes('--clean'))
+    return
+  }
+  // demo-data：演示数据生成（Show HN / 录屏素材；--clean 清理 / --force 重建）
+  if (argv.includes('demo-data')) {
+    const code = await runDemoData(argv)
+    process.exitCode = code
     return
   }
   // migrate：旧数据迁移 / 反向收敛
@@ -135,11 +143,11 @@ async function main(): Promise<void> {
   }
 
   // 未知首参数：友好提示而非静默进入 stdio（避免用户手滑后进程永久挂起）
-  const KNOWN = new Set(['init', 'doctor', 'stats', 'demo', 'migrate', 'extract', 'archive', 'daemon', 'ump-export', 'ump-import', '--today', '--help', '-h', '--version', '-v'])
+  const KNOWN = new Set(['init', 'doctor', 'stats', 'demo', 'demo-data', 'migrate', 'extract', 'archive', 'daemon', 'ump-export', 'ump-import', '--today', '--help', '-h', '--version', '-v'])
   const first = argv[0]
   if (first && !first.startsWith('-') && !KNOWN.has(first)) {
     console.error(`未知子命令: ${first}`)
-    console.error('可用命令: init · doctor · stats · demo · migrate · extract · archive · daemon · ump-export · ump-import · --today · --help · --version')
+    console.error('可用命令: init · doctor · stats · demo · demo-data · migrate · extract · archive · daemon · ump-export · ump-import · --today · --help · --version')
     process.exit(1)
   }
   const server = createServer()

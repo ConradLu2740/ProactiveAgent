@@ -85,8 +85,9 @@ function backupCorruptState(): void {
   }
 }
 
-/** 进程是否存活（pid 存在且可信号探测） */
+/** 进程是否存活（pid 存在且可信号探测；非正 pid 一律视为不存活——kill(-1) 在 POSIX 会探测所有进程） */
 export function isProcessAlive(pid: number): boolean {
+  if (!Number.isInteger(pid) || pid <= 0) return false
   try {
     process.kill(pid, 0)
     return true

@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ProactiveAgent · 主动中心</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #0f1115; color: #e6e8eb; padding: 24px; max-width: 720px; margin: 0 auto; }
+  h1 { font-size: 20px; margin-bottom: 4px; color: #fff; }
+  .sub { color: #8b93a1; font-size: 12px; margin-bottom: 24px; }
+  h2 { font-size: 14px; margin: 20px 0 10px; color: #9aa4b2; font-weight: 600; }
+  .card { background: #171b22; border: 1px solid #242a35; border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; }
+  .sug-kind { display: inline-block; font-size: 11px; color: #4dabf7; background: rgba(77,171,247,.12); border-radius: 4px; padding: 2px 8px; margin-bottom: 6px; }
+  .sug-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .sug-reason { font-size: 13px; color: #aab2c0; line-height: 1.5; }
+  .sug-id { font-size: 11px; color: #5c6470; margin-top: 8px; font-family: ui-monospace, monospace; }
+  .sug-actions { margin-top: 8px; display: flex; gap: 8px; }
+  .act { font-size: 12px; padding: 4px 12px; border-radius: 6px; border: 1px solid #2a3140; background: #1d232e; color: #aab2c0; cursor: pointer; transition: border-color .15s, color .15s; }
+  .act:hover { border-color: #4dabf7; color: #4dabf7; }
+  .act.accept:hover { border-color: #51cf66; color: #51cf66; }
+  .act.ignore:hover { border-color: #ff6b6b; color: #ff6b6b; }
+  .act:disabled { opacity: .5; cursor: default; }
+  .scene-title { font-size: 14px; font-weight: 600; }
+  .scene-meta { font-size: 12px; color: #8b93a1; margin-top: 4px; }
+  .empty { color: #5c6470; font-size: 13px; padding: 12px 2px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat { background: #171b22; border: 1px solid #242a35; border-radius: 10px; padding: 12px 16px; }
+  .stat-n { font-size: 22px; font-weight: 700; color: #4dabf7; }
+  .stat-l { font-size: 12px; color: #8b93a1; margin-top: 2px; }
+  .persona { font-size: 13px; line-height: 1.6; color: #aab2c0; white-space: pre-wrap; }
+  a { color: #4dabf7; }
+</style>
+</head>
+<body>
+  <h1>ProactiveAgent · 主动中心</h1>
+  <div class="sub" id="meta-time">2026/8/12 15:14:05 · 数据目录 /tmp/pa-demo</div>
+  <div class="sub" id="meta-project">项目 github.com-ConradLu2740-ProactiveAgent（key=remote:github.com-ConradLu2740-ProactiveAgent · git-remote）</div>
+
+  <h2>待处理建议（<span id="sug-count">4</span>）</h2>
+  <div id="suggestions">
+    
+        <div class="card sug">
+          <div class="sug-kind">待办建议</div>
+          <div class="sug-title">把未完成任务记下来</div>
+          <div class="sug-reason">你提到了未完成的事项，建议创建一个 Todo 记录，避免遗漏。</div>
+          <div class="sug-id">a34c7d50-eb36-4bd5-837c-e94e47d6ed01</div>
+          <div class="sug-actions">
+            <button class="act accept" data-id="a34c7d50-eb36-4bd5-837c-e94e47d6ed01" data-action="accept">✓ 接受</button>
+            <button class="act ignore" data-id="a34c7d50-eb36-4bd5-837c-e94e47d6ed01" data-action="ignore">✕ 忽略</button>
+          </div>
+        </div>
+        <div class="card sug">
+          <div class="sug-kind">跟进建议</div>
+          <div class="sug-title">创建跟进提醒（明天 09:00）</div>
+          <div class="sug-reason">你提到了稍后继续，已识别时间 明天 09:00，建议创建跟进提醒，到点自动提示你继续这个任务。</div>
+          <div class="sug-id">d9368c76-a081-488a-83b4-834a019f207a</div>
+          <div class="sug-actions">
+            <button class="act accept" data-id="d9368c76-a081-488a-83b4-834a019f207a" data-action="accept">✓ 接受</button>
+            <button class="act ignore" data-id="d9368c76-a081-488a-83b4-834a019f207a" data-action="ignore">✕ 忽略</button>
+          </div>
+        </div>
+        <div class="card sug">
+          <div class="sug-kind">自动化建议</div>
+          <div class="sug-title">开启定时任务（每天 17:00）</div>
+          <div class="sug-reason">你表达的是周期性需求，已识别周期 每天 17:00，建议创建定时任务，让助手无人值守地自动处理。</div>
+          <div class="sug-id">a98ee132-b21f-4ca3-b7a4-ecabaf46d072</div>
+          <div class="sug-actions">
+            <button class="act accept" data-id="a98ee132-b21f-4ca3-b7a4-ecabaf46d072" data-action="accept">✓ 接受</button>
+            <button class="act ignore" data-id="a98ee132-b21f-4ca3-b7a4-ecabaf46d072" data-action="ignore">✕ 忽略</button>
+          </div>
+        </div>
+        <div class="card sug">
+          <div class="sug-kind">纠正建议</div>
+          <div class="sug-title">记住这个纠正</div>
+          <div class="sug-reason">你刚刚纠正了助手的行为，建议把这条规则写入长期记忆，以后不再犯同样的错。</div>
+          <div class="sug-id">bdfdb882-c4ec-410c-a3a9-685551a4ab32</div>
+          <div class="sug-actions">
+            <button class="act accept" data-id="bdfdb882-c4ec-410c-a3a9-685551a4ab32" data-action="accept">✓ 接受</button>
+            <button class="act ignore" data-id="bdfdb882-c4ec-410c-a3a9-685551a4ab32" data-action="ignore">✕ 忽略</button>
+          </div>
+        </div>
+  </div>
+
+  <h2>近期热点场景</h2>
+  <div id="scenes">
+    
+        <div class="card scene">
+          <div class="scene-title">今天完成了 0.9.0 发布，明天跟进用户反馈</div>
+          <div class="scene-meta">热度 20 · 1 条记忆</div>
+        </div>
+        <div class="card scene">
+          <div class="scene-title">提交代码前必须先写单元测试</div>
+          <div class="scene-meta">热度 20 · 1 条记忆</div>
+        </div>
+        <div class="card scene">
+          <div class="scene-title">项目采用 pnpm monorepo（pnpm </div>
+          <div class="scene-meta">热度 20 · 1 条记忆</div>
+        </div>
+        <div class="card scene">
+          <div class="scene-title">用户偏好用 TypeScript 和 Bun，包</div>
+          <div class="scene-meta">热度 20 · 1 条记忆</div>
+        </div>
+  </div>
+
+  <h2>已落地任务（<span id="task-count">2</span> 待处理）</h2>
+  <div id="tasks">
+    
+        <div class="card task">
+          <div class="sug-kind">待办</div>
+          <div class="sug-title">重构 auth 模块的 token 刷新逻辑</div>
+          <div class="sug-id">#task_1786518831827_2ot23x · 待处理</div>
+        </div>
+        <div class="card task">
+          <div class="sug-kind">定时任务</div>
+          <div class="sug-title">检查发布状态</div>
+          <div class="sug-id">#task_1786518831827_rz4ux1 · 待处理</div>
+        </div>
+  </div>
+
+  <h2>记忆动态</h2>
+  <div id="review-box" class="card" style="border-color:#ffa94d55;color:#ffa94d;font-size:13px;display:none;"></div>
+  <div class="card">
+    <div class="sug-kind" id="activity-summary">今日 6 条动态 · 距上次更新 0 天</div>
+    <div id="activity-overload" style="margin-top:6px;"></div>
+    <div id="activity-list"><div class="scene-meta" style="margin-top:4px;">[2026-08-12] 手动沉淀: [preference] 用户偏好用 TypeScript 和 Bun，包管理用 pnpm</div><div class="scene-meta" style="margin-top:4px;">[2026-08-12] 手动沉淀: [correction] 提交代码前必须先写单元测试</div><div class="scene-meta" style="margin-top:4px;">[2026-08-12] 手动沉淀: [fact] 项目采用 pnpm monorepo（pnpm workspaces），依赖用 pnpm 安装</div></div>
+  </div>
+
+  <h2>记忆统计</h2>
+  <div class="grid">
+    <div class="stat"><div class="stat-n" id="stats-count">5</div><div class="stat-l">原子记忆</div></div>
+    <div class="stat"><div class="stat-n" id="stats-pending">0</div><div class="stat-l">待确认（记忆+纠正）</div></div>
+  </div>
+  <div class="sub" id="stats-bytype" style="margin-top:8px;">fact 1 · preference 1 · correction 1 · todo_context 1 · event 1</div>
+
+  <h2>建议 ROI（近 7 天）</h2>
+  <div class="grid">
+    <div class="stat"><div class="stat-n" style="color:#8b93a1">4</div><div class="stat-l">建议数</div></div>
+    <div class="stat"><div class="stat-n" style="color:#51cf66">0%</div><div class="stat-l">接受率（0 接受 / 0 反馈）</div></div>
+  </div>
+  <div class="grid" style="margin-top:10px;">
+    <div class="stat"><div class="stat-n" style="color:#ffa94d">0</div><div class="stat-l">忽略</div></div>
+    <div class="stat"><div class="stat-n" style="color:#ff6b6b">0</div><div class="stat-l">永不建议</div></div>
+  </div>
+  <div id="roi-types" style="margin-top:10px;">
+    <div class="card" style="padding:10px 14px;display:flex;justify-content:space-between;align-items:center;"><span>纠正建议</span><span style="font-size:12px;color:#8b93a1">0/1 接受 · 0%</span></div><div class="card" style="padding:10px 14px;display:flex;justify-content:space-between;align-items:center;"><span>跟进建议</span><span style="font-size:12px;color:#8b93a1">0/1 接受 · 0%</span></div><div class="card" style="padding:10px 14px;display:flex;justify-content:space-between;align-items:center;"><span>自动化建议</span><span style="font-size:12px;color:#8b93a1">0/1 接受 · 0%</span></div><div class="card" style="padding:10px 14px;display:flex;justify-content:space-between;align-items:center;"><span>待办建议</span><span style="font-size:12px;color:#8b93a1">0/1 接受 · 0%</span></div>
+  </div>
+  <div id="roi-alert" style="margin-top:10px;"><div class="card" style="color:#5c6470;font-size:13px;">反馈样本不足（&lt;5），暂不评估打扰水平。</div></div>
+
+  <h2>用户画像</h2>
+  <div class="card">
+    <div class="persona" id="persona">（已生成，无摘要）</div>
+  </div>
+
+  <div class="sub" style="margin-top:24px;">API: <a href="/api/today">/api/today</a> · 每 15 秒自动刷新 · 由 @proactive-agent/mcp 提供</div>
+<script>
+const KIND = { correction:'纠正建议', followup:'跟进建议', automation:'自动化建议', skill:'技能建议', todo:'待办建议' };
+// 0.5：写接口鉴权 token（同源注入；外部 POST 无此 token 将被服务端拒绝）
+const PA_TOKEN = 'ac3c9a772a2e381625bdad6fcb81d581c81e67944aaa8d37';
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function render(p){
+  document.getElementById('meta-time').textContent = new Date().toLocaleString('zh-CN') + ' · 数据目录 ' + p.dataDir;
+  document.getElementById('meta-project').textContent = '项目 ' + p.project.displayName + '（key=' + p.project.key + ' · ' + p.project.identitySource + '）';
+  const sug = document.getElementById('suggestions');
+  sug.innerHTML = p.suggestions.length
+    ? p.suggestions.map(s=>'<div class="card sug"><div class="sug-kind">'+esc(KIND[s.kind]||s.kind)+'</div><div class="sug-title">'+esc(s.title)+'</div><div class="sug-reason">'+esc(s.reason)+'</div><div class="sug-id">'+esc(s.id)+'</div><div class="sug-actions"><button class="act accept" data-id="'+esc(s.id)+'" data-action="accept">✓ 接受</button><button class="act ignore" data-id="'+esc(s.id)+'" data-action="ignore">✕ 忽略</button></div></div>').join('')
+    : '<div class="empty">暂无待处理建议 —— 该沉默时沉默。</div>';
+  document.getElementById('sug-count').textContent = p.suggestions.length;
+  document.getElementById('scenes').innerHTML = p.hotScenes.length
+    ? p.hotScenes.map(s=>'<div class="card scene"><div class="scene-title">'+esc(s.title)+'</div><div class="scene-meta">热度 '+s.heat+' · '+s.atomCount+' 条记忆</div></div>').join('')
+    : '<div class="empty">暂无热点场景。</div>';
+  const tasks = p.tasks||{items:[],pending:0};
+  document.getElementById('task-count').textContent = tasks.pending;
+  document.getElementById('tasks').innerHTML = (tasks.items||[]).length
+    ? tasks.items.map(t=>'<div class="card task"><div class="sug-kind">'+(t.kind==='automation'?'定时任务':'待办')+'</div><div class="sug-title">'+esc(t.title)+'</div><div class="sug-id">#'+esc(t.id)+' · '+(t.status==='done'?'已完成':'待处理')+'</div></div>').join('')
+    : '<div class="empty">暂无已落地任务（接受 automation/todo 建议后自动创建）。</div>';
+  const bt = Object.entries(p.stats.byType||{}).filter(([,n])=>n>0).map(([k,n])=>k+' '+n).join(' · ');
+  document.getElementById('stats-bytype').textContent = bt;
+  document.getElementById('stats-count').textContent = p.stats.atomCount;
+  document.getElementById('stats-pending').textContent = (p.stats.pendingAtoms||0) + (p.stats.pendingCorrections||0);
+  // 记忆动态 + 复查（v0.8.0）
+  const reviewBox = document.getElementById('review-box');
+  if (reviewBox) { reviewBox.textContent = p.review ? p.review.message : ''; reviewBox.style.display = p.review ? '' : 'none'; }
+  const actSummary = document.getElementById('activity-summary');
+  if (actSummary && p.activity) actSummary.textContent = '今日 ' + p.activity.todayEntries + ' 条动态 · 距上次更新 ' + p.activity.daysSinceLastUpdate + ' 天';
+  const actOverload = document.getElementById('activity-overload');
+  if (actOverload && p.personaOverload) {
+    actOverload.innerHTML = p.personaOverload.overloaded
+      ? '<div class="sub" style="color:#ffa94d;">⚠️ 画像已超载（' + p.personaOverload.lineCount + ' 行 / ' + p.personaOverload.sectionCount + ' 章节），建议精简重整。</div>'
+      : '';
+  }
+  const actList = document.getElementById('activity-list');
+  if (actList && p.activity) {
+    actList.innerHTML = (p.activity.recentEntries && p.activity.recentEntries.length)
+      ? p.activity.recentEntries.map(e => '<div class="scene-meta" style="margin-top:4px;">[' + esc(e.date) + '] ' + esc(e.text) + '</div>').join('')
+      : '<div class="empty">暂无记忆动态——沉淀记忆后这里会显示变更记录。</div>';
+  }
+  document.getElementById('persona').textContent = p.persona.exists ? (p.persona.summary || '（已生成，无摘要）') : '尚未生成用户画像。';
+  // ROI 区（M8）
+  const roi = p.roi||{};
+  const fu = roi.funnel||{suggested:0,accepted:0,ignored:0,never:0};
+  const accepted = fu.accepted, feedback = fu.accepted+fu.ignored+fu.never;
+  const rate = feedback>0 ? Math.round((fu.accepted/feedback)*100) : 0;
+  const sugEls = document.querySelectorAll('.stat-n');
+  if (sugEls.length>=4) {
+    sugEls[2].textContent = fu.suggested;
+    sugEls[3].textContent = rate+'%';
+  }
+  const bt2 = document.querySelectorAll('.stat-n');
+  if (bt2.length>=6) { bt2[4].textContent = fu.ignored; bt2[5].textContent = fu.never; }
+  const rt = document.getElementById('roi-types');
+  if (rt && roi.byType) {
+    rt.innerHTML = roi.byType.map(t=>'<div class="card" style="padding:10px 14px;display:flex;justify-content:space-between;align-items:center;"><span>'+esc(KIND[t.kind]||t.kind)+'</span><span style="font-size:12px;color:#8b93a1">'+t.accepted+'/'+t.suggested+' 接受 · '+Math.round(t.rate*100)+'%</span></div>').join('');
+  }
+  const ra = document.getElementById('roi-alert');
+  if (ra) {
+    if (roi.sufficient && roi.shouldReduceBudget) ra.innerHTML = '<div class="card" style="border-color:#ff6b6b55;color:#ffa94d;font-size:13px;">⚠️ 接受率低于 30%，已自动提高建议门槛（减少打扰）。</div>';
+    else if (roi.sufficient) ra.innerHTML = '<div class="card" style="color:#8b93a1;font-size:13px;">接受率正常，保持当前节奏。</div>';
+    else ra.innerHTML = '<div class="card" style="color:#5c6470;font-size:13px;">反馈样本不足（&lt;5），暂不评估打扰水平。</div>';
+  }
+}
+async function refresh(){
+  try { const r = await fetch('/api/today'); render(await r.json()); }
+  catch(e){ console.error('[today] refresh failed', e); }
+}
+// 0.5：ActionCard 闭环 —— 接受/忽略按钮（事件委托，避免每次重绘重复绑定）
+document.getElementById('suggestions').addEventListener('click', async function(e){
+  const btn = (e.target).closest && (e.target).closest('button[data-action]');
+  if (!btn) return;
+  btn.disabled = true;
+  const id = btn.dataset.id, action = btn.dataset.action;
+  try { await fetch('/api/suggestions/' + encodeURIComponent(id) + '/' + action, { method: 'POST', headers: { 'x-pa-token': PA_TOKEN } }); }
+  catch(err){ console.error('[today] feedback failed', err); }
+  refresh();
+});
+setInterval(refresh, 15000);
+refresh();
+</script>
+</body>
+</html>
