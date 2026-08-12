@@ -138,4 +138,31 @@ describe('evaluateNow 统一入口', () => {
     })
     expect(records.length).toBe(0)
   })
+
+  it('0.6.1：projectHint 指定项目层——建议写入对应项目（daemon 按 pk 评估用）', async () => {
+    // 双层模式才验证项目层路由（PROMA_MEMORY_DIR 会进入单层模式）
+    const savedMem = process.env.PROMA_MEMORY_DIR
+    delete process.env.PROMA_MEMORY_DIR
+    try {
+      const records = await service.evaluateNow({
+        trigger: 'timer',
+        sessionId: 'pk-a-1',
+        messages: [{ role: 'user', content: '以后都用 pnpm，不要用 npm' }],
+        projectHint: 'path:aaaa',
+      })
+      expect(records.length).toBe(1)
+
+      const { existsSync } = await import('node:fs')
+      const { join } = await import('node:path')
+      const target = join(TEST_DIR, 'projects', 'path:aaaa', 'suggestions.json')
+      expect(existsSync(target)).toBe(true)
+      const data = JSON.parse((await import('node:fs')).readFileSync(target, 'utf-8')) as {
+        records: Array<{ id: string; sessionId?: string }>
+      }
+      expect(data.records.length).toBeGreaterThanOrEqual(1)
+      expect(data.records[0].sessionId).toBe('pk-a-1')
+    } finally {
+      if (savedMem !== undefined) process.env.PROMA_MEMORY_DIR = savedMem
+    }
+  })
 })

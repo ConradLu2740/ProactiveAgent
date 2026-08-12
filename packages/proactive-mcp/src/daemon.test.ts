@@ -40,6 +40,13 @@ afterAll(() => {
 beforeEach(() => {
   releaseDaemonLock()
   vi.restoreAllMocks()
+  // 清理事件目录：避免用例间事件串扰（0.6.1 pk 分组用例会写事件）
+  const { rmSync } = require('node:fs')
+  try {
+    rmSync(`${TEST_DIR}/events`, { recursive: true, force: true })
+  } catch {
+    // 忽略
+  }
 })
 
 function fakeState(overrides: Partial<DaemonState> = {}): DaemonState {
@@ -203,6 +210,35 @@ describe('0.8 通知疲劳控制', () => {
     const res = await runEvaluationCycle(state, { port: 8737, notifierImpl: impl })
     expect(res.notified).toBe(true)
     expect(shown.length).toBe(1)
+  })
+
+  it('0.6.1：事件按 pk 分组评估——各项目事件只评估对应项目（不串味）', async () => {
+    const evaluateMock = vi.spyOn(suggestService, 'evaluateNow').mockResolvedValue([] as never)
+    vi.spyOn(suggestService, 'listSuggestionsForUI').mockReturnValue([])
+    vi.spyOn(suggestService, 'dndActive').mockReturnValue(false)
+    delete process.env.PROACTIVE_DAEMON_DAILY_LIMIT
+    delete process.env.PROACTIVE_DAEMON_COOLDOWN_MIN
+    const { impl } = fakeNotifier()
+    const state = fakeState()
+    // 写两个项目的事件（含 pk），另有一条无 pk 事件
+    const { recordMessage } = await import('./event-store')
+    recordMessage('kimi', 'u', '以后都用 pnpm，不要用 npm', { sid: 's-a', pk: 'path:aaaa' })
+    recordMessage('kimi', 'u', '以后都用 yarn，不要用 pnpm', { sid: 's-b', pk: 'path:bbbb' })
+    recordMessage('kimi', 'u', '无项目身份的消息', { sid: 's-c' })
+
+    const res = await runEvaluationCycle(state, { port: 8737, notifierImpl: impl })
+    expect(res.evaluated).toBe(true)
+    // 两个 pk 组 + 无 pk 组 = 3 次评估
+    expect(evaluateMock).toHaveBeenCalledTimes(3)
+    const hints = evaluateMock.mock.calls.map((c) => (c[0] as { projectHint?: string }).projectHint)
+    expect(hints).toContain('path:aaaa')
+    expect(hints).toContain('path:bbbb')
+    expect(hints).toContain(undefined)
+    // 每个组只带自己的消息
+    const aCall = evaluateMock.mock.calls.find((c) => (c[0] as { projectHint?: string }).projectHint === 'path:aaaa')
+    const aMsgs = (aCall?.[0] as { messages: Array<{ content: string }> }).messages
+    expect(aMsgs.some((m) => m.content.includes('pnpm'))).toBe(true)
+    expect(aMsgs.some((m) => m.content.includes('yarn'))).toBe(false)
   })
 
   it('老版本 daemon.json（无 dailyNotified 字段）兼容启动（P2 升级场景）', () => {

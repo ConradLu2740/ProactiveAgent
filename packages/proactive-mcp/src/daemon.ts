@@ -22,7 +22,7 @@ import { join } from 'node:path'
 import { suggestService, memoryService, getConfigDir } from '@proactive-agent/core'
 import { startTodayServer } from './today'
 import { notifier, createNotifier, type Notifier } from './notifier'
-import { readRecentAgentEvents, eventsToMessages } from './event-store'
+import { readRecentAgentEvents, eventsToMessages, type AgentEvent } from './event-store'
 
 export const DAEMON_INTERVAL_DEFAULT_MIN = 60
 export const NOTIFIED_HISTORY_LIMIT = 200
@@ -258,13 +258,29 @@ export async function runEvaluationCycle(
   options: { port: number; notifierImpl: Notifier },
 ): Promise<{ notified: boolean; evaluated: boolean }> {
   state.lastRunAt = Date.now()
-  // 0.6：跨工具事件 → 真定时评估（P0-1 修复完成）
+  // 0.6.1：事件按 pk 分组评估——各项目会话只产生各自项目的建议（不串味）
   try {
     const events = readRecentAgentEvents(60)
-    const messages = eventsToMessages(events)
+    const withPk = events.filter((e) => !!e.pk)
+    const withoutPk = events.filter((e) => !e.pk)
+    // 有 pk 的事件按项目分组，每组分别评估并写入对应项目层
+    const groups = new Map<string, AgentEvent[]>()
+    for (const e of withPk) {
+      const pk = e.pk as string
+      const list = groups.get(pk)
+      if (list) list.push(e)
+      else groups.set(pk, [e])
+    }
+    for (const [pk, group] of groups) {
+      const messages = eventsToMessages(group)
+      if (messages.length === 0) continue
+      const lastMsg = [...group].reverse().find((e) => e.t === 'msg')
+      await suggestService.evaluateNow({ trigger: 'timer', messages, sessionId: lastMsg?.sid, projectHint: pk })
+    }
+    // 无 pk 的事件（老 hooks/未知来源）：保持原行为（daemon 当前层评估）
+    const messages = eventsToMessages(withoutPk)
     if (messages.length > 0) {
-      // P1-3：sessionId 从最近一条 msg 事件取（end/commit 事件可能无 sid）
-      const lastMsg = [...events].reverse().find((e) => e.t === 'msg')
+      const lastMsg = [...withoutPk].reverse().find((e) => e.t === 'msg')
       await suggestService.evaluateNow({ trigger: 'timer', messages, sessionId: lastMsg?.sid })
     }
   } catch (error) {

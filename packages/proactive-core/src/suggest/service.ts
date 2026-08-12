@@ -150,7 +150,7 @@ export async function evaluateNow(ctx: EvaluateNowContext): Promise<SuggestionRe
       if (candidate.kind !== 'correction' && candidate.kind !== 'automation') return []
     }
 
-    const record = persistSuggestion(candidate, ctx.sessionId)
+    const record = persistSuggestion(candidate, ctx.sessionId, ctx.projectHint)
     // 新建议生成后广播事件，让当前会话的 SuggestionBanner 实时刷新（不再等重新挂载）
     notifySuggestionsChanged()
     return [record]

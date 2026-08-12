@@ -115,6 +115,16 @@ function writeIndex(): void {
   writeJsonFileAtomic(getSuggestionsPath(), index)
 }
 
+/** 按指定层写回索引（0.6.1：daemon 按事件 pk 分组评估时，建议写入对应项目层） */
+function writeIndexForLayer(key: string): void {
+  const index = suggestionsCache.get(key)
+  if (!index) return
+  index.version = INDEX_VERSION
+  const targetPath = key === GLOBAL_KEY ? getGlobalSuggestionsPath() : getProjectSuggestionsPath(key)
+  mkdirSync(dirname(targetPath), { recursive: true })
+  writeJsonFileAtomic(targetPath, index)
+}
+
 /** 测试/调试用：重置缓存（可按层；不传则清全部） */
 export function resetSuggestionsCache(key?: string): void {
   if (key !== undefined) {
@@ -169,9 +179,9 @@ export function setAnalysisState(state: SuggestionAnalysisState): void {
   writeIndex()
 }
 
-/** 记录一条候选为待展示建议 */
-export function persistSuggestion(candidate: SuggestionCandidate, sessionId?: string): SuggestionRecord {
-  const index = readIndex()
+/** 记录一条候选为待展示建议；layer 指定写入层（0.6.1：projectKey 或 GLOBAL_KEY） */
+export function persistSuggestion(candidate: SuggestionCandidate, sessionId?: string, layer?: string): SuggestionRecord {
+  const index = layer ? readIndexForLayer(layer) : readIndex()
   const record: SuggestionRecord = {
     ...candidate,
     id: randomUUID(),
@@ -184,7 +194,11 @@ export function persistSuggestion(candidate: SuggestionCandidate, sessionId?: st
   if (index.records.length > MAX_RECORDS) {
     index.records.length = MAX_RECORDS
   }
-  writeIndex()
+  if (layer) {
+    writeIndexForLayer(layer)
+  } else {
+    writeIndex()
+  }
   return record
 }
 
