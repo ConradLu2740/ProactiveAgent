@@ -11,6 +11,7 @@
 - **M1 HostAdapter 接口（harness 适配层）**：`src/adapter/`（types/claude/kimi/index）：5 维度接口 + capabilities 能力矩阵（Kimi resources/prompts=false、hooks partial 带 0.34→0.35 note；参考 jido_harness/harnery/agent-harness）；claude/kimi adapter 收编 hooks 纯函数（transcript/wire 提取、文本/notification 渲染、注入渲染），hooks 脚本薄化行为不变（401/401 测试 + Kimi 真实闭环不回归）。
 - **M2 cursor adapter**：cursor.ts 按 Claude Code hooks 兼容声明实现（sessionStart/beforeSubmitPrompt/stop 事件映射 + camelCase 宿主识别）；能力矩阵诚实标注（本机无 Cursor，hooks/sessionRead 待实测）；403/403 测试。
 - **M3 cline/codex adapter**：感知经 event-capture 通用入口接入（start/message/end/commit 事件映射）；能力诚实标注（hooks partial 带接入指引、会话读取未调研、表达降级 daemon 通知）；404/404 测试。
+- **M4 独立包 @proactive-agent/adapters@0.1.0（已发布 npm）**：HostAdapter 接口 + 5 个宿主 adapter（claude/kimi/cursor/cline/codex）+ 注册表，零运行时依赖；mcp/hooks 改消费该包（file: 链接 + bundle 内联，行为不变）；publish 脚本支持 adapters 构建/发布。
 
 ## 0.9.2 (2026-08-12)
 
