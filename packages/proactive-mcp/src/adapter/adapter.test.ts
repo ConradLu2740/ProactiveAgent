@@ -3,7 +3,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { registerAdapter, getAdapter, listAdapters, detectHostId, claudeAdapter, kimiAdapter, cursorAdapter, looksLikeCursorInput, readCursorSession } from './index'
+import { registerAdapter, getAdapter, listAdapters, detectHostId, claudeAdapter, kimiAdapter, cursorAdapter, clineAdapter, codexAdapter, looksLikeCursorInput, readCursorSession, readClineSession, readCodexSession } from './index'
 import { renderTextSuggestion, renderTodayInjection, extractTranscriptMessages } from './claude'
 import { renderKimiNotification, extractWireMessages } from './kimi'
 
@@ -13,11 +13,13 @@ const SUG: Array<{ id: string; kind: string; title: string; reason: string }> = 
 
 describe('注册表', () => {
   it('内置注册 claude + kimi + cursor，可获取', () => {
-    expect(listAdapters().map((a) => a.id).sort()).toEqual(['claude', 'cursor', 'kimi'])
+    expect(listAdapters().map((a) => a.id).sort()).toEqual(['claude', 'cline', 'codex', 'cursor', 'kimi'])
     expect(getAdapter('claude')).toBe(claudeAdapter)
     expect(getAdapter('kimi')).toBe(kimiAdapter)
     expect(getAdapter('cursor')).toBe(cursorAdapter)
-    expect(getAdapter('cline')).toBeUndefined() // M3 未实现
+    expect(getAdapter('cline')).toBe(clineAdapter)
+    expect(getAdapter('codex')).toBe(codexAdapter)
+    expect(getAdapter('continue')).toBeUndefined() // 未实现
   })
 
   it('重复注册 fail loud（参考 harnery registry）', () => {
@@ -64,6 +66,21 @@ describe('能力矩阵（判断用能力而非宿主名）', () => {
     expect(looksLikeCursorInput(input)).toBe(true)
     expect(detectHostId(input)).toBe('cursor')
     expect(looksLikeCursorInput({ session_id: 's1' })).toBe(false)
+  })
+
+  it('M3 cline/codex：注册、感知事件映射（event-capture 通用协议）、诚实能力声明', () => {
+    expect(clineAdapter.capabilities.hooks).toEqual({ partial: expect.stringContaining('event-capture') })
+    expect(codexAdapter.capabilities.hooks).toEqual({ partial: expect.stringContaining('event-capture') })
+    // 通用协议事件名映射
+    expect(clineAdapter.hooks.eventMap.start).toBe('start')
+    expect(clineAdapter.hooks.eventMap.message).toBe('msg')
+    expect(clineAdapter.hooks.eventMap.commit).toBe('commit')
+    expect(codexAdapter.hooks.eventMap.end).toBe('end')
+    // 会话读取诚实：未调研 → partial + 空结果
+    expect(readClineSession({ sessionId: 'x' }).messages).toEqual([])
+    expect(readCodexSession({ sessionId: 'x' }).messages).toEqual([])
+    // 表达：无 stdout 注入机制 → renderSuggestion 空（降级 daemon 通知）
+    expect(clineAdapter.expression.renderSuggestion([{ id: 'a', kind: 'correction', title: 't', reason: 'r' }])).toBe('')
   })
 })
 
