@@ -65,7 +65,11 @@ export function registerTools(server: McpServer): void {
         'Keep content concise, self-contained, and independently understandable. ' +
         'Types: fact / preference / correction / sop / todo_context / event.',
       inputSchema: {
-        content: z.string().min(1).max(2000).describe('Memory content'),
+        content: z
+          .string()
+          .min(1)
+          .max(2000)
+          .describe('Memory content. Keep negations intact: e.g. "不要用 X" must be stored as-is, never drop 不/不要/别'),
         type: z.enum(MEMORY_TYPES).default('fact').describe('Memory type'),
         priority: z.number().int().min(0).max(100).optional().describe('Importance 0-100, default 50'),
         scope: z.enum(WRITE_SCOPES).optional().describe('Write scope: project (default) / global'),

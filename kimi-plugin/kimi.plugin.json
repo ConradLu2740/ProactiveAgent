@@ -1,0 +1,28 @@
+{
+  "name": "proactive-agent",
+  "version": "0.9.2",
+  "description": "Proactive memory & suggestions for Kimi Code CLI: cross-tool long-term memory (capture/recall/extract/persona), proactive suggestions, daily review",
+  "author": "ConradLu2740",
+  "homepage": "https://github.com/ConradLu2740/ProactiveAgent",
+  "license": "MIT",
+  "interface": {
+    "displayName": "ProactiveAgent",
+    "shortDescription": "跨工具主动记忆与主动建议（capture / recall / extract / persona / suggest）",
+    "longDescription": "让 Kimi Code 记住你的偏好、事实与纠正，并跨工具共享（Claude Code / Cline / Cursor / Kimi 同一份记忆）。\n- 会话开始自动注入用户画像与近期场景\n- 对话中主动沉淀偏好/纠正（否定词保留）\n- 需要时自动召回历史记忆\n- 会话收尾提取值得记住的内容（默认待确认）\n- 在合适时机给出克制的建议（该沉默时沉默）",
+    "developerName": "ProactiveAgent",
+    "websiteURL": "https://github.com/ConradLu2740/ProactiveAgent"
+  },
+  "systemPromptPath": "./SYSTEM.md",
+  "agents": "./agents/",
+  "commands": "./commands/",
+  "mcpServers": {
+    "proactive-agent": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@proactive-agent/mcp@0.9.2"
+      ],
+      "startupTimeoutMs": 60000
+    }
+  }
+}

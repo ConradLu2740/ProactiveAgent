@@ -14,7 +14,7 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PUBLISH_DIR="$ROOT/dist-publish"
-VERSION="0.9.1"
+VERSION="0.9.2"
 LICENSE="${LICENSE:-MIT}"
 
 echo "==> 构建 bundle"
@@ -93,6 +93,31 @@ for h in "${HOOK_REQUIRED[@]}"; do
   fi
 done
 echo "==> hooks 自检通过: ${#HOOK_REQUIRED[@]} 个"
+
+# ---- Kimi plugin 版本联动 + zip 打包（0.9.2 起：release asset 分发，zip 根 = 插件根） ----
+PLUGIN_DIR="$ROOT/kimi-plugin"
+PLUGIN_MANIFEST="$PLUGIN_DIR/kimi.plugin.json"
+if [ -f "$PLUGIN_MANIFEST" ]; then
+  node -e "
+    const fs = require('fs');
+    const p = process.argv[1];
+    const m = JSON.parse(fs.readFileSync(p, 'utf8'));
+    m.version = process.argv[2];
+    const args = m.mcpServers?.['proactive-agent']?.args;
+    if (Array.isArray(args)) {
+      m.mcpServers['proactive-agent'].args = args.map(a => a.replace(/@proactive-agent\/mcp@\S+/, '@proactive-agent/mcp@' + process.argv[2]));
+    }
+    fs.writeFileSync(p, JSON.stringify(m, null, 2) + '\n', 'utf8');
+  " "$PLUGIN_MANIFEST" "$VERSION"
+  echo "==> kimi.plugin.json 版本已同步为 $VERSION"
+  # zip 根 = 插件根（kimi.plugin.json 直接在 zip 根）
+  mkdir -p "$PUBLISH_DIR"
+  (cd "$PLUGIN_DIR" && zip -qr "$PUBLISH_DIR/kimi-plugin.zip" . -x "*.DS_Store")
+  echo "==> 已打包 kimi-plugin.zip -> $PUBLISH_DIR/kimi-plugin.zip"
+else
+  echo "==> ⚠️ 未找到 kimi.plugin.json（${PLUGIN_MANIFEST}），跳过 plugin 版本同步"
+fi
+
 # ---- @proactive-agent/mcp - NOTICE（第三方组件声明） ----
 cat > "$PUBLISH_DIR/mcp/NOTICE" <<'EOF'
 This package bundles the following third-party MIT-licensed components:

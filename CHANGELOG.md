@@ -1,5 +1,40 @@
 # Changelog
 
+## 0.9.2 (2026-08-12)
+
+「Kimi Code 深度使用」批次：让 ProactiveAgent 在 Kimi Code CLI 里真正"更好用"（调研 + 实测驱动）。
+
+### 新增
+
+- **Kimi 主动 Agent 模板（P0）**：`init --kimi` 现在同时生成 `~/.kimi-code/agents/proactive.md`（Kimi 官方自定义 Agent 格式，frontmatter + 提示词驱动的主动记忆：会话开始 persona_get/scene_summary 注入 → 对话中主动 memory_capture/memory_recall → 收尾 memory_extract；含"否定词必须保留"规则）。Kimi 0.34 hooks 系统运行时不可用（实测 SessionStart/UserPromptSubmit 均不触发），主动能力改由提示词驱动：`kimi --agent proactive` 一条命令启动。真实会话已验证 capture→recall 闭环（DeepSeek 模型主动调工具 + 记忆落盘）。
+- **Kimi Plugin（kimi-plugin/ 目录，随仓库分发）**：`/plugins install https://github.com/ConradLu2740/ProactiveAgent/tree/main/kimi-plugin` 一条命令安装。自带 MCP server 声明（npx 拉起）+ **systemPrompt 全局注入**（普通会话即主动记忆，无需 --agent）+ proactive Agent + `/remember`/`/recall` 快捷命令。本机实测：安装 → 普通 `kimi -p` 会话主动 capture（模型引述插件指令）→ recall 正确召回，全链路通过。
+- **Kimi 权限预配置建议**：`init --kimi` 打印 `config.toml` 的 `[[permission.rules]]` 只读工具 allow 建议（persona_get/memory_recall/scene_summary/memory_stats/suggest_now/daily_review/onboarding_guide/memory_pending/suggest_list/card_list/card_get），写类保留手动审批。
+- **memory_capture 否定词提示**：content 字段 describe 明示"不要用 X" 必须原样保留（跨宿主健壮性）。
+
+### 修复（子代理对抗审查后）
+
+- **P1-1 `init --kimi --dry-run` 误报"已存在"**：writeKimiUserMcp/writeKimiAgentFile 返回值增加显式 `reason`（exists/dry-run/wrote），dry-run 全新环境正确输出"将写入…（未写盘）"。
+- **P1-2/P1-3 测试补齐**：合并保留用户已有 server 条目、HOME 缺失跳过、dry-run 零写盘等用例。
+
+### 测试
+
+- 103/103（新增 cli-init 用例 10+3）；core + mcp typecheck 干净；真实 Kimi Code CLI 会话实测闭环。
+
+### 子代理测评修复（kimi-plugin）
+
+独立测评（规范审查 + 4 轮真实会话实测）后修复：
+
+- **工具全名统一**：agents/proactive.md 与 commands 里的短名（persona_get 等）全部改为模型可见全名 `mcp__proactive-agent__*`（干净环境实测：全名调用成功、短名无效）。
+- **README 命令名修正**：`/remember` → `/proactive-agent:remember`（官方 `<plugin>:<command>` 规范）。
+- **权限配置示例**：README 增加 `[[permission.rules]]` 只读工具 allow 示例（不授写类、警示勿用 `mcp__*` 全量放行）。
+- **固定版本 + 版本联动**：manifest 固定 `@proactive-agent/mcp@0.9.2`（防漂移），publish 脚本自动同步 `kimi.plugin.json` version 与依赖版本，并打包 `kimi-plugin.zip`（zip 根即插件根，release asset 分发）。
+- **scope 语义提示**：SYSTEM.md 明确"默认写入当前项目，跨项目偏好显式 scope=global"（实测模型对默认值有困惑）。
+- **冲突指引**：README 首屏给出 mcp.json 同名 server 双注册的检测与二选一指引（实测双注册真实存在）。
+
+### 测评结论
+
+功能本体质量过硬（capture→recall 闭环、否定词保留、无关任务不喧宾夺主、仅插件干净环境全名有效）；分发层面原 P0（未推 GitHub + `tree/main/kimi-plugin` URL 不可用）由分发形式决策（zip asset）+ 推送解决。
+
 ## 0.9.1 (2026-08-12)
 
 「0.9.0 评估修复」批次：项目双维子代理评估（pa-project-eval-2026-08.md）后发现并修复。
