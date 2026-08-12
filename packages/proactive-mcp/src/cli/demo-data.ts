@@ -26,6 +26,12 @@ function markerPath(): string {
 
 function cleanDemoData(): void {
   const dir = getConfigDir()
+  // 防误删：只在存在 demo marker（本工具生成过数据）时才允许清理
+  if (!existsSync(markerPath())) {
+    console.log(`❌ 拒绝清理：${dir} 没有演示数据 marker（.demo-data-marker），可能包含真实数据。`)
+    console.log('   如确认要清理，请先手动删除 marker 或用隔离的 PROACTIVE_DATA_DIR 目录。')
+    return
+  }
   if (existsSync(dir)) {
     rmSync(dir, { recursive: true, force: true })
     console.log(`🧹 已清理演示数据目录: ${dir}`)

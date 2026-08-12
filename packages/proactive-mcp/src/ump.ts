@@ -1,17 +1,25 @@
 /**
- * UMP 兼容层（L0：文件导入/导出）——评估见 .context/pa-ump-compat-eval.md
+ * UMP 兼容层（L0：文件导入/导出）——评估见 .context/pa-ump-compat-eval.md；
+ * 2026-08-12 互操作实测修复：官方 @universalmemoryprotocol/core JsonFileStore/CLI 的
+ * 文件格式为**记录数组**（每条自带 ump 版本字段），非 {ump, records} 包装；版本对齐官方 1.0（0.1 为 legacy）。
  *
- * Universal Memory Protocol（universalmemoryprotocol.io，spec v0.1）：
- * 第三互操作层（MCP 工具 / A2A 协调 / UMP 记忆）。本模块提供：
- * - MemoryAtom → UMP Record 映射（导出）
- * - UMP Record → MemoryAtom 映射（导入，默认 pending 防投毒）
+ * Universal Memory Protocol（universalmemoryprotocol.io）：第三互操作层
+ * （MCP 工具 / A2A 协调 / UMP 记忆）。本模块提供：
+ * - MemoryAtom → UMP Record 映射（导出，记录数组）
+ * - UMP Record → MemoryAtom 映射（导入，兼容数组与旧 {ump, records} 包装，默认 pending 防投毒）
  *
- * 数据格式：.ump/memory.ump.json（File binding），结构 { ump:'0.1', records:[...] }
+ * 数据格式：.ump/memory.ump.json（File binding），结构 = UmpRecord[]（官方 JsonFileStore 兼容）
  */
 
 import { writeFileSync, readFileSync, mkdirSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { memoryService, type MemoryAtom } from '@proactive-agent/core'
+
+/** 对齐官方 @universalmemoryprotocol/core 当前版本 */
+export const UMP_VERSION = '1.0'
+
+/** 旧导出格式的 ump 版本（导入兼容） */
+export const UMP_LEGACY_VERSIONS = ['0.1'] as const
 
 /** UMP kind：semantic（描述性事实） / procedural（怎么做） */
 export type UmpKind = 'semantic' | 'procedural'
@@ -29,8 +37,18 @@ export interface UmpRecord {
 }
 
 export interface UmpFile {
-  ump: '0.1'
+  ump: string
   records: UmpRecord[]
+}
+
+/** 兼容旧导出：{ump, records} 包装或裸记录数组均可；其他结构返回 undefined（非法） */
+export function normalizeUmpFile(data: unknown): UmpRecord[] | undefined {
+  if (Array.isArray(data)) return data as UmpRecord[]
+  if (data && typeof data === 'object') {
+    const wrapper = data as { records?: unknown }
+    if (Array.isArray(wrapper.records)) return wrapper.records as UmpRecord[]
+  }
+  return undefined
 }
 
 export const UMP_OWNER = 'did:key:pa-local'
@@ -49,7 +67,7 @@ export function umpKindToAtomType(kind: string): MemoryAtom['type'] {
 /** MemoryAtom → UMP Record */
 export function atomToUmpRecord(atom: MemoryAtom): UmpRecord {
   return {
-    ump: '0.1',
+    ump: UMP_VERSION,
     id: `urn:ump:pa-${atom.id}`,
     kind: atomTypeToUmpKind(atom.type),
     body: { text: atom.content },
@@ -103,9 +121,9 @@ export function exportUmpFile(outPath: string, opts: { confirmed?: boolean } = {
     if (page >= batch.totalPages) break
     page += 1
   }
-  const file: UmpFile = { ump: '0.1', records }
+  // 官方 JsonFileStore 格式：记录数组（每条自带 ump 版本字段）
   mkdirSync(dirname(outPath), { recursive: true })
-  writeFileSync(outPath, JSON.stringify(file, null, 2) + '\n', 'utf-8')
+  writeFileSync(outPath, JSON.stringify(records, null, 2) + '\n', 'utf-8')
   const truncated = records.length !== total
   if (truncated) {
     console.warn(`[ump] 导出警告：读取 ${total} 条但仅导出 ${records.length} 条（数据异常，请检查记忆索引）`)
@@ -119,19 +137,19 @@ export function importUmpFile(
   opts: { confirmed?: boolean } = {},
 ): { imported: number; deduplicated: number; pending: number; skipped: number; path: string } {
   const raw = readFileSync(inPath, 'utf-8')
-  let file: UmpFile
+  let records: UmpRecord[] | undefined
   try {
-    file = JSON.parse(raw) as UmpFile
+    records = normalizeUmpFile(JSON.parse(raw))
   } catch (error) {
     throw new Error(`${inPath} 不是合法 JSON：${error instanceof Error ? error.message : String(error)}`)
   }
-  if (!file || !Array.isArray(file.records)) throw new Error(`${inPath} 不是合法的 UMP 文件（缺少 records 数组）`)
+  if (!records) throw new Error(`${inPath} 不是合法的 UMP 文件（缺少 records 数组）`)
   let imported = 0
   let deduplicated = 0
   let skipped = 0
-  const total = file.records.length
+  const total = records.length
   for (let i = 0; i < Math.min(total, UMP_IMPORT_RECORD_LIMIT); i++) {
-    const rec = file.records[i]
+    const rec = records[i]
     // P0-3：畸形记录（null/非对象）跳过，不整批崩溃
     if (!rec || typeof rec !== 'object' || !rec.body?.text) {
       skipped += 1

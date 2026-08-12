@@ -55,7 +55,7 @@ describe('Record 映射', () => {
       confirmed: true,
     }
     const rec = atomToUmpRecord(atom as never)
-    expect(rec.ump).toBe('0.1')
+    expect(rec.ump).toBe('1.0')
     expect(rec.id).toBe('urn:ump:pa-a1')
     expect(rec.kind).toBe('semantic')
     expect(rec.body.text).toBe('用户偏好 TypeScript')
