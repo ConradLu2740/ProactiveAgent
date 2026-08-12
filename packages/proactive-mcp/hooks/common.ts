@@ -17,45 +17,14 @@
 import { readFileSync } from 'node:fs'
 import { suggestService } from '@proactive-agent/core'
 import { recordMessage, currentProjectKey } from '../src/event-store'
+import { extractTranscriptMessages } from '../src/adapter/claude'
+import { renderTextSuggestion } from '../src/adapter/claude'
+import { renderKimiNotification } from '../src/adapter/kimi'
+import { detectHostId, type HostHookInput as UserPromptInput, type HostMessage as TranscriptMessage } from '../src/adapter'
 
-interface TranscriptMessage {
-  role: 'user' | 'assistant'
-  content: string
-}
-
-/** 从 Claude Code transcript JSONL 提取最近 N 条消息（SDKMessage 风格容错） */
+/** 从 Claude Code transcript JSONL 提取最近 N 条消息（SDKMessage 风格容错；M1 收编至 claude adapter） */
 function extractMessages(transcriptPath: string, maxMessages = 20): TranscriptMessage[] {
-  try {
-    const raw = readFileSync(transcriptPath, 'utf-8')
-    const lines = raw.split('\n').filter(Boolean).slice(-100)
-    const out: TranscriptMessage[] = []
-    for (const line of lines) {
-      try {
-        const entry = JSON.parse(line) as {
-          type?: string
-          message?: { role?: string; content?: unknown }
-        }
-        const role = entry.message?.role ?? entry.type
-        if (role !== 'user' && role !== 'assistant') continue
-        const content = entry.message?.content
-        if (typeof content === 'string' && content.trim()) {
-          out.push({ role, content })
-        } else if (Array.isArray(content)) {
-          const texts = content
-            .filter((b) => b && typeof b === 'object' && (b as { type?: string }).type === 'text')
-            .map((b) => ((b as { text?: string }).text ?? '').trim())
-            .filter(Boolean)
-          if (texts.length > 0) out.push({ role, content: texts.join('\n') })
-        }
-      } catch {
-        // 跳过无法解析的行
-      }
-      if (out.length >= maxMessages) break
-    }
-    return out
-  } catch {
-    return []
-  }
+  return extractTranscriptMessages(transcriptPath, maxMessages)
 }
 
 export interface UserPromptInput {
@@ -75,15 +44,13 @@ export interface UserPromptInput {
 }
 
 /**
- * 从 stdin 判断宿主工具（P1-1：Cursor 兼容 Claude Code hooks 时避免全部标记为 claude）
+ * 从 stdin 判断宿主工具（M1 收编至 adapter detectHostId；保留 detectTool 名兼容旧引用）
  * - Kimi：is_steer 字段存在，或 client_type === 'kimi_code_cli'（0.35 事件基座）
  * - Cursor：camelCase 字段（sessionId/hookEventName）
  * - 其他：Claude Code（snake_case）
  */
 export function detectTool(input: UserPromptInput): 'claude' | 'kimi' | 'cursor' {
-  if (input.is_steer !== undefined || input.client_type === 'kimi_code_cli') return 'kimi'
-  if (input.sessionId !== undefined || input.hookEventName !== undefined) return 'cursor'
-  return 'claude'
+  return detectHostId(input)
 }
 
 /** 从 stdin 读取 UserPromptSubmit 输入（容错：不是 JSON 或为空时返回空） */
@@ -97,37 +64,7 @@ export function readStdinInput(): UserPromptInput {
   }
 }
 
-/** XML 属性转义（对齐 Kimi notificationXml） */
-function escapeXml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-}
-
-const KIND_LABEL: Record<string, string> = {
-  correction: '纠正建议',
-  followup: '跟进建议',
-  automation: '自动化建议',
-  skill: '技能建议',
-  todo: '待办建议',
-}
-
-/** 渲染 Kimi 风格 <notification>（对齐 renderNotificationXml 结构：id/category/type/Title/Severity/body） */
-function renderKimiNotification(records: Array<{ id: string; kind: string; title: string; reason: string }>): string {
-  const first = records[0]
-  if (!first) return ''
-  const lines = [
-    `<notification id="pa-${escapeXml(first.id)}" category="proactive" type="suggestion" source_kind="proactive_agent" source_id="suggest">`,
-    `Title: ${escapeXml(first.title)}`,
-    `Severity: info`,
-    `${escapeXml(first.reason)}`,
-    `建议 ID：${escapeXml(first.id)}（接受: suggest_accept，忽略: suggest_ignore）`,
-    `</notification>`,
-  ]
-  return lines.join('\n')
-}
+/** XML 属性转义与 notification 渲染已收编至 kimi adapter（renderKimiNotification） */
 
 /**
  * 评估会话中建议并输出。
@@ -172,23 +109,15 @@ export async function evaluateAndEmit(projectHint?: string): Promise<void> {
       return
     }
 
-    // Kimi 宿主：输出 <notification> 通知范式（模型可见 → 主动转述）
+    // Kimi 宿主：输出 <notification> 通知范式（模型可见 → 主动转述）；M1 收编至 kimi adapter
     // 判断依据：is_steer 字段存在（Kimi externalHooks 注入的会话事实，snake_case）
     if (input.is_steer !== undefined) {
-      const notif = renderKimiNotification(
-        records.map((r) => ({ id: r.id, kind: r.kind, title: r.title, reason: r.reason })),
-      )
-      console.log(notif)
+      console.log(renderKimiNotification(records.map((r) => ({ id: r.id, kind: r.kind, title: r.title, reason: r.reason }))))
       return
     }
 
-    // Claude / 通用：纯文本注入
-    const lines: string[] = ['【ProactiveAgent 建议】']
-    for (const r of records) {
-      lines.push(`- [${KIND_LABEL[r.kind] ?? r.kind}] ${r.title}（${r.reason}）`)
-    }
-    lines.push('（若与本会话无关可忽略；接受/忽略可用 suggest_accept / suggest_ignore）')
-    console.log(lines.join('\n'))
+    // Claude / 通用：纯文本注入（M1 收编至 claude adapter）
+    console.log(renderTextSuggestion(records.map((r) => ({ id: r.id, kind: r.kind, title: r.title, reason: r.reason }))))
   } catch (error) {
     console.error('[user-prompt] 评估失败（已忽略）:', error instanceof Error ? error.message : error)
     console.log('')

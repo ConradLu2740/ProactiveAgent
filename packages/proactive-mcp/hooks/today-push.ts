@@ -20,6 +20,7 @@ import { join } from 'node:path'
 import { memoryService, suggestService, getConfigDir } from '@proactive-agent/core'
 import { recordLifecycle, currentProjectKey } from '../src/event-store'
 import { readStdinInput, detectTool } from './common'
+import { renderTodayInjection } from '../src/adapter/claude'
 
 /** 去重记录文件：记录已注入过的建议 ID（放在配置目录下，随数据走） */
 function lastInjectedPath(): string {
@@ -75,38 +76,23 @@ function main(): void {
       return
     }
 
-    const lines: string[] = []
-    lines.push('【ProactiveAgent 主动中心】')
-    if (suggestions.length > 0) {
-      lines.push('待处理建议：')
-      for (const s of suggestions) {
-        lines.push(`- [${s.kind}] ${s.title}（${s.reason}）`)
-      }
-    }
-    if (scenes.length > 0) {
-      lines.push('近期关注：' + scenes.map((s) => s.title).join('、'))
-    }
-    // 记忆注入（P1-1）：画像摘要 + 高优先级记忆，让记忆真正进入工作流
-    if (personaRaw || (persona.summary ?? '').trim()) {
-      const summary = persona.summary?.trim()
-      if (summary) {
-        lines.push(`用户画像：${summary}`)
-      }
-    }
-    // top 记忆（确认过的、高优先级 2 条）
+    // 渲染收编至 claude adapter（M1）：构造 InjectionContext，行为与重构前一致
+    let topMemories: string[] = []
     try {
       const recall = memoryService.searchAsText({ query: '', limit: 2, includeUnconfirmed: false })
       if (recall && !recall.startsWith('未找到')) {
-        lines.push('近期记忆：')
-        for (const line of recall.split('\n').filter((l) => l.trim()).slice(0, 4)) {
-          lines.push(`  ${line.trim().slice(0, 120)}`)
-        }
+        topMemories = recall.split('\n').filter((l) => l.trim()).slice(0, 4).map((l) => l.trim().slice(0, 120))
       }
     } catch {
       // 记忆检索失败不阻断
     }
-    lines.push('（以上为主动推送，若与本会话无关可忽略）')
-    console.log(lines.join('\n'))
+    const out = renderTodayInjection({
+      suggestions: suggestions.map((s) => ({ id: s.id, kind: s.kind, title: s.title, reason: s.reason })),
+      scenes: scenes.map((s) => ({ title: s.title, heat: s.heat })),
+      personaSummary: (persona.summary ?? '').trim(),
+      topMemories,
+    })
+    console.log(out)
   } catch (error) {
     // hook 失败不能影响宿主会话
     console.error('[today-push] 推送失败（已忽略）:', error instanceof Error ? error.message : error)
