@@ -67,6 +67,8 @@ export interface UserPromptInput {
   /** Kimi 注入的会话事实（snake_case：is_steer 存在 = Kimi externalHooks） */
   is_steer?: boolean
   session_title?: string
+  /** Kimi 事件基座字段（0.35：hook_event_name/session_id/client_type） */
+  client_type?: string
   /** Cursor 加载 Claude Code 兼容 hooks 时传入（camelCase） */
   sessionId?: string
   hookEventName?: string
@@ -74,12 +76,12 @@ export interface UserPromptInput {
 
 /**
  * 从 stdin 判断宿主工具（P1-1：Cursor 兼容 Claude Code hooks 时避免全部标记为 claude）
- * - Kimi：is_steer 字段存在
+ * - Kimi：is_steer 字段存在，或 client_type === 'kimi_code_cli'（0.35 事件基座）
  * - Cursor：camelCase 字段（sessionId/hookEventName）
  * - 其他：Claude Code（snake_case）
  */
 export function detectTool(input: UserPromptInput): 'claude' | 'kimi' | 'cursor' {
-  if (input.is_steer !== undefined) return 'kimi'
+  if (input.is_steer !== undefined || input.client_type === 'kimi_code_cli') return 'kimi'
   if (input.sessionId !== undefined || input.hookEventName !== undefined) return 'cursor'
   return 'claude'
 }

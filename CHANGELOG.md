@@ -35,6 +35,13 @@
 
 功能本体质量过硬（capture→recall 闭环、否定词保留、无关任务不喧宾夺主、仅插件干净环境全名有效）；分发层面原 P0（未推 GitHub + `tree/main/kimi-plugin` URL 不可用）由分发形式决策（zip asset）+ 推送解决。
 
+### 0.35 hooks 恢复（2026-08-12 复测）
+
+- **Kimi 0.35.0 hooks 恢复**：SessionStart + UserPromptSubmit 均触发（0.34 运行时缺陷已修复）。
+- **真实 hooks 链路启用**：SessionStart → `today-push.js`（会话开始注入建议/画像/记忆，无内容则沉默）；UserPromptSubmit → `kimi-user-prompt.js`（强信号 correction/automation → `<notification>` XML 注入上下文，模型主动转述）。实测强信号消息输出 notification 完整。
+- **detectTool 修复**：识别 Kimi 事件基座字段 `client_type: kimi_code_cli`（此前 Kimi 事件被标为 claude，影响跨工具事件统计）。
+- **官方市场咨询**：在 kimi-code #1566 评论咨询 curated 上架规范（PR 路径 / zip URL source 是否接受 / 安全要求），收到答复后提 PR。
+
 ## 0.9.1 (2026-08-12)
 
 「0.9.0 评估修复」批次：项目双维子代理评估（pa-project-eval-2026-08.md）后发现并修复。
