@@ -382,7 +382,15 @@ export function startTodayServer(port = 8737): Server {
         return
       }
       // POST /api/evaluate — 宿主 push（R1）：把最近消息推过来触发会话中评估（timer 同款抑制）
+      // 安全（P1-2，0.9.1）：写接口要求 x-pa-token（与面板同源自动携带；外部宿主需读 today.token 带上）
       if (req.url === '/api/evaluate' && req.method === 'POST') {
+        const expectedToken = readTodayToken()
+        const suppliedToken = req.headers['x-pa-token']
+        if (!expectedToken || suppliedToken !== expectedToken) {
+          res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' })
+          res.end(JSON.stringify({ ok: false, error: '未授权：缺少或错误的面板 token' }))
+          return
+        }
         let body = ''
         req.on('data', (chunk: Buffer) => (body += chunk.toString()))
         req.on('end', () => {

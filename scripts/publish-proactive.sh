@@ -14,7 +14,7 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PUBLISH_DIR="$ROOT/dist-publish"
-VERSION="0.9.0"
+VERSION="0.9.1"
 LICENSE="${LICENSE:-MIT}"
 
 echo "==> 构建 bundle"
@@ -70,6 +70,7 @@ cp "$ROOT/packages/proactive-mcp/dist/hooks/today-push.js" "$PUBLISH_DIR/mcp/dis
 cp "$ROOT/packages/proactive-mcp/dist/hooks/session-end.js" "$PUBLISH_DIR/mcp/dist/hooks/" 2>/dev/null || true
 cp "$ROOT/packages/proactive-mcp/dist/hooks/user-prompt.js" "$PUBLISH_DIR/mcp/dist/hooks/" 2>/dev/null || true
 cp "$ROOT/packages/proactive-mcp/dist/hooks/kimi-user-prompt.js" "$PUBLISH_DIR/mcp/dist/hooks/" 2>/dev/null || true
+cp "$ROOT/packages/proactive-mcp/dist/hooks/event-capture.js" "$PUBLISH_DIR/mcp/dist/hooks/" 2>/dev/null || true
 (cd "$ROOT/packages/proactive-mcp" && npx tsc --declaration --emitDeclarationOnly --module esnext --moduleResolution bundler --skipLibCheck --downlevelIteration --target es2022 --outDir "$PUBLISH_DIR/mcp/dist" src/index.ts 2>/dev/null || true)
 cp "$ROOT/packages/proactive-mcp/README.md" "$PUBLISH_DIR/mcp/" 2>/dev/null || true
 cp "$ROOT/CHANGELOG.md" "$PUBLISH_DIR/mcp/" 2>/dev/null || true
@@ -82,6 +83,16 @@ if [ "$VER_CHECK" != "$VERSION" ]; then
   exit 1
 fi
 echo "==> 版本自检通过: $VER_CHECK"
+
+# 构建后自检：hooks 产物齐全（init 依赖 event-capture 等 5 件套，缺任一则发布版 init 拒绝写 hooks）
+HOOK_REQUIRED=(today-push.js session-end.js user-prompt.js kimi-user-prompt.js event-capture.js)
+for h in "${HOOK_REQUIRED[@]}"; do
+  if [ ! -f "$PUBLISH_DIR/mcp/dist/hooks/$h" ]; then
+    echo "==> ⚠️ hooks 产物缺失：$h（发布包 init 将拒绝写 hooks，请重新 build:hooks）"
+    exit 1
+  fi
+done
+echo "==> hooks 自检通过: ${#HOOK_REQUIRED[@]} 个"
 # ---- @proactive-agent/mcp - NOTICE（第三方组件声明） ----
 cat > "$PUBLISH_DIR/mcp/NOTICE" <<'EOF'
 This package bundles the following third-party MIT-licensed components:

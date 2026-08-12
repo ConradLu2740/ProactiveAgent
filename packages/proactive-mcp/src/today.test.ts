@@ -107,6 +107,30 @@ describe('ActionCard 闭环 API（0.5）', () => {
     }
   })
 
+  it('/api/evaluate 无 token 被拒（401，P1-2 0.9.1）', async () => {
+    const token = ensureTodayToken()
+    const server = startTodayServer(0)
+    await new Promise<void>((resolve) => server.once('listening', () => resolve()))
+    const addr = server.address()
+    const port = typeof addr === 'object' && addr ? addr.port : 0
+    try {
+      const noToken = await fetch(`http://127.0.0.1:${port}/api/evaluate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: [{ role: 'user', content: 'x' }] }),
+      })
+      expect(noToken.status).toBe(401)
+      const withToken = await fetch(`http://127.0.0.1:${port}/api/evaluate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-pa-token': token },
+        body: JSON.stringify({ messages: [] }),
+      })
+      expect(withToken.status).toBe(200)
+    } finally {
+      server.close()
+    }
+  })
+
   it('畸形 URL 编码返回 400 而非 500（P2-5）', async () => {
     const token = ensureTodayToken()
     const server = startTodayServer(0)

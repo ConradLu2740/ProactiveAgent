@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.9.1 (2026-08-12)
+
+「0.9.0 评估修复」批次：项目双维子代理评估（pa-project-eval-2026-08.md）后发现并修复。
+
+### 修复
+
+- **发布包 hooks 缺 event-capture.js（P1-1）**：publish 脚本只拷贝 4 个 hook，而 init 要求 5 个（含 event-capture）——npm 用户 `init` 会拒绝写 hooks，0.6 跨工具感知网在发布版不可用。补拷贝 + **hooks 完整性自检**（缺任一直接 exit 1，防再犯）。
+- **/api/evaluate 无鉴权（P1-2）**：唯一没上 x-pa-token 的写接口（任意本机进程可触发 LLM 评估/通知）。已加 token 鉴权（与 accept/ignore 同源；宿主 push 需读 `today.token` 带上）。
+
+### 测试
+
+- 369/369（新增 /api/evaluate 401 + 200 用例）；core + mcp typecheck 干净。
+
 ## 0.9.0 (2026-08-12)「守护进程 + 感知网 + UMP + 疲劳控制」
 
 ### 通知疲劳控制
