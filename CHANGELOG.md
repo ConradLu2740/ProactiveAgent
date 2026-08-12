@@ -8,6 +8,7 @@
 - **detectTool 识别 Kimi client_type**（0.35 事件基座，跨工具事件统计修正）。
 - **0.6.1 事件按 pk 隔离**：daemon 评估按事件 pk 分组，各组分别 evaluateNow(projectHint) 写入对应项目建议（多项目不串味）；core persistSuggestion 支持指定层写入。
 - **0.8.1 通知→处理 ROI 漏斗**：daemon 通知成功写 notify 事件、accept/ignore 写 handle 事件；面板新增「通知→处理」卡（近 7 天转化率，实时刷新）；转化口径 = 被通知且被处理（会话内直接反馈不计入）。
+- **M1 HostAdapter 接口（harness 适配层）**：`src/adapter/`（types/claude/kimi/index）：5 维度接口 + capabilities 能力矩阵（Kimi resources/prompts=false、hooks partial 带 0.34→0.35 note；参考 jido_harness/harnery/agent-harness）；claude/kimi adapter 收编 hooks 纯函数（transcript/wire 提取、文本/notification 渲染、注入渲染），hooks 脚本薄化行为不变（401/401 测试 + Kimi 真实闭环不回归）。
 
 ## 0.9.2 (2026-08-12)
 
