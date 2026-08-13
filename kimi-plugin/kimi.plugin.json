@@ -1,6 +1,6 @@
 {
   "name": "proactive-agent",
-  "version": "0.9.2",
+  "version": "0.10.0",
   "description": "Proactive memory & suggestions for Kimi Code CLI: cross-tool long-term memory (capture/recall/extract/persona), proactive suggestions, daily review",
   "author": "ConradLu2740",
   "homepage": "https://github.com/ConradLu2740/ProactiveAgent",
@@ -20,7 +20,7 @@
       "command": "npx",
       "args": [
         "-y",
-        "@proactive-agent/mcp@0.9.2"
+        "@proactive-agent/mcp@0.10.0"
       ],
       "startupTimeoutMs": 60000
     }
