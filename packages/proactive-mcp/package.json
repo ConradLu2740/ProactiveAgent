@@ -1,6 +1,6 @@
 {
   "name": "@proactive-agent/mcp",
-  "version": "0.1.0",
+  "version": "0.9.2",
   "license": "MIT",
   "description": "ProactiveAgent MCP Server: proactive memory + suggestions as pluggable MCP tools/resources/prompts for any MCP-capable agent (Claude Code, Kimi Code, Cline, Cursor).",
   "type": "module",
@@ -31,7 +31,7 @@
     "typecheck": "tsc --noEmit",
     "start": "node --experimental-strip-types src/index.ts",
     "test": "vitest run src/",
-    "build": "esbuild src/index.ts --bundle --platform=node --format=esm --banner:js='#!/usr/bin/env node' --define:PROACTIVE_MCP_VERSION='\"0.6.0\"' --outfile=dist/index.js",
+    "build": "node ../../scripts/build-mcp.js",
     "build:hooks": "bash ../../scripts/build-hooks.sh"
   },
   "devDependencies": {

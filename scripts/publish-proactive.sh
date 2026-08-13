@@ -14,7 +14,8 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PUBLISH_DIR="$ROOT/dist-publish"
-VERSION="0.9.2"
+# 版本真相源：根 package.json（由 scripts/sync-version.sh 保证 core/mcp/kimi-plugin/package-lock 一致）
+VERSION="$(node -p "require('$ROOT/package.json').version")"
 LICENSE="${LICENSE:-MIT}"
 
 echo "==> 构建 bundle"
@@ -88,7 +89,7 @@ echo "==> 版本自检通过: $VER_CHECK"
 HOOK_REQUIRED=(today-push.js session-end.js user-prompt.js kimi-user-prompt.js event-capture.js)
 for h in "${HOOK_REQUIRED[@]}"; do
   if [ ! -f "$PUBLISH_DIR/mcp/dist/hooks/$h" ]; then
-    echo "==> ⚠️ hooks 产物缺失：$h（发布包 init 将拒绝写 hooks，请重新 build:hooks）"
+    echo "==> ⚠️ hooks 产物缺失：${h}（发布包 init 将拒绝写 hooks，请重新 build:hooks）"
     exit 1
   fi
 done
@@ -118,8 +119,8 @@ else
   echo "==> ⚠️ 未找到 kimi.plugin.json（${PLUGIN_MANIFEST}），跳过 plugin 版本同步"
 fi
 
-# ---- @proactive-agent/adapters（M4：host 适配层独立包） ----
-ADAPTERS_VERSION="0.1.0"
+# ---- @proactive-agent/adapters（M4：host 适配层独立包，版本线独立于主版本） ----
+ADAPTERS_VERSION="$(node -p "require('$ROOT/packages/proactive-adapters/package.json').version")"
 (cd "$ROOT/packages/proactive-adapters" && npm run build >/dev/null 2>&1 && echo "==> adapters build OK")
 mkdir -p "$PUBLISH_DIR/adapters/dist"
 cat > "$PUBLISH_DIR/adapters/package.json" <<EOF
@@ -141,7 +142,7 @@ cp "$ROOT/packages/proactive-adapters/dist/index.d.ts" "$PUBLISH_DIR/adapters/di
 for f in "$ROOT/packages/proactive-adapters/dist/"*.d.ts; do cp "$f" "$PUBLISH_DIR/adapters/dist/" 2>/dev/null || true; done
 cp "$ROOT/packages/proactive-adapters/README.md" "$PUBLISH_DIR/adapters/" 2>/dev/null || true
 printf 'MIT License\n\nCopyright (c) 2026 ProactiveAgent contributors\n' > "$PUBLISH_DIR/adapters/LICENSE"
-echo "==> adapters 组装完成（$ADAPTERS_VERSION，零依赖）"
+echo "==> adapters 组装完成（${ADAPTERS_VERSION}，零依赖）"
 
 # ---- @proactive-agent/mcp - NOTICE（第三方组件声明） ----
 cat > "$PUBLISH_DIR/mcp/NOTICE" <<'EOF'

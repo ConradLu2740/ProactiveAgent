@@ -1,12 +1,13 @@
 {
   "name": "proactive-agent",
-  "version": "0.1.0",
+  "version": "0.9.2",
   "private": true,
   "type": "module",
   "workspaces": [
     "packages/*"
   ],
   "scripts": {
+    "sync:version": "bash scripts/sync-version.sh",
     "build": "bash scripts/publish-proactive.sh --build-only",
     "typecheck": "npm run typecheck --workspace=@proactive-agent/core && npm run typecheck --workspace=@proactive-agent/adapters && npm run typecheck --workspace=@proactive-agent/mcp || true",
     "test": "vitest run",
