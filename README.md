@@ -124,13 +124,43 @@ npx -y @proactive-agent/mcp --today
 
 *主动中心面板：待处理建议 + 热点场景 + 记忆统计 + 用户画像（15s 自动刷新）*
 
-**挂载后立刻试**：
+**挂载后立刻验证（约 1 分钟）**：
+1. 打开 Claude Code（或你用的 agent；Kimi 用户可 `init --kimi`）启动会话
+2. 输入：`以后提交代码前必须先写单元测试`
+   → 应收到“把这条规则写入长期记忆？”建议（suggest_now）
+3. 再输入：`我偏好用 TypeScript`，然后问：`我之前的偏好是什么？`
+   → 能召回刚才的记忆 = 记忆已跨工具生效
+
+> 没生效？`proactive-mcp doctor` 一键诊断。
+
+### LLM 需求速查表
+
+| 功能 | 需要 LLM key？ | 说明 |
+|---|---|---|
+| `memory_capture` / `memory_recall` / `persona_*` / `scene_summary` / `suggest_*` / `daily_review` / `onboarding_guide` | 否 | 纯本地确定性规则，开箱即用 |
+| `memory_extract` | 可选 | 配 `MEMORY_LLM_*` 走 LLM 提取（默认 DeepSeek 兼容）；未配自动降级规则模式，零外发 |
+| `memory_recall` 近义词改写 | 可选增强 | 配 LLM 后自动补充近义词召回；未配用规则同义词兜底 |
+
+可选配置示例（仅 `memory_extract` 需要）：
+
+```bash
+# ~/.proma-proactive/.env（或项目 .env，建议 chmod 600）
+MEMORY_LLM_API_KEY=sk-xxx
+MEMORY_LLM_BASE_URL=https://api.deepseek.com/v1
+MEMORY_LLM_MODEL=deepseek-chat
 ```
-agent: 以后提交代码前必须先写单元测试再提交
-→ agent 建议把这条规则写入长期记忆（memory_extract / suggest_now）
-agent: 我偏好用 TypeScript 和 Bun
-→ agent 调用 memory_capture 记住（下次任何工具都记得）
-```
+
+### 宿主配置差异
+
+| 宿主 | init 自动生成 | 主动推送机制 | 额外手动步骤 |
+|---|---|---|---|
+| Claude Code | `.mcp.json` + `.claude/settings.json` hooks | 三层 hooks（SessionStart / UserPromptSubmit / Stop） | 无（交互 TUI 生效；`claude -p` 需 `--allowedTools`） |
+| Kimi Code | `.mcp.json` + `~/.kimi-code/mcp.json` + `agents/proactive.md`（需 `init --kimi`） | 提示词驱动（`kimi --agent proactive`） | 需 kimi 登录/API key；**与 kimi-plugin 二选一** |
+| Cursor | `.mcp.json` | 官方映射 Claude hooks | 确认 .mcp.json 被识别；开启第三方钩子兼容* |
+| Cline | `.mcp.json` | 手动 | 手动接 `event-capture.js`（可选）* |
+| Codex | `.mcp.json` | 手动 | 手动接 `event-capture.js`（可选）* |
+
+> \* 仓库仅实测 Claude Code / Kimi Code / Proma；Cursor / Cline / Codex 项以官方文档为准。
 
 ---
 
@@ -273,7 +303,7 @@ A：任何支持 MCP 的 agent：Claude Code、Kimi Code、Cline、Cursor、Wind
 A：默认 `~/.proma-proactive/`，可用 `PROACTIVE_DATA_DIR` 覆盖。纯本地文件（JSONL/markdown），可随时备份/迁移。
 
 **Q：需要 API key 吗？**
-A：记忆写入 `memory_capture`、检索 `memory_recall` 不需要。`memory_extract` 的 LLM 提取可选（配 `MEMORY_LLM_*` 环境变量），未配置时自动降级规则模式（零外发）。
+A：核心功能（`memory_capture` / `memory_recall` / `suggest_*` 等）**不需要**，纯本地开箱即用；仅 `memory_extract` 的 LLM 提取可选。详见快速开始「LLM 需求速查表」。
 
 **Q：和其他记忆方案有什么区别？**
 A：多数方案是"单工具的被动记忆"。ProactiveAgent 是**跨工具共享 + 主动建议**——教一次处处用，且只在合适的时机主动开口。
