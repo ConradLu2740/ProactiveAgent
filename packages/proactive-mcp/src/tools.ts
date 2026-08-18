@@ -1,11 +1,13 @@
 /**
  * ProactiveAgent MCP Server — 工具注册
  *
- * 对外暴露的 Tools（pull 能力）：
- * - memory_capture / memory_recall / memory_extract / memory_pending / memory_confirm / memory_reject
- * - persona_get / scene_summary / memory_stats
+ * 对外暴露的 Tools（pull 能力，共 20 个）：
+ * - memory_capture / memory_extract / memory_recall / memory_pending / memory_confirm / memory_reject
+ * - correction_confirm / correction_reject
+ * - persona_get / persona_save / scene_summary / memory_stats
  * - suggest_now / suggest_list / suggest_accept / suggest_ignore
  * - card_list / card_get（统一 ActionCard 协议视图）
+ * - daily_review / onboarding_guide
  *
  * 所有 handler 返回 MCP CallToolResult（text 内容）。
  */
