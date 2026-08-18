@@ -22,7 +22,7 @@
 
 > 所有内容均为 2026-08-05 真实运行输出，不是演示动画：Claude Code 写入记忆 → Kimi Code 直接召回（100% 命中）；行为纠正 / 周期需求 → 主动建议命中并接受。
 
-**👉 打开交互式演示页：[在线演示（GitHub Pages）](https://conradlu2740.github.io/ProactiveAgent/story.html)**（浏览器直接打开即可）
+**👉 打开交互式演示页：[在线演示（GitHub Pages）](https://conradlu2740.github.io/ProactiveAgent/docs/story.html)**（浏览器直接打开即可）
 > ⚠️ GitHub 的 `blob` 页面只是代码查看器、不会执行 HTML 脚本，请使用上方 Pages 链接查看交互演示。
 
 | 场景 | 实测结果 |
@@ -100,7 +100,6 @@ claude mcp add proactive-agent -- npx -y @proactive-agent/mcp
 /reload
 ```
 装完普通 `kimi` 会话即自动获得主动记忆（无需 `--agent`）；另可 `kimi --agent proactive` 启用激进模式。详见 [Kimi Code 使用指南](kimi-plugin/README.md)。
-```
 
 **方式 C：clone 仓库（开发 / 自定义）**
 ```bash
@@ -128,7 +127,7 @@ npx -y @proactive-agent/mcp --today
 1. 打开 Claude Code（或你用的 agent；Kimi 用户可 `init --kimi`）启动会话
 2. 输入：`以后提交代码前必须先写单元测试`
    → 应收到“把这条规则写入长期记忆？”建议（suggest_now）
-3. 再输入：`我偏好用 TypeScript`，然后问：`我之前的偏好是什么？`
+3. 再输入：`我偏好用 TypeScript 和 Bun`，然后问：`我之前的偏好是什么？`
    → 能召回刚才的记忆 = 记忆已跨工具生效
 
 > 没生效？`proactive-mcp doctor` 一键诊断。
