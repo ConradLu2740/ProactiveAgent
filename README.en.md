@@ -88,10 +88,10 @@ npx proactive-mcp init
 
 > Only requires node >= 18. `init` generates a `.mcp.json` pointing to your local install, zero extra deps.
 
-**Or mount manually (no install, use the GitHub Release bundle):**
+**Or mount manually (no install, pull via npx):**
 ```bash
 # Claude Code
-claude mcp add proactive-agent -- node <repo>/dist-publish/mcp/dist/index.js
+claude mcp add proactive-agent -- npx -y @proactive-agent/mcp
 ```
 
 **Option B (Kimi Code users, one command):**
@@ -99,7 +99,7 @@ claude mcp add proactive-agent -- node <repo>/dist-publish/mcp/dist/index.js
 /plugins install https://github.com/ConradLu2740/ProactiveAgent/releases/latest/download/kimi-plugin.zip
 /reload
 ```
-Plain `kimi` sessions get proactive memory automatically (no `--agent` needed); optionally `kimi --agent proactive` for the aggressive mode.
+Plain `kimi` sessions get proactive memory automatically (no `--agent` needed); optionally `kimi --agent proactive` for the aggressive mode. See the [Kimi Code usage guide](kimi-plugin/README.md).
 ```
 
 **Option C: clone the repo (development / customization)**
@@ -149,7 +149,7 @@ agent: I prefer TypeScript and Bun
 | 👤 Persona | `persona_get` / `persona_save` | Read merged persona (global base + project override) / manually save persona |
 | 🔥 Scenes | `scene_summary` | Recent hot scenes ("what you've been busy with") |
 | 📊 Stats | `memory_stats` | Memory system statistics |
-| 💡 Suggestions | `suggest_now` / `list` / `accept` / `ignore` | Proactive suggestion evaluation + feedback loop (frequency learning) |
+| 💡 Suggestions | `suggest_now` / `suggest_list` / `suggest_accept` / `suggest_ignore` | Proactive suggestion evaluation + feedback loop (frequency learning) |
 | 🃏 ActionCards | `card_list` / `card_get` | Unified cross-source ActionCard protocol view (current source: suggestion; future: agent/automation/bridge) |
 | 📋 Templates | `daily_review` / `onboarding_guide` | Daily review / getting-started guide |
 
