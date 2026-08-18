@@ -438,12 +438,16 @@ export function runInit(args: string[]): void {
     console.log()
   }
 
+  console.log('下一步（约 1 分钟验证）：')
+  console.log('  1. 打开 Claude Code（或你用的 agent；Kimi 用户请用 init --kimi）启动会话')
+  console.log('  2. 输入：“以后提交代码前必须先写单元测试”')
+  console.log('     → 正常会收到“把这条规则写入长期记忆？”建议')
+  console.log('  3. 再说“我偏好用 TypeScript”，然后问“我之前的偏好是什么？”')
+  console.log('     → agent 用 memory_recall 召回刚才的记忆 = 已生效')
+  console.log('  没生效？运行 proactive-mcp doctor 一键诊断；完整示例见 README「快速开始」')
+  console.log()
+  console.log('（高级）跨工具感知网 / hooks / daemon 接线细节：')
   printToolGuide()
-
-  console.log('下一步：')
-  console.log('  1. 在支持 MCP 的 agent（Claude Code / Kimi Code / Cline / Cursor）中启动会话')
-  console.log('  2. 数据按项目隔离（~/.proma-proactive/projects/<key>/），显式共享用 global（0.3.0）')
-  console.log('  3. 试试 memory_capture / memory_recall / suggest_now，或打开 http://127.0.0.1:8737/today')
-  console.log('  4. 诊断: proactive-mcp doctor · 状态: proactive-mcp stats · 教学: proactive-mcp demo · 迁移: proactive-mcp migrate')
+  console.log('  数据按项目隔离（~/.proma-proactive/projects/<key>/），显式共享用 global（0.3.0）')
   console.log('  更多：https://github.com/ConradLu2740/ProactiveAgent')
 }
