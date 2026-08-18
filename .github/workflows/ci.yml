@@ -17,8 +17,10 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        # --include=optional: 规避 npm/cli#4828（Linux CI 漏装 rollup 平台二进制，vitest 无法启动）
-        run: npm ci --include=optional
+        run: |
+          npm ci --include=optional
+          # npm/cli#4828: macOS 生成的 lockfile 缺 Linux 平台 rollup 二进制（vitest 依赖），显式补装
+          if [ "$RUNNER_OS" = "Linux" ]; then npm install --no-save --package-lock=false @rollup/rollup-linux-x64-gnu; fi
 
       - name: Run tests
         run: npm test
