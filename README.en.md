@@ -12,6 +12,7 @@
 [![Made with Node](https://img.shields.io/badge/Node-22-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org)
 [![GitHub](https://img.shields.io/badge/GitHub-ProactiveAgent-181717?logo=github)](https://github.com/ConradLu2740/ProactiveAgent)
 [![smithery badge](https://smithery.ai/badge/1797650355/proactive-agent)](https://smithery.ai/servers/1797650355/proactive-agent)
+[![CI](https://github.com/ConradLu2740/ProactiveAgent/actions/workflows/ci.yml/badge.svg)](https://github.com/ConradLu2740/ProactiveAgent/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/@proactive-agent/mcp?logo=npm&color=cb3837)](https://www.npmjs.com/package/@proactive-agent/mcp)
 [![npm total downloads](https://img.shields.io/npm/dt/@proactive-agent/mcp?logo=npm&color=cb3837&label=total%20downloads)](https://www.npmjs.com/package/@proactive-agent/mcp)
 [![npm monthly downloads](https://img.shields.io/npm/dm/@proactive-agent/mcp?logo=npm&color=4c9e39&label=downloads%2Fmonth)](https://www.npmjs.com/package/@proactive-agent/mcp)
