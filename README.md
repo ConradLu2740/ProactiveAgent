@@ -88,10 +88,10 @@ npx proactive-mcp init
 
 > 只需 node >= 18。`init` 会生成指向你本地安装的 `.mcp.json`，零额外依赖。
 
-**或者手动挂载（不装包，直接用 GitHub Release bundle）**：
+**或者手动挂载（不装包，npx 直接拉取）**：
 ```bash
 # Claude Code
-claude mcp add proactive-agent -- node <repo>/dist-publish/mcp/dist/index.js
+claude mcp add proactive-agent -- npx -y @proactive-agent/mcp
 ```
 
 **方式 B（Kimi Code 用户，一条命令）**：
@@ -147,7 +147,7 @@ agent: 我偏好用 TypeScript 和 Bun
 | 👤 画像 | `persona_get` / `persona_save` | 读取合并画像（global base + 项目覆盖）/ 手动保存画像 |
 | 🔥 场景 | `scene_summary` | 近期热点场景（"你最近在忙什么"） |
 | 📊 统计 | `memory_stats` | 记忆系统统计（含记忆动态：今日变更 / 距上次更新天数 / 3 天复查邀请） |
-| 💡 建议 | `suggest_now` / `list` / `accept` / `ignore` | 主动建议评估 + 反馈闭环（频率学习） |
+| 💡 建议 | `suggest_now` / `suggest_list` / `suggest_accept` / `suggest_ignore` | 主动建议评估 + 反馈闭环（频率学习） |
 | 🃏 统一卡片 | `card_list` / `card_get` | 跨来源 ActionCard 统一协议视图（当前来源 suggestion，未来 agent/automation/bridge 投递） |
 | 📋 模板 | `daily_review` / `onboarding_guide` | 每日复盘 / 使用说明 |
 
