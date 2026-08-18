@@ -78,10 +78,11 @@ Standard MCP protocol (stdio), **zero code change** to mount on any MCP-capable 
 
 **Option A (recommended): install via npm**
 ```bash
-# In your own project (or anywhere)
-npm install @proactive-agent/mcp
+# One-command version (no install, pulls directly from npm)
+npx -y @proactive-agent/mcp init
 
-# Generate mount config (works for Claude Code / Kimi Code / Cline / Cursor)
+# Or install first, then use the local bin
+npm install @proactive-agent/mcp
 npx proactive-mcp init
 ```
 
@@ -95,7 +96,7 @@ claude mcp add proactive-agent -- node <repo>/dist-publish/mcp/dist/index.js
 
 **Option B (Kimi Code users, one command):**
 ```text
-/plugins install https://github.com/ConradLu2740/ProactiveAgent/releases/download/v0.9.2/kimi-plugin.zip
+/plugins install https://github.com/ConradLu2740/ProactiveAgent/releases/latest/download/kimi-plugin.zip
 /reload
 ```
 Plain `kimi` sessions get proactive memory automatically (no `--agent` needed); optionally `kimi --agent proactive` for the aggressive mode.
@@ -108,11 +109,16 @@ npm install
 npm run start:mcp
 ```
 
+> ⚠️ `npm run start:mcp` keeps running in the foreground — this is the expected blocking behavior of a stdio MCP server (waiting for agent connections), not a hang. Keep it running and connect from your agent.
+
 **Option D: start a local proactive center panel**
 ```bash
-npm run start:today
+# Works whether installed or not
+npx -y @proactive-agent/mcp --today
 # Open http://127.0.0.1:8737/today — suggestions, scenes, persona, stats at a glance
 ```
+
+(When developing from a clone, `npm run start:today` also works)
 
 ![Today panel](docs/today-panel.png)
 
@@ -139,7 +145,7 @@ agent: I prefer TypeScript and Bun
 | 🧠 Memory write | `memory_capture` | Explicitly remember a preference/fact/correction/SOP (immediate effect; scope: project/global) |
 | 🧠 Memory extract | `memory_extract` | Extract memory from a conversation via the engine (pending by default, anti-poisoning) |
 | 🔍 Memory recall | `memory_recall` | Keyword/hybrid retrieval, injected before task start (auto: project + global merge) |
-| ✅ Memory loop | `memory_pending` / `confirm` / `reject` | Confirm/reject pending memories and behavior corrections |
+| ✅ Memory loop | `memory_pending` / `memory_confirm` / `memory_reject` / `correction_confirm` / `correction_reject` | Confirm/reject pending memories + behavior corrections |
 | 👤 Persona | `persona_get` / `persona_save` | Read merged persona (global base + project override) / manually save persona |
 | 🔥 Scenes | `scene_summary` | Recent hot scenes ("what you've been busy with") |
 | 📊 Stats | `memory_stats` | Memory system statistics |
