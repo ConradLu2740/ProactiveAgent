@@ -78,10 +78,11 @@
 
 **方式 A（推荐）：npm 直接安装**
 ```bash
-# 在你自己的项目里（或任意目录）
-npm install @proactive-agent/mcp
+# 一条命令版（免安装，直接从 npm 拉取，适合快速体验）
+npx -y @proactive-agent/mcp init
 
-# 一键生成挂载配置（Claude Code / Kimi Code / Cline / Cursor 通用）
+# 或安装后使用（本地 bin）
+npm install @proactive-agent/mcp
 npx proactive-mcp init
 ```
 
@@ -95,10 +96,10 @@ claude mcp add proactive-agent -- node <repo>/dist-publish/mcp/dist/index.js
 
 **方式 B（Kimi Code 用户，一条命令）**：
 ```text
-/plugins install https://github.com/ConradLu2740/ProactiveAgent/releases/download/v0.9.2/kimi-plugin.zip
+/plugins install https://github.com/ConradLu2740/ProactiveAgent/releases/latest/download/kimi-plugin.zip
 /reload
 ```
-装完普通 `kimi` 会话即自动获得主动记忆（无需 `--agent`）；另可 `kimi --agent proactive` 启用激进模式。详见 [Kimi Code 使用指南](../.context/pa-kimi-code-guide.md)。
+装完普通 `kimi` 会话即自动获得主动记忆（无需 `--agent`）；另可 `kimi --agent proactive` 启用激进模式。详见 [Kimi Code 使用指南](kimi-plugin/README.md)。
 ```
 
 **方式 C：clone 仓库（开发 / 自定义）**
@@ -108,11 +109,16 @@ npm install
 npm run start:mcp
 ```
 
+> ⚠️ `npm run start:mcp` 启动后终端会保持运行——这是 MCP server 的正常阻塞状态（等待 agent 连接），不是卡死；请保持运行，并打开你的 agent 连接它。
+
 **方式 D：起一个本地主动中心面板**
 ```bash
-npm run start:today
+# 免安装 / 已安装均可
+npx -y @proactive-agent/mcp --today
 # 打开 http://127.0.0.1:8737/today —— 建议、场景、画像、统计一目了然
 ```
+
+（clone 仓库开发时也可用 `npm run start:today`）
 
 ![主动中心面板](docs/today-panel.png)
 
@@ -137,7 +143,7 @@ agent: 我偏好用 TypeScript 和 Bun
 | 🧠 记忆写入 | `memory_capture` | 显式记住一条（偏好/事实/纠正/流程，立即生效；支持 scope: project/global） |
 | 🧠 记忆提取 | `memory_extract` | 把对话交给引擎自动提取（默认待确认，防投毒） |
 | 🔍 记忆检索 | `memory_recall` | 关键词/混合检索，任务开始前注入上下文（默认 auto：项目+全局合并） |
-| ✅ 记忆闭环 | `memory_pending` / `confirm` / `reject` | 待确认记忆 + 行为纠正的确认/拒绝 |
+| ✅ 记忆闭环 | `memory_pending` / `memory_confirm` / `memory_reject` / `correction_confirm` / `correction_reject` | 待确认记忆 + 行为纠正的确认/拒绝 |
 | 👤 画像 | `persona_get` / `persona_save` | 读取合并画像（global base + 项目覆盖）/ 手动保存画像 |
 | 🔥 场景 | `scene_summary` | 近期热点场景（"你最近在忙什么"） |
 | 📊 统计 | `memory_stats` | 记忆系统统计（含记忆动态：今日变更 / 距上次更新天数 / 3 天复查邀请） |
