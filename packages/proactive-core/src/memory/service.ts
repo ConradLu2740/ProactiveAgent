@@ -12,6 +12,8 @@ import {
   readAllAtoms,
   writeAtomWithDedup,
   writeAtom,
+  readProjectAtomsByKey,
+  writeProjectAtomByKey,
   addCorrection,
   listCorrections,
   updateCorrectionStatus,
@@ -490,6 +492,56 @@ export function workingMemory(limit = 5): { items: string[]; updatedAt?: number 
 
 export function atomById(id: string): MemoryAtom | undefined {
   return getAtomById(id)
+}
+
+// ===== 项目约束（项目决策记忆 + 冲突检测数据源，2026-08-20） =====
+
+/**
+ * 读取指定项目的约束记忆（metadata.projectConstraint 的 atom）。
+ * 返回同 subject+action 只保留最新；包含 pending（未确认约束也参与冲突检测）。
+ */
+export function projectConstraints(projectKey: string): Array<{
+  subject: string
+  action: 'use' | 'avoid'
+  decidedAt: number
+  atomId: string
+}> {
+  const atoms = readProjectAtomsByKey(projectKey, { includeUnconfirmed: true })
+  const seen = new Set<string>()
+  const result: Array<{ subject: string; action: 'use' | 'avoid'; decidedAt: number; atomId: string }> = []
+  for (const a of atoms) {
+    if (a.metadata?.projectConstraint !== true || typeof a.metadata?.subject !== 'string') continue
+    const action: 'use' | 'avoid' = a.metadata?.action === 'avoid' ? 'avoid' : 'use'
+    const key = `${a.metadata.subject}:${action}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    result.push({ subject: a.metadata.subject, action, decidedAt: a.createdAt, atomId: a.id })
+  }
+  return result
+}
+
+/**
+ * 写入项目约束（写指定项目层，不依赖 currentLayerKey；默认 pending 防投毒）。
+ * 同 subject+action 已存在 → 去重不重复写。
+ */
+export function captureProjectConstraint(
+  projectKey: string,
+  input: { action: 'use' | 'avoid'; subject: string; reason?: string; confirmed?: boolean },
+): { deduplicated: boolean; atom: MemoryAtom } {
+  const existing = projectConstraints(projectKey)
+  const dup = existing.find((e) => e.subject === input.subject && e.action === input.action)
+  if (dup) {
+    return { deduplicated: true, atom: { id: dup.atomId } as MemoryAtom }
+  }
+  const content = `项目约束：${input.action === 'use' ? '使用' : '不要使用'} ${input.subject}${input.reason ? `（${input.reason}）` : ''}`
+  const atom = writeProjectAtomByKey(projectKey, {
+    content,
+    type: 'sop',
+    priority: 80,
+    confirmed: input.confirmed ?? false,
+    metadata: { projectConstraint: true, subject: input.subject, action: input.action },
+  })
+  return { deduplicated: false, atom }
 }
 
 export function scenes() {

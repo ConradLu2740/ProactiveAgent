@@ -21,6 +21,8 @@ export * from './provider'
 export * from './memory/repo-extract'
 export * from './memory/ttl'
 export * from './shared-types'
+export { callLlm, getMemoryLlmConfig, isMemoryLlmConfigured } from './memory/extractor'
+export { resolveProjectKey } from './project'
 export type { ProactiveCoreOptions } from './types'
 
 export { memoryService, suggestService }

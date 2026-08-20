@@ -64,7 +64,7 @@ export function registerTools(server: McpServer): void {
       title: 'Capture a memory',
       description:
         'Explicitly store a long-term memory (takes effect immediately, enters recall). ' +
-        'Use when the user clearly expresses a preference/fact/process/correction. ' +
+        'Call immediately when the user states an explicit preference/fact/decision/correction (e.g. "以后X", "我喜欢X", "记住X", "不要X") — do not wait for wrap-up. ' +
         'Keep content concise, self-contained, and independently understandable. ' +
         'Types: fact / preference / correction / sop / todo_context / event.',
       inputSchema: {
@@ -104,8 +104,9 @@ export function registerTools(server: McpServer): void {
       title: 'Extract memories from conversation',
       description:
         'Feed recent conversation messages to the engine for automatic memory extraction (LLM or rule mode). ' +
+        'Call it yourself at conversation wrap-up or when enough dialogue has accumulated — do not wait for a host hook. ' +
         'Extracted items default to pending (anti-poisoning), confirm via memory_pending + memory_confirm. ' +
-        'Suitable for host session-end hooks or periodic extraction. Falls back to rule mode (zero external calls) when LLM is not configured.',
+        'Falls back to rule mode (zero external calls) when LLM is not configured.',
       inputSchema: {
         messages: z.array(messageSchema).min(1).max(100).describe('Conversation messages (chronological)'),
         sessionId: z.string().optional().describe('Source session ID (for traceability)'),
@@ -142,7 +143,8 @@ export function registerTools(server: McpServer): void {
       title: 'Recall memories',
       description:
         'Search long-term memories by keywords (keyword + embedding hybrid; falls back to keyword when embedding is unavailable). ' +
-        'Returns matching entries with type, importance, and similarity. Use at the start of any task to inject relevant context.',
+        'Returns matching entries with type, importance, and similarity. ' +
+        'Call at the start of a new session/task (query = current topic) to restore context; also call whenever the user references past work, project history, or personal preferences.',
       inputSchema: {
         query: z.string().min(1).describe('Search keyword/question'),
         limit: z.number().int().min(1).max(20).default(5).describe('Max results, default 5'),
@@ -176,7 +178,8 @@ export function registerTools(server: McpServer): void {
       description:
         'List automatically extracted but unconfirmed items (anti-poisoning: only enter recall after user confirmation). Two kinds:\n' +
         '1. Pending memories (atom): handle with memory_confirm / memory_reject\n' +
-        '2. Pending corrections: handle with correction_confirm / correction_reject',
+        '2. Pending corrections: handle with correction_confirm / correction_reject\n' +
+        'Call after memory_extract / memory_capture to surface what is waiting for user confirmation, and remind the user.',
       inputSchema: {},
       outputSchema: textResultSchema,
       annotations: {"readOnlyHint": true, "idempotentHint": true},
@@ -206,7 +209,7 @@ export function registerTools(server: McpServer): void {
     'memory_confirm',
         {
       title: 'Confirm memory',
-      description: 'Confirm a pending memory (enters recall; correction/preference/sop types also refresh the user persona).',
+      description: 'Confirm a pending memory (enters recall; correction/preference/sop types also refresh the user persona). Call when the user approves an item listed by memory_pending.',
       inputSchema: { id: z.string().describe('Memory ID (from memory_pending)') },
       outputSchema: textResultSchema,
       annotations: {"idempotentHint": true},
@@ -240,7 +243,7 @@ export function registerTools(server: McpServer): void {
       title: 'Get user persona',
       description:
         'Read the L3 user persona markdown (stable summary of user preferences/behavior rules). ' +
-        'Suitable for injecting into system prompts or initialization context. ' +
+        'Call at the start of a new session to load the user profile and preferences. ' +
         'Returns the merged view by default (global base persona + current project overrides, with per-line scope).',
       inputSchema: {
         scope: z.enum(READ_SCOPES).optional().describe('Read scope: auto merged (default) / project / global'),
@@ -359,6 +362,7 @@ export function registerTools(server: McpServer): void {
       title: 'Evaluate suggestions',
       description:
         'Evaluate whether a conversation excerpt deserves proactive suggestions (correction / followup / automation / skill / todo). ' +
+        'Call when the conversation shows signals worth reminding: an unfinished todo, a repeated mistake the user corrected, a follow-up promised, or an automation opportunity. ' +
         'Core principle: silence is also a skill. At most 1 per call, session budget limits, none during do-not-disturb hours. ' +
         'Returns newly created suggestions (may be empty). ' +
         'trigger: session_end (default) / session_mid (realtime, strong signals only, max 1) / manual.',

@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.11.0 (2026-08-20)「daemon 跟随模式 + 项目约束冲突提醒」
+
+- **daemon --follow <进程名>（跟随模式）**：目标应用运行时才评估 + 桌面通知，关闭即休眠（打开后自动恢复，无需重启 daemon）。解决「只在打开 Proma 开发时才需要 PA 活跃」的日常使用需求。
+  - 检测：`pgrep -f` 命令行子串匹配 + 排除自身 pid（macOS 的 comm 是完整路径，`-x` 匹配不上应用主进程——真实环境实测修复）
+  - CLI：`proactive-mcp daemon --follow Proma`；`--install --follow <名>` 自启时把跟随参数写入 launchd plist / systemd unit
+  - 测试：36/36（新增 4 用例：目标未运行休眠 / 运行正常评估通知 / 未运行→运行自动恢复 / 空名不限制）；真实启动验证通过
+- **项目约束记忆 + 冲突主动提醒（daemon --project <根>）**：项目里明确「用 pnpm」自动记住；后期出现对立指令「用 npm」→ 主动提醒「本项目已确定用 pnpm，确认切换？」。
+  - 链路（确定性）：daemon 高频巡检（默认 5 分钟）→ 增量读 Proma 会话（session-reader，只读不改写）→ LLM 提取项目约束（user 指定；仅新内容时调用，空闲零成本）→ 写入项目层记忆（默认 pending 防投毒）→ 对立词对表 + use/avoid 语义规则冲突检测 → 桌面通知（24h 同主题去重 + 独立每日上限 10）
+  - 隐私：会话原文只本机处理；LLM 提取外发到配置的 LLM（与 Proma 行为一致）；原文不进日志/通知/镜像
+  - 新文件：session-reader.ts（增量游标）/ project-constraint.ts（LLM 提取 schema + 对立词对 + 冲突判定）；core 新增项目层按 key 读写（readProjectAtomsByKey/writeProjectAtomByKey）与 projectConstraints/captureProjectConstraint
+  - 真实冒烟：约束 use pnpm + 会话「改用 npm」→ LLM 提取 use npm → 冲突命中 → 通知文案正确
+  - 测试：全仓 435/435（新增 session-reader 6 / project-constraint 15 / daemon 约束巡检 6）
+- **修复：tools.ts 两处双逗号语法错误**（`description: '...',,` → 单逗号；导致 server.test 加载失败）
+
 ## 0.10.0 (2026-08-13)「Harness 适配层 + 生态收口」
 
 - **UMP 导出格式对齐官方 SDK（互操作实测修复）**：官方 @universalmemoryprotocol/core JsonFileStore 只认记录数组（每条自带 ump 字段），旧 {ump,records} 包装被直接拒绝。导出改为官方格式 + 版本 1.0；导入兼容两种输入。实测：官方 SDK 加载 5/5、recall（带 scope.owner）全命中。

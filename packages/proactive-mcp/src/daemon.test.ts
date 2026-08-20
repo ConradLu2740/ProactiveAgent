@@ -2,48 +2,81 @@
  * Daemon 守护进程测试（mock 引擎与通知器，不弹真实通知）
  */
 
-import { rmSync, mkdirSync } from 'node:fs'
+import { rmSync, mkdirSync, writeFileSync, appendFileSync } from 'node:fs'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { join } from 'node:path'
 import {
   acquireDaemonLock,
   releaseDaemonLock,
   daemonIntervalMs,
   isProcessAlive,
+  isProcessRunning,
   pickNotifiable,
   markNotified,
   runEvaluationCycle,
+  runConstraintCycle,
   dailyNotifyLimit,
   cooldownMs,
   dailyNotifiedCount,
   bumpDailyNotified,
   todayDateString,
   personaDisturbCoefficient,
+  constraintDailyLimit,
   DAEMON_INTERVAL_DEFAULT_MIN,
   NOTIFIED_HISTORY_LIMIT,
   type DaemonState,
 } from './daemon'
+import { resetSessionCursor } from './session-reader'
+import { extractConstraintsFromSession, type ProjectConstraint } from './project-constraint'
 import type { Notifier } from './notifier'
 import { suggestService, memoryService } from '@proactive-agent/core'
 
+// mock LLM 提取（保留真实 detectConflicts / conflictKey / parse 逻辑）
+vi.mock('./project-constraint', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./project-constraint')>()
+  return { ...actual, extractConstraintsFromSession: vi.fn() }
+})
+
 const TEST_DIR = '/tmp/proactive-daemon-test'
+const TEST_SESSIONS = '/tmp/proactive-daemon-test/sessions'
+const mockedExtract = vi.mocked(extractConstraintsFromSession)
 beforeAll(() => {
   process.env.PROACTIVE_DATA_DIR = TEST_DIR
   process.env.PROMA_MEMORY_LLM_DISABLED = '1'
+  process.env.PROMA_SESSIONS_DIR = TEST_SESSIONS
   rmSync(TEST_DIR, { recursive: true, force: true })
   mkdirSync(TEST_DIR, { recursive: true })
+  mkdirSync(TEST_SESSIONS, { recursive: true })
 })
 afterAll(() => {
   rmSync(TEST_DIR, { recursive: true, force: true })
   delete process.env.PROACTIVE_DATA_DIR
   delete process.env.PROMA_MEMORY_LLM_DISABLED
+  delete process.env.PROMA_SESSIONS_DIR
 })
 beforeEach(() => {
   releaseDaemonLock()
   vi.restoreAllMocks()
-  // 清理事件目录：避免用例间事件串扰（0.6.1 pk 分组用例会写事件）
-  const { rmSync } = require('node:fs')
+  mockedExtract.mockReset()
+  resetSessionCursor()
+  // 清理事件与会话目录：避免用例间串扰
+  const { rmSync: rm } = require('node:fs')
   try {
-    rmSync(`${TEST_DIR}/events`, { recursive: true, force: true })
+    rm(`${TEST_DIR}/events`, { recursive: true, force: true })
+    rm(TEST_SESSIONS, { recursive: true, force: true })
+  } catch {
+    // 忽略
+  }
+  mkdirSync(TEST_SESSIONS, { recursive: true })
+  // 清理冲突通知记录
+  try {
+    rm(`${TEST_DIR}/conflict-notified.json`, { force: true })
+  } catch {
+    // 忽略
+  }
+  // 清理项目层记忆
+  try {
+    rm(`${TEST_DIR}/projects`, { recursive: true, force: true })
   } catch {
     // 忽略
   }
@@ -438,5 +471,168 @@ describe('评估循环', () => {
     expect(res.notified).toBe(false)
     expect(state.notifiedIds).not.toContain('s3')
     expect(state.lastNotifyAt).toBeUndefined()
+  })
+})
+
+describe('--follow 跟随模式', () => {
+  it('isProcessRunning：空名字不限制（返回 true）', () => {
+    expect(isProcessRunning('')).toBe(true)
+  })
+
+  it('目标进程未运行 → 本轮休眠：不评估、不通知、不吞建议', async () => {
+    const evaluateMock = vi.spyOn(suggestService, 'evaluateNow').mockResolvedValue([] as never)
+    vi.spyOn(suggestService, 'listSuggestionsForUI').mockReturnValue([
+      { id: 'follow1', kind: 'todo', title: 'Proma 未开时的建议', reason: 'r', status: 'suggested' } as never,
+    ])
+    vi.spyOn(suggestService, 'dndActive').mockReturnValue(false)
+    const { impl, shown } = fakeNotifier()
+    const state = fakeState()
+    const res = await runEvaluationCycle(state, {
+      port: 8737,
+      notifierImpl: impl,
+      follow: 'Proma',
+      followCheck: () => false, // 模拟 Proma 未运行
+    })
+    expect(res).toEqual({ notified: false, evaluated: false })
+    expect(evaluateMock).not.toHaveBeenCalled()
+    expect(shown.length).toBe(0)
+    // 建议保留（未标记已通知）
+    expect(state.notifiedIds).not.toContain('follow1')
+  })
+
+  it('目标进程运行 → 正常评估与通知', async () => {
+    vi.spyOn(suggestService, 'listSuggestionsForUI').mockReturnValue([
+      { id: 'follow2', kind: 'todo', title: 'Proma 开着，正常提醒', reason: 'r', status: 'suggested' } as never,
+    ])
+    vi.spyOn(suggestService, 'dndActive').mockReturnValue(false)
+    delete process.env.PROACTIVE_DAEMON_DAILY_LIMIT
+    delete process.env.PROACTIVE_DAEMON_COOLDOWN_MIN
+    const { impl, shown } = fakeNotifier()
+    const state = fakeState()
+    const res = await runEvaluationCycle(state, {
+      port: 8737,
+      notifierImpl: impl,
+      follow: 'Proma',
+      followCheck: () => true, // 模拟 Proma 运行中
+    })
+    expect(res.notified).toBe(true)
+    expect(shown.length).toBe(1)
+    expect(state.notifiedIds).toContain('follow2')
+  })
+
+  it('目标进程由未运行变为运行 → 自动恢复（无需重启 daemon）', async () => {
+    const evaluateMock = vi.spyOn(suggestService, 'evaluateNow').mockResolvedValue([] as never)
+    vi.spyOn(suggestService, 'listSuggestionsForUI').mockReturnValue([])
+    vi.spyOn(suggestService, 'dndActive').mockReturnValue(false)
+    const { impl } = fakeNotifier()
+    const state = fakeState()
+    let running = false
+    // 第一轮：未运行 → 休眠（不评估）
+    const r1 = await runEvaluationCycle(state, {
+      port: 8737, notifierImpl: impl, follow: 'Proma', followCheck: () => running,
+    })
+    expect(r1).toEqual({ notified: false, evaluated: false })
+    // 用户打开 Proma → 下一轮自动恢复（走正常评估流程，不进入休眠分支）
+    running = true
+    const r2 = await runEvaluationCycle(state, {
+      port: 8737, notifierImpl: impl, follow: 'Proma', followCheck: () => running,
+    })
+    expect(r2.evaluated).toBe(true)
+    expect(r2.notified).toBe(false) // 无候选建议，该沉默时沉默
+  })
+})
+
+describe('runConstraintCycle 项目约束巡检', () => {
+  function writeSession(file: string, lines: string[]): void {
+    const fs = require('node:fs')
+    fs.writeFileSync(
+      join(TEST_SESSIONS, file),
+      lines.map((l) => JSON.stringify({ type: 'user', message: { content: [{ type: 'text', text: l }] } })).join('\n') + '\n',
+      'utf-8',
+    )
+  }
+  const projects = [{ key: 'path:test', name: 'TestProj' }]
+
+  it('无新会话 → 不调 LLM、零冲突', async () => {
+    const { impl, shown } = fakeNotifier()
+    const r = await runConstraintCycle({ notifierImpl: impl, port: 8737, projects })
+    expect(mockedExtract).not.toHaveBeenCalled()
+    expect(r.conflicts).toEqual([])
+    expect(shown.length).toBe(0)
+  })
+
+  it('新会话提到 use npm，项目已有 use pnpm → 冲突并通知', async () => {
+    memoryService.captureProjectConstraint('path:test', { action: 'use', subject: 'pnpm', confirmed: true })
+    writeSession('s1.jsonl', ['项目统一用 pnpm', '这次我们用 npm 装一下'])
+    mockedExtract.mockResolvedValue({
+      relevant: true,
+      constraints: [{ action: 'use', subject: 'npm', confidence: 0.9 }],
+    })
+    const { impl, shown } = fakeNotifier()
+    const r = await runConstraintCycle({ notifierImpl: impl, port: 8737, projects })
+    expect(r.conflicts).toHaveLength(1)
+    expect(r.conflicts[0]?.existing.subject).toBe('pnpm')
+    expect(r.conflicts[0]?.incoming.subject).toBe('npm')
+    expect(r.notified).toBe(1)
+    expect(shown[0]?.title).toContain('项目约束冲突')
+    expect(shown[0]?.body).toContain('pnpm')
+    expect(shown[0]?.body).toContain('npm')
+  })
+
+  it('relevant=false（会话与本项目无关）→ 不提取不通知', async () => {
+    writeSession('s2.jsonl', ['今天天气不错'])
+    mockedExtract.mockResolvedValue({ relevant: false, constraints: [] })
+    const { impl, shown } = fakeNotifier()
+    const r = await runConstraintCycle({ notifierImpl: impl, port: 8737, projects })
+    expect(r.conflicts).toEqual([])
+    expect(shown.length).toBe(0)
+  })
+
+  it('24h 同主题去重：已通知的冲突不重复提醒', async () => {
+    memoryService.captureProjectConstraint('path:test', { action: 'use', subject: 'pnpm', confirmed: true })
+    writeSession('s3.jsonl', ['用 npm 吧'])
+    mockedExtract.mockResolvedValue({
+      relevant: true,
+      constraints: [{ action: 'use', subject: 'npm', confidence: 0.9 }],
+    })
+    const { impl, shown } = fakeNotifier()
+    const r1 = await runConstraintCycle({ notifierImpl: impl, port: 8737, projects })
+    expect(r1.notified).toBe(1)
+    // 下一轮相同冲突（新会话内容，同 key）→ 去重不通知
+    writeSession('s4.jsonl', ['还是用 npm'])
+    const r2 = await runConstraintCycle({ notifierImpl: impl, port: 8737, projects })
+    expect(r2.conflicts).toHaveLength(1)
+    expect(r2.notified).toBe(0)
+    expect(shown.length).toBe(1)
+  })
+
+  it('每日上限：limit=1 时两条冲突只通知 1 条', async () => {
+    process.env.PROACTIVE_CONSTRAINT_DAILY_LIMIT = '1'
+    try {
+      memoryService.captureProjectConstraint('path:test', { action: 'use', subject: 'pnpm', confirmed: true })
+      memoryService.captureProjectConstraint('path:test', { action: 'use', subject: 'typescript', confirmed: true })
+      writeSession('s5.jsonl', ['用 npm，改用 js'])
+      mockedExtract.mockResolvedValue({
+        relevant: true,
+        constraints: [
+          { action: 'use', subject: 'npm', confidence: 0.9 },
+          { action: 'use', subject: 'js', confidence: 0.8 },
+        ],
+      })
+      const { impl, shown } = fakeNotifier()
+      const r = await runConstraintCycle({ notifierImpl: impl, port: 8737, projects })
+      expect(r.conflicts).toHaveLength(2)
+      expect(r.notified).toBe(1)
+      expect(shown.length).toBe(1)
+    } finally {
+      delete process.env.PROACTIVE_CONSTRAINT_DAILY_LIMIT
+    }
+  })
+
+  it('constraintDailyLimit 默认 10，env 可覆盖', () => {
+    expect(constraintDailyLimit()).toBe(10)
+    process.env.PROACTIVE_CONSTRAINT_DAILY_LIMIT = '3'
+    expect(constraintDailyLimit()).toBe(3)
+    delete process.env.PROACTIVE_CONSTRAINT_DAILY_LIMIT
   })
 })

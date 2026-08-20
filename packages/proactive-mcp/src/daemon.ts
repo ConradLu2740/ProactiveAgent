@@ -18,16 +18,31 @@
  */
 
 import { existsSync, readFileSync, writeFileSync, mkdirSync, rmSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
 import { join } from 'node:path'
-import { suggestService, memoryService, getConfigDir } from '@proactive-agent/core'
+import { suggestService, memoryService, getConfigDir, resolveProjectKey } from '@proactive-agent/core'
 import { startTodayServer } from './today'
 import { notifier, createNotifier, type Notifier } from './notifier'
 import { readRecentAgentEvents, eventsToMessages, recordNotification, type AgentEvent } from './event-store'
+import { readSessionDeltas } from './session-reader'
+import {
+  extractConstraintsFromSession,
+  detectConflicts,
+  conflictKey,
+  type ProjectConstraint,
+  type ProjectConflict,
+} from './project-constraint'
 
 export const DAEMON_INTERVAL_DEFAULT_MIN = 60
 export const NOTIFIED_HISTORY_LIMIT = 200
 export const DAILY_NOTIFY_LIMIT_DEFAULT = 6
 export const COOLDOWN_MIN_DEFAULT = 15
+/** 项目约束高频巡检间隔（默认 5 分钟） */
+export const CONSTRAINT_INTERVAL_DEFAULT_MIN = 5
+/** 冲突提醒每日上限（默认 10） */
+export const CONSTRAINT_DAILY_LIMIT_DEFAULT = 10
+/** 同主题冲突去重窗口（默认 24h） */
+export const CONSTRAINT_DEDUP_HOURS = 24
 
 export interface DaemonState {
   version: 1
@@ -93,6 +108,38 @@ export function isProcessAlive(pid: number): boolean {
     return true
   } catch {
     return false
+  }
+}
+
+/**
+ * 目标进程是否正在运行（--follow 模式用；按命令行子串匹配，如 `Proma`）。
+ * 安全降级：pgrep 不可用（非 darwin/linux）→ 不限制（返回 true）；
+ * pgrep 退出码 1 = 无匹配进程 → false；其他错误 → 不限制。
+ * 注意：用 -f（匹配完整命令行）而非 -x（精确进程名）——macOS 的 comm 是完整路径，
+ * -x 匹配不上应用主进程（如 /Applications/Proma.app/...）；且 -f 会匹配到本 daemon
+ * 自身（命令行含 --follow <name>），因此必须排除自身 pid。
+ */
+export function isProcessRunning(name: string): boolean {
+  if (!name || name.length === 0) return true
+  try {
+    const out = execFileSync('pgrep', ['-f', name], {
+      encoding: 'utf-8',
+      timeout: 3000,
+      stdio: ['ignore', 'pipe', 'ignore'],
+    })
+    const pids = out
+      .trim()
+      .split('\n')
+      .filter(Boolean)
+      .map((line) => Number(line.trim()))
+      .filter((pid) => Number.isFinite(pid) && pid !== process.pid)
+    return pids.length > 0
+  } catch (error) {
+    const code = (error as { status?: number }).status
+    // pgrep 未找到 → 退出码 1 → 进程未运行
+    if (code === 1) return false
+    // pgrep 本身不可用 / 超时 → 不限制（避免误休眠）
+    return true
   }
 }
 
@@ -243,10 +290,17 @@ export interface DaemonRunOptions {
   notifierOverride?: Notifier
   /** 单次评估循环，测试用 */
   runOnce?: boolean
+  /** --follow 跟随模式：目标进程名（如 Proma）。目标未运行时休眠（不评估不通知），打开后自动活跃 */
+  follow?: string
+  /** 进程检测注入（测试用），默认 pgrep -x <name> */
+  followCheck?: (name: string) => boolean
+  /** 项目约束巡检：项目根路径列表（--project，可多次） */
+  projects?: string[]
 }
 
 /**
  * 执行一轮巡检 + 通知（0.6：真定时评估，完成 P0-1 遗留）：
+ * - --follow 跟随模式：目标进程未运行 → 本轮休眠（不评估不通知，建议保留）
  * - 读取最近跨工具事件（events/）构造 messages → evaluateNow(trigger:'timer')
  * - 有事件则真评估；无事件（新装/无 hooks）则纯巡检 suggested 池（0.5 兜底）
  * - DND 时段跳过通知但**不标记**（建议保留，DND 结束后下一轮弹出，不吞建议）
@@ -255,9 +309,18 @@ export interface DaemonRunOptions {
  */
 export async function runEvaluationCycle(
   state: DaemonState,
-  options: { port: number; notifierImpl: Notifier },
+  options: { port: number; notifierImpl: Notifier; follow?: string; followCheck?: (name: string) => boolean },
 ): Promise<{ notified: boolean; evaluated: boolean }> {
   state.lastRunAt = Date.now()
+  // --follow：目标进程未运行 → 休眠（打开目标应用后自动恢复，无需重启 daemon）
+  if (options.follow) {
+    const check = options.followCheck ?? isProcessRunning
+    if (!check(options.follow)) {
+      console.error(`[daemon] 跟随模式：目标进程「${options.follow}」未运行，本轮休眠（打开后自动活跃）`)
+      writeState(state)
+      return { notified: false, evaluated: false }
+    }
+  }
   // 0.6.1：事件按 pk 分组评估——各项目会话只产生各自项目的建议（不串味）
   try {
     const events = readRecentAgentEvents(60)
@@ -338,6 +401,161 @@ export async function runEvaluationCycle(
   return { notified: true, evaluated: true }
 }
 
+// ===== 项目约束冲突：去重 + 每日配额（2026-08-20） =====
+
+interface ConflictNotifiedEntry {
+  key: string
+  at: number
+}
+
+function conflictNotifiedPath(): string {
+  return join(getConfigDir(), 'conflict-notified.json')
+}
+
+/** 读取 24h 窗口内的已通知冲突记录 */
+function readConflictNotified(now: number): ConflictNotifiedEntry[] {
+  try {
+    const p = conflictNotifiedPath()
+    if (!existsSync(p)) return []
+    const data = JSON.parse(readFileSync(p, 'utf-8')) as ConflictNotifiedEntry[]
+    const cutoff = now - CONSTRAINT_DEDUP_HOURS * 3600_000
+    return Array.isArray(data) ? data.filter((e) => typeof e.key === 'string' && e.at >= cutoff) : []
+  } catch {
+    return []
+  }
+}
+
+/** 过滤 24h 内已通知过的冲突（只读，不写存储） */
+export function filterUnnotifiedConflicts(conflicts: ProjectConflict[], now = Date.now()): ProjectConflict[] {
+  const notified = readConflictNotified(now)
+  return conflicts.filter((c) => !notified.some((e) => e.key === conflictKey(c)))
+}
+
+/** 通知成功后记录（供 24h 去重 + 每日上限统计） */
+export function recordConflictNotified(key: string, at = Date.now()): void {
+  try {
+    const entries = readConflictNotified(at)
+    entries.push({ key, at })
+    mkdirSync(getConfigDir(), { recursive: true })
+    writeFileSync(conflictNotifiedPath(), JSON.stringify(entries), 'utf-8')
+  } catch {
+    // 记录失败不阻断（下轮可能重复提醒，可接受）
+  }
+}
+
+/** 冲突提醒每日上限（env 可覆盖，默认 10） */
+export function constraintDailyLimit(): number {
+  const raw = Number(process.env.PROACTIVE_CONSTRAINT_DAILY_LIMIT ?? CONSTRAINT_DAILY_LIMIT_DEFAULT)
+  return Number.isFinite(raw) && raw >= 1 ? Math.floor(raw) : CONSTRAINT_DAILY_LIMIT_DEFAULT
+}
+
+/** 当日已通知冲突数（跨天自动归零） */
+export function conflictNotifiedTodayCount(now = Date.now()): number {
+  const today = todayDateString(new Date(now))
+  return readConflictNotified(now).filter((e) => todayDateString(new Date(e.at)) === today).length
+}
+
+/** 项目约束高频巡检间隔毫秒（env 可覆盖，1~1440 分钟） */
+export function constraintIntervalMs(): number {
+  const raw = Number(process.env.PROACTIVE_CONSTRAINT_INTERVAL_MIN ?? CONSTRAINT_INTERVAL_DEFAULT_MIN)
+  if (!Number.isFinite(raw) || raw < 1) return CONSTRAINT_INTERVAL_DEFAULT_MIN * 60_000
+  return Math.min(1440, Math.max(1, Math.floor(raw))) * 60_000
+}
+
+// ===== 项目约束巡检 =====
+
+export interface ConstraintCycleOptions {
+  notifierImpl: Notifier
+  port: number
+  projects: Array<{ key: string; name: string }>
+  at?: number
+}
+
+export interface ConstraintCycleResult {
+  /** 实际通知条数 */
+  notified: number
+  /** 检测到的全部冲突（含已去重/达上限未通知的） */
+  conflicts: ProjectConflict[]
+  errors: string[]
+}
+
+/**
+ * 一轮项目约束巡检（确定性触发）：
+ * - 增量读 Proma 会话（只读新增）
+ * - LLM 提取项目约束 → 写入项目层（pending）
+ * - 规则冲突检测（对立词对 + use/avoid 语义）
+ * - 命中冲突 → 桌面通知（24h 同主题去重 + 独立每日上限）
+ * 空闲（无新会话）零 LLM 调用。
+ */
+export async function runConstraintCycle(opts: ConstraintCycleOptions): Promise<ConstraintCycleResult> {
+  const at = opts.at ?? Date.now()
+  const { deltas, errors } = readSessionDeltas()
+  if (deltas.length === 0) return { notified: 0, conflicts: [], errors }
+
+  const allConflicts: ProjectConflict[] = []
+  for (const delta of deltas) {
+    for (const proj of opts.projects) {
+      try {
+        const result = await extractConstraintsFromSession(delta.messages, proj.name)
+        if (!result || !result.relevant || result.constraints.length === 0) continue
+        // 写入项目层约束（默认 pending 防投毒；同 subject+action 去重）
+        for (const c of result.constraints) {
+          try {
+            memoryService.captureProjectConstraint(proj.key, {
+              action: c.action,
+              subject: c.subject,
+              reason: c.reason,
+              confirmed: false,
+            })
+          } catch (error) {
+            errors.push(`约束写入失败: ${error instanceof Error ? error.message : String(error)}`)
+          }
+        }
+        // 冲突检测（含本项目已有约束，pending 也参与）
+        const existing = memoryService.projectConstraints(proj.key)
+        const conflicts = detectConflicts(result.constraints, existing, {
+          projectKey: proj.key,
+          projectName: proj.name,
+          at,
+        })
+        allConflicts.push(...conflicts)
+      } catch (error) {
+        errors.push(`约束巡检失败: ${error instanceof Error ? error.message : String(error)}`)
+      }
+    }
+  }
+
+  if (allConflicts.length === 0) return { notified: 0, conflicts: allConflicts, errors }
+
+  // DND：不打扰，保留未记录（下轮重试）
+  if (suggestService.dndActive()) {
+    return { notified: 0, conflicts: allConflicts, errors }
+  }
+
+  const fresh = filterUnnotifiedConflicts(allConflicts, at)
+  const limit = constraintDailyLimit()
+  const usedToday = conflictNotifiedTodayCount(at)
+  let notified = 0
+  for (const c of fresh) {
+    if (usedToday + notified >= limit) break
+    const res = await opts.notifierImpl.show({
+      title: '主动建议 · 项目约束冲突',
+      body:
+        `${c.projectName} 项目已确定：${c.existing.action === 'use' ? '使用' : '不要使用'} ${c.existing.subject}` +
+        `（${new Date(c.existing.decidedAt).toLocaleDateString()}）\n` +
+        `刚才会话提到：${c.incoming.action === 'use' ? '使用' : '不要使用'} ${c.incoming.subject}\n` +
+        '确认切换，还是维持原方案？',
+      url: `http://127.0.0.1:${opts.port}/today`,
+    })
+    if (res.ok) {
+      recordConflictNotified(conflictKey(c), at)
+      notified += 1
+      console.error(`[daemon] 已通知项目约束冲突: ${c.projectName} ${c.existing.subject} ↔ ${c.incoming.subject}`)
+    }
+  }
+  return { notified, conflicts: allConflicts, errors }
+}
+
 /** 常驻主循环（前台运行；自启用 launchd/systemd 托管） */
 export async function runDaemon(options: DaemonRunOptions = {}): Promise<void> {
   const lock = acquireDaemonLock()
@@ -353,11 +571,26 @@ export async function runDaemon(options: DaemonRunOptions = {}): Promise<void> {
     process.exit(1)
   }
   const notifierImpl = options.notifierOverride ?? notifier
+  const follow = options.follow
+  const followCheck = options.followCheck
+
+  // 项目约束巡检：解析 --project 根路径 → 项目 key/name
+  const projects: Array<{ key: string; name: string }> = []
+  for (const root of options.projects ?? []) {
+    try {
+      const id = resolveProjectKey({ cwd: root })
+      projects.push({ key: id.key, name: id.displayName })
+    } catch (error) {
+      console.error(`[daemon] 项目解析失败（跳过）: ${root} (${error instanceof Error ? error.message : String(error)})`)
+    }
+  }
 
   // 主动中心控制面（/api/today、/api/evaluate、面板）
   startTodayServer(port)
 
-  console.error(`[daemon] ProactiveAgent daemon 已启动（pid=${process.pid}，评估间隔 ${Math.round(daemonIntervalMs() / 60000)} 分钟，面板 http://127.0.0.1:${port}/today）`)
+  console.error(
+    `[daemon] ProactiveAgent daemon 已启动（pid=${process.pid}，评估间隔 ${Math.round(daemonIntervalMs() / 60000)} 分钟，面板 http://127.0.0.1:${port}/today${follow ? `，跟随进程 ${follow}` : ''}${projects.length > 0 ? `，约束巡检 ${projects.map((p) => p.name).join(', ')}（${Math.round(constraintIntervalMs() / 60000)} 分钟）` : ''}）`,
+  )
 
   // 优雅关闭：清理 pid 锁再退出
   const shutdown = (signal: NodeJS.Signals) => {
@@ -369,9 +602,28 @@ export async function runDaemon(options: DaemonRunOptions = {}): Promise<void> {
   process.once('SIGINT', shutdown)
 
   const loop = async (): Promise<void> => {
-    await runEvaluationCycle(state, { port, notifierImpl })
+    await runEvaluationCycle(state, { port, notifierImpl, follow, followCheck })
     if (options.runOnce) return
     setTimeout(loop, daemonIntervalMs()).unref()
   }
-  await loop()
+  // 项目约束高频巡检（与主评估并行；无 --project 时跳过）
+  const constraintLoop = async (): Promise<void> => {
+    if (projects.length > 0) {
+      try {
+        const r = await runConstraintCycle({ notifierImpl, port, projects })
+        if (r.conflicts.length > 0) {
+          console.error(`[daemon] 约束巡检: ${r.conflicts.length} 处冲突，通知 ${r.notified} 条`)
+        }
+        if (r.errors.length > 0) console.error(`[daemon] 约束巡检错误: ${r.errors.slice(0, 3).join('; ')}`)
+      } catch (error) {
+        console.error(`[daemon] 约束巡检异常: ${error instanceof Error ? error.message : String(error)}`)
+      }
+    }
+    if (options.runOnce) return
+    setTimeout(constraintLoop, constraintIntervalMs()).unref()
+  }
+  // 两个循环并行（主评估 60 分钟 + 约束巡检 5 分钟）；runOnce 时各跑一次后结束
+  const tasks: Array<Promise<void>> = [loop()]
+  if (projects.length > 0) tasks.push(constraintLoop())
+  await Promise.all(tasks)
 }

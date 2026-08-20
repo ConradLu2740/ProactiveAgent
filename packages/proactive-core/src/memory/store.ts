@@ -42,7 +42,7 @@ import {
   getCorrectionsPath,
   getMemoryLogDir,
 } from '../paths'
-import { currentLayerKey, GLOBAL_KEY, isEscapeGlobal, isSingleLayerMode, getGlobalMemoryRootDir } from '../project'
+import { currentLayerKey, GLOBAL_KEY, isEscapeGlobal, isSingleLayerMode, getGlobalMemoryRootDir, getProjectMemoryRootDir } from '../project'
 import { readJsonFileSafe, writeJsonFileAtomic, writeTextFileAtomic } from '../safe-file'
 import { readArchivedCount } from './ttl'
 import type {
@@ -266,6 +266,50 @@ export function writeAtom(
 }
 
 /** 读取单层全部 L1 atoms（跨天文件，按创建时间倒序） */
+/** 指定项目层的 atoms 目录（按 key，不依赖 currentLayerKey） */
+export function getProjectAtomsDirByKey(projectKey: string): string {
+  return join(getProjectMemoryRootDir(projectKey), 'atoms')
+}
+
+/** 按指定项目 key 读 atoms（daemon 多项目约束巡检用） */
+export function readProjectAtomsByKey(projectKey: string, opts: { includeUnconfirmed?: boolean } = {}): MemoryAtom[] {
+  return readLayerAtoms(getProjectAtomsDirByKey(projectKey), opts).map((a) => ({ ...a, scope: 'project' as const }))
+}
+
+/** 按指定项目 key 写 atom（写指定项目层，不依赖 currentLayerKey） */
+export function writeProjectAtomByKey(
+  projectKey: string,
+  atom: Omit<MemoryAtom, 'id' | 'createdAt' | 'updatedAt' | 'confirmed'> & { id?: string; confirmed?: boolean },
+): MemoryAtom {
+  const now = Date.now()
+  const full: MemoryAtom = {
+    ...atom,
+    id: atom.id ?? generateAtomId(),
+    createdAt: now,
+    updatedAt: now,
+    confirmed: atom.confirmed ?? (atom.type !== 'correction'),
+    fingerprint: atom.fingerprint ?? fingerprintContent(atom.content),
+    scope: 'project',
+  }
+  const atomsDir = getProjectAtomsDirByKey(projectKey)
+  if (!existsSync(atomsDir)) mkdirSync(atomsDir, { recursive: true })
+  const filePath = join(atomsDir, localDateKey() + '.jsonl')
+  const line = JSON.stringify(full)
+  const content = (existsSync(filePath) ? readFileSync(filePath, 'utf-8') : '') + line + '\n'
+  const tmpPath = filePath + '.tmp'
+  writeFileSync(tmpPath, content, 'utf-8')
+  try {
+    // POSIX rename 原子替换
+    renameSync(tmpPath, filePath)
+  } catch (error) {
+    console.error('[Memory] 写入 atom 失败:', error)
+    throw new Error('写入记忆条目失败')
+  }
+  // M9：数据变更后使倒排索引缓存失效
+  resetIndexCache()
+  return full
+}
+
 function readLayerAtoms(layerRoot: string, opts: { includeUnconfirmed?: boolean } = {}): MemoryAtom[] {
   if (!existsSync(layerRoot)) return []
   const atoms: MemoryAtom[] = []

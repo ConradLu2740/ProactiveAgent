@@ -3,6 +3,8 @@
  *
  * 用法：
  *   proactive-mcp daemon                # 前台运行（调试 / 手动）
+ *   proactive-mcp daemon --follow <名>  # 跟随模式：目标应用运行才活跃（如 Proma）
+ *   proactive-mcp daemon --project <根> # 项目约束巡检：项目根路径（可多次）
  *   proactive-mcp daemon --install      # 安装自启（macOS launchd / Linux systemd user）
  *   proactive-mcp daemon --uninstall    # 移除自启
  *   proactive-mcp daemon --status       # 运行状态
@@ -98,7 +100,13 @@ function entryScript(): string {
   return process.argv[1] ?? join(process.cwd(), 'packages/proactive-mcp/src/index.ts')
 }
 
-function installLaunchd(): number {
+function installLaunchd(follow?: string, projects: string[] = []): number {
+  const followArgs = follow ? `    <string>--follow</string>
+    <string>${follow}</string>
+` : ''
+  const projectArgs = projects.map((p) => `    <string>--project</string>
+    <string>${p}</string>
+`).join('')
   const plist = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -110,7 +118,7 @@ function installLaunchd(): number {
     <string>${process.execPath}</string>
     <string>${entryScript()}</string>
     <string>daemon</string>
-  </array>
+${followArgs}${projectArgs}  </array>
   <key>RunAtLoad</key>
   <true/>
   <key>KeepAlive</key>
@@ -159,14 +167,16 @@ function uninstallLaunchd(): number {
   }
 }
 
-function installSystemd(): number {
+function installSystemd(follow?: string, projects: string[] = []): number {
+  const followArgs = follow ? ` --follow ${follow}` : ''
+  const projectArgs = projects.map((p) => ` --project ${p}`).join('')
   const unit = `[Unit]
 Description=ProactiveAgent daemon
 After=network.target
 
 [Service]
 Type=simple
-ExecStart=${process.execPath} ${entryScript()} daemon
+ExecStart=${process.execPath} ${entryScript()} daemon${followArgs}${projectArgs}
 Restart=on-failure
 RestartSec=10
 
@@ -204,12 +214,50 @@ function uninstallSystemd(): number {
   }
 }
 
+/** 从 argv 解析 --follow <进程名>（可出现在任意位置） */
+function parseFollow(argv: string[]): string | undefined {
+  const idx = argv.indexOf('--follow')
+  if (idx === -1) return undefined
+  const name = argv[idx + 1]
+  if (!name || name.startsWith('--')) {
+    console.error('daemon: --follow 需要一个进程名（如 --follow Proma）')
+    return undefined
+  }
+  return name
+}
+
+/** 从 argv 解析 --project <根路径>（可多次） */
+function parseProjects(argv: string[]): string[] {
+  const projects: string[] = []
+  for (let i = 0; i < argv.length; i++) {
+    if (argv[i] === '--project' && argv[i + 1] && !argv[i + 1].startsWith('--')) {
+      projects.push(argv[i + 1])
+      i += 1
+    }
+  }
+  return projects
+}
+
+/** 真正的 flag（排除 --follow/--project 及其取值） */
+function mainFlag(argv: string[]): string | undefined {
+  return argv.find(
+    (a, i) =>
+      a.startsWith('--') &&
+      a !== '--follow' &&
+      a !== '--project' &&
+      argv[i - 1] !== '--follow' &&
+      argv[i - 1] !== '--project',
+  )
+}
+
 /** CLI 入口：返回进程退出码 */
 export async function runDaemonCli(argv: string[]): Promise<number> {
-  const flag = argv[1]
+  const follow = parseFollow(argv)
+  const projects = parseProjects(argv)
+  const flag = mainFlag(argv)
   if (flag === '--install') {
-    if (process.platform === 'darwin') return installLaunchd()
-    if (process.platform === 'linux') return installSystemd()
+    if (process.platform === 'darwin') return installLaunchd(follow, projects)
+    if (process.platform === 'linux') return installSystemd(follow, projects)
     console.error('daemon: 当前平台暂不支持自启安装（darwin/linux 支持）')
     return 1
   }
@@ -222,10 +270,10 @@ export async function runDaemonCli(argv: string[]): Promise<number> {
   if (flag === '--status') return printStatus()
   if (flag === '--stop') return stopDaemon()
   if (flag !== undefined && flag !== '--start') {
-    console.error(`daemon: 未知参数 ${flag}（可用: --install / --uninstall / --status / --stop / --start）`)
+    console.error(`daemon: 未知参数 ${flag}（可用: --install / --uninstall / --status / --stop / --start / --follow <进程名> / --project <根路径>）`)
     return 1
   }
   // 默认：前台运行
-  await runDaemon()
+  await runDaemon(follow || projects.length > 0 ? { follow, projects } : {})
   return 0
 }
